@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm create:*)",
+      "Bash(npm search:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(python3 -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\(p.get\\('main',''\\), p.get\\('module',''\\), p.get\\('exports',''\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\('main:', p.get\\('main'\\)\\); print\\('module:', p.get\\('module'\\)\\); e=p.get\\('exports',{}\\); print\\('exports:', json.dumps\\(e, indent=2\\)[:300]\\)\")",
+      "Bash(xargs cat:*)",
+      "Bash(npm run:*)",
+      "Bash(timeout 5 node index.js)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(pkill -f \"node --watch index.js\")",
+      "Bash(pkill -f \"vite\")",
+      "Bash(gh repo:*)"
+    ]
+  }
+}

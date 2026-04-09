@@ -1,0 +1,25 @@
+{
+  "name": "مصنع المضيان",
+  "short_name": "المضيان",
+  "description": "إدارة صيانة المجوهرات",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#16120D",
+  "theme_color": "#C9A84C",
+  "dir": "rtl",
+  "lang": "ar",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "mudhiyan-workshop-server",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  }
+}
