@@ -48,7 +48,7 @@ async function drawCustomerLabel(canvas, order) {
 
   // QR code
   try {
-    const { ip, port } = await getConfig();
+    const { ip, port, protocol } = await getConfig();
     if (ip === "localhost" || ip === "127.0.0.1") {
       ctx.font = "bold 9px Arial";
       ctx.fillStyle = "#CC0000";
@@ -58,7 +58,9 @@ async function drawCustomerLabel(canvas, order) {
       return;
     }
 
-    const trackUrl = `http://${ip}:${port}/track/${order.customer_token}`;
+    const proto = protocol || "http";
+    const portPart = (proto === "https" && port === 443) || (proto === "http" && port === 80) ? "" : `:${port}`;
+    const trackUrl = `${proto}://${ip}${portPart}/track/${order.customer_token}`;
     const qrCanvas = document.createElement("canvas");
     await QRCode.toCanvas(qrCanvas, trackUrl, {
       width: 110, margin: 1,

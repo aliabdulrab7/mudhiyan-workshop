@@ -18,18 +18,26 @@ function getLanIP() {
   return 'localhost';
 }
 
+const ALLOWED_ORIGIN = process.env.PUBLIC_HOST
+  ? new RegExp(`^https?://${process.env.PUBLIC_HOST.replace('.', '\\.')}(:\\d+)?$`)
+  : null;
+
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$/.test(origin)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Not allowed by CORS'));
-    }
+    if (!origin) return cb(null, true);
+    if (ALLOWED_ORIGIN && ALLOWED_ORIGIN.test(origin)) return cb(null, true);
+    if (/^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$/.test(origin)) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
   }
 }));
 app.use(express.json());
 
-app.get('/api/config', (_req, res) => res.json({ ip: getLanIP(), port: 5173 }));
+app.get('/api/config', (_req, res) => {
+  if (process.env.PUBLIC_HOST) {
+    return res.json({ ip: process.env.PUBLIC_HOST, port: 443, protocol: 'https' });
+  }
+  res.json({ ip: getLanIP(), port: 5173 });
+});
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 app.use('/api/auth',   authRouter);
