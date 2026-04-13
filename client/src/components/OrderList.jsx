@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getOrders, updateOrderStatus } from '../api/orders';
 import StatusBadge, { STATUS } from './StatusBadge';
 import { useNavigate } from 'react-router-dom';
+import { getRole } from '../api/auth';
 
 function useMobile() {
   const [mobile, setMobile] = React.useState(window.innerWidth < 768);
@@ -14,11 +15,12 @@ function useMobile() {
 }
 
 const FILTERS = [
-  { value: 'all',         label: 'الكل' },
-  { value: 'received',    label: 'مستلمة' },
-  { value: 'in_progress', label: 'قيد العمل' },
-  { value: 'ready',       label: 'جاهزة' },
-  { value: 'delivered',   label: 'تم التسليم' },
+  { value: 'all',              label: 'الكل' },
+  { value: 'received',         label: 'مستلمة' },
+  { value: 'pending_approval', label: 'بانتظار الموافقة' },
+  { value: 'in_progress',      label: 'قيد العمل' },
+  { value: 'ready',            label: 'جاهزة' },
+  { value: 'delivered',        label: 'تم التسليم' },
 ];
 
 export default function OrderList({ refresh }) {
@@ -28,6 +30,7 @@ export default function OrderList({ refresh }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const isMobile = useMobile();
+  const isWorkshop = getRole() === 'workshop';
 
   useEffect(() => {
     setLoading(true);
@@ -54,13 +57,11 @@ export default function OrderList({ refresh }) {
   }
 
   const nextStatus = {
-    received: 'in_progress',
     in_progress: 'ready',
     ready: 'delivered',
   };
 
   const nextLabel = {
-    received: 'بدء العمل',
     in_progress: 'تعيين جاهزة',
     ready: 'تسليم',
   };
@@ -141,7 +142,7 @@ export default function OrderList({ refresh }) {
                 {order.piece_type}{order.notes ? ` — ${order.notes.slice(0, 40)}` : ''} · {formatDate(order.created_at)}
               </div>
               <div style={{ display: 'flex', gap: '6px' }}>
-                {nextStatus[order.status] && (
+                {isWorkshop && nextStatus[order.status] && (
                   <button
                     className={isMobile ? 'btn-ghost mobile-status-btn' : 'btn-ghost-sm'}
                     onClick={() => changeStatus(order.id, nextStatus[order.status])}
@@ -223,7 +224,7 @@ export default function OrderList({ refresh }) {
               <StatusBadge status={order.status} />
 
               <div style={{ display: 'flex', gap: '6px' }}>
-                {nextStatus[order.status] && (
+                {isWorkshop && nextStatus[order.status] && (
                   <button
                     className="btn-ghost-sm"
                     onClick={() => changeStatus(order.id, nextStatus[order.status])}
