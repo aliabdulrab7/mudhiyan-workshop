@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import StatusBadge from './StatusBadge';
+import CostEditor from './CostEditor';
 import { updateOrderStatus } from '../api/orders';
+import { getRole } from '../api/auth';
 
 function useMobile() {
   const [mobile, setMobile] = React.useState(window.innerWidth < 768);
@@ -12,7 +14,15 @@ function useMobile() {
   return mobile;
 }
 
-function buildWhatsAppUrl(phone, orderNumber, customerName) {
+function buildApprovalWaUrl(phone, customerName, cost, trackingUrl) {
+  const message =
+    `السلام عليكم ${customerName}،\n\n` +
+    `تم تقييم قطعتك وتكلفة الإصلاح: ${cost} ريال.\n` +
+    `للموافقة على السعر والمتابعة:\n${trackingUrl}`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
+
+function buildReadyWaUrl(phone, customerName, orderNumber) {
   const message =
     `السلام عليكم ${customerName}،\n\n` +
     `نود إعلامكم بأن قطعتكم جاهزة للاستلام.\n` +
@@ -22,41 +32,48 @@ function buildWhatsAppUrl(phone, orderNumber, customerName) {
 }
 
 export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUpdated }) {
-  const isMobile = useMobile();
+  const isMobile   = useMobile();
   const [order, setOrder] = useState(initialOrder);
   const [promoting, setPromoting] = useState(false);
+  const isWorkshop = getRole() === 'workshop';
 
-  const waUrl = buildWhatsAppUrl(order.phone, order.order_number, order.customer_name);
-  const canPromote = order.status === 'received' || order.status === 'in_progress';
+  function handleOrderUpdate(updated) {
+    setOrder(updated);
+    onOrderUpdated?.(updated);
+  }
+
+  const trackingUrl = `${window.location.protocol}//${window.location.host}/track/${order.customer_token}`;
+  const approvalWaUrl = buildApprovalWaUrl(order.phone, order.customer_name, order.cost, trackingUrl);
+  const readyWaUrl    = buildReadyWaUrl(order.phone, order.customer_name, order.order_number);
 
   async function markReady() {
     setPromoting(true);
     try {
-      const updated = await updateOrderStatus(order.id, 'ready');
-      setOrder(updated);
-      onOrderUpdated?.(updated);
+      handleOrderUpdate(await updateOrderStatus(order.id, 'ready'));
     } catch (e) {
-      console.error('Status update failed', e);
+      console.error(e);
     } finally {
       setPromoting(false);
     }
   }
 
+  const cardStyle = {
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--gold-border)',
+    borderRadius: 'var(--radius-lg)',
+    padding: '28px',
+    maxWidth: isMobile ? '100%' : '440px',
+    width: '100%',
+  };
+
   return (
-    <div style={{
-      background: 'var(--bg-surface)',
-      border: '1px solid var(--gold-border)',
-      borderRadius: 'var(--radius-lg)',
-      padding: '28px',
-      maxWidth: isMobile ? '100%' : '440px',
-      width: '100%',
-    }}>
+    <div style={cardStyle}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
         <div style={{
           width: '40px', height: '40px', borderRadius: '50%',
           background: 'var(--status-ready-bg)',
-          border: '1px solid rgba(74,222,128,0.3)',
+          border: '1px solid rgba(6,95,70,0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '1.2rem', color: 'var(--status-ready-fg)', flexShrink: 0,
         }}>
@@ -71,33 +88,59 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       <div className="gold-line" style={{ marginBottom: '18px' }} />
 
       {/* Order details */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
         <Row label="العميل" value={order.customer_name} bold />
         <Row label="القطعة" value={order.piece_type} />
         <Row label="الجوال" value={'+' + order.phone} mono />
         <Row label="الحالة" value={<StatusBadge status={order.status} />} />
+        {order.cost > 0 && <Row label="التكلفة" value={`${order.cost} ريال`} bold />}
         {order.notes && <Row label="ملاحظات" value={order.notes} />}
       </div>
 
-      {/* Confirm ready button */}
-      {canPromote && (
+      {/* Cost editor — workshop + received only */}
+      {isWorkshop && order.status === 'received' && (
+        <CostEditor order={order} onUpdated={handleOrderUpdate} />
+      )}
+
+      {/* Approval wa.me — pending_approval */}
+      {order.status === 'pending_approval' && (
         <div style={{
-          background: 'rgba(201,168,76,0.08)',
-          border: '1px solid rgba(201,168,76,0.2)',
+          background: 'rgba(201,151,58,0.06)',
+          border: '1px solid var(--gold-border)',
           borderRadius: 'var(--radius)',
           padding: '12px 14px',
           marginBottom: '16px',
-          fontSize: '0.85rem',
-          color: 'var(--text-secondary)',
         }}>
-          <div style={{ marginBottom: '10px' }}>هل الصيانة جاهزة للاستلام؟</div>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+            أرسل رابط الموافقة للعميل ({order.cost} ريال)
+          </div>
+          <a href={approvalWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+            <button className="btn-gold" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>
+              📲 أرسل رابط الموافقة
+            </button>
+          </a>
+        </div>
+      )}
+
+      {/* Mark ready — workshop + in_progress */}
+      {isWorkshop && order.status === 'in_progress' && (
+        <div style={{
+          background: 'rgba(201,151,58,0.06)',
+          border: '1px solid var(--gold-border)',
+          borderRadius: 'var(--radius)',
+          padding: '12px 14px',
+          marginBottom: '16px',
+        }}>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+            هل الصيانة جاهزة للاستلام؟
+          </div>
           <button
             className="btn-gold"
             onClick={markReady}
             disabled={promoting}
             style={isMobile
               ? { width: '100%', justifyContent: 'center', padding: '14px 0', fontSize: '1rem' }
-              : { fontSize: '0.85rem', padding: '7px 16px' }
+              : { fontSize: '0.85rem', padding: '8px 16px' }
             }
           >
             {promoting ? '...' : '✓ تعيين جاهزة'}
@@ -105,13 +148,28 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
         </div>
       )}
 
-      {/* Actions */}
+      {/* Pickup wa.me — ready */}
+      {order.status === 'ready' && (
+        <div style={{
+          background: 'rgba(6,95,70,0.06)',
+          border: '1px solid rgba(6,95,70,0.2)',
+          borderRadius: 'var(--radius)',
+          padding: '12px 14px',
+          marginBottom: '16px',
+        }}>
+          <div style={{ fontSize: '0.82rem', color: 'var(--status-ready-fg)', marginBottom: '10px', fontWeight: 600 }}>
+            ✓ القطعة جاهزة — أبلغ العميل
+          </div>
+          <a href={readyWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+            <button className="btn-gold" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>
+              📲 أبلغ العميل بالاستلام
+            </button>
+          </a>
+        </div>
+      )}
+
+      {/* Scan again */}
       <div className="scan-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <a href={waUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-          <button className="btn-gold">
-            <span>📲</span> فتح واتساب
-          </button>
-        </a>
         <button className="btn-ghost" onClick={onScanAgain}>
           ⌖ مسح آخر
         </button>
