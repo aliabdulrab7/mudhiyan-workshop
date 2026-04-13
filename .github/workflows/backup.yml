@@ -15,7 +15,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DROPLET_IP }}
-          username: root
+          username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             BACKUP_DIR=/var/www/mudhiyan/server/data/backups
@@ -29,7 +29,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DROPLET_IP }}
-          username: root
+          username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: /var/www/mudhiyan/server/data/backups/
           target: ./db-backup

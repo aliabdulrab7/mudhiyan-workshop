@@ -166,10 +166,12 @@ Set these on the production server (in `ecosystem.config.cjs`):
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full step-by-step guide covering:
 
-- DigitalOcean Droplet setup
+- AWS EC2 instance setup (t2.micro free tier / t3.micro)
+- Elastic IP allocation (static IP)
 - GoDaddy DNS configuration
 - Nginx reverse proxy
 - SSL via Let's Encrypt (Certbot)
 - PM2 process management
-- GitHub Actions CI/CD
-- Automated database backups
+- GitHub Actions CI/CD (auto-deploy on push)
+- Automated daily database backups
+- Cost optimization tips (free tier → reserved instances)

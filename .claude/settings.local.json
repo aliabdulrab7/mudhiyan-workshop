@@ -14,7 +14,15 @@
       "Bash(curl:*)",
       "Bash(pkill -f \"node --watch index.js\")",
       "Bash(pkill -f \"vite\")",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(pkill -f \"node.*index.js\")",
+      "Bash(sudo chown:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(npx jest:*)",
+      "Bash(git:*)",
+      "Bash(npm test:*)",
+      "Bash(gh auth:*)"
     ]
   }
 }

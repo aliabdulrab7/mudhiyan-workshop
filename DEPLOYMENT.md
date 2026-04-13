@@ -1,36 +1,83 @@
 # Deployment Guide — Mudhiyan Workshop App
 
 > Stack: Express + SQLite (server) · React + Vite (client) · Nginx · PM2 · Let's Encrypt SSL
+> Cloud: AWS EC2 · GoDaddy DNS
 
 ---
 
 ## Prerequisites
 
-- DigitalOcean account
+- AWS account
 - Domain registered on GoDaddy
-- SSH key pair on your Mac (`~/.ssh/id_rsa.pub`)
+- AWS CLI installed on your Mac (`brew install awscli`)
 
 ---
 
-## Part 1 — Create the Droplet
+## Part 1 — Launch EC2 Instance
 
-1. Log in to DigitalOcean → **Create → Droplet**
-2. Image: **Ubuntu 24.04 LTS**
-3. Plan: **Basic → $6/mo** (1 vCPU · 1 GB RAM)
-4. Region: **Frankfurt** (closest to Saudi Arabia)
-5. Authentication: **SSH Key** → paste the contents of `~/.ssh/id_rsa.pub`
-6. Click **Create Droplet** and note the IP address (e.g. `64.23.xxx.xxx`)
+### 1.1 Create a Key Pair
+
+In AWS Console → **EC2 → Key Pairs → Create key pair**:
+
+- Name: `mudhiyan-key`
+- Type: RSA
+- Format: `.pem`
+- Click **Create** — the file downloads automatically
+
+Move it to your SSH folder and lock permissions:
+
+```bash
+mv ~/Downloads/mudhiyan-key.pem ~/.ssh/mudhiyan-key.pem
+chmod 400 ~/.ssh/mudhiyan-key.pem
+```
+
+### 1.2 Create a Security Group
+
+In AWS Console → **EC2 → Security Groups → Create security group**:
+
+- Name: `mudhiyan-sg`
+- Add inbound rules:
+
+| Type  | Protocol | Port | Source    |
+|-------|----------|------|-----------|
+| SSH   | TCP      | 22   | My IP     |
+| HTTP  | TCP      | 80   | Anywhere  |
+| HTTPS | TCP      | 443  | Anywhere  |
+
+### 1.3 Launch the Instance
+
+In AWS Console → **EC2 → Launch Instances**:
+
+- Name: `mudhiyan-workshop`
+- AMI: **Ubuntu Server 24.04 LTS** (free tier eligible)
+- Instance type: **t3.micro** (~$8/mo) or **t2.micro** (free tier for 12 months)
+- Key pair: `mudhiyan-key`
+- Security group: `mudhiyan-sg`
+- Storage: 20 GB gp3 (default)
+- Click **Launch Instance**
+
+### 1.4 Allocate an Elastic IP (Static IP)
+
+Without an Elastic IP, your server IP changes every reboot.
+
+In AWS Console → **EC2 → Elastic IPs → Allocate Elastic IP address**:
+
+- Click **Allocate**
+- Select the new IP → **Actions → Associate Elastic IP address**
+- Select your `mudhiyan-workshop` instance → **Associate**
+
+Note the Elastic IP address (e.g. `54.123.xxx.xxx`). This is your permanent server IP.
 
 ---
 
-## Part 2 — Point GoDaddy Domain to the Droplet
+## Part 2 — Point GoDaddy Domain to the Instance
 
 In GoDaddy → DNS Management for your domain, add/edit these records:
 
-| Type | Name | Value              | TTL |
-|------|------|--------------------|-----|
-| A    | `@`  | `64.23.xxx.xxx`    | 600 |
-| A    | `www`| `64.23.xxx.xxx`    | 600 |
+| Type | Name  | Value           | TTL |
+|------|-------|-----------------|-----|
+| A    | `@`   | `54.123.xxx.xxx`| 600 |
+| A    | `www` | `54.123.xxx.xxx`| 600 |
 
 DNS propagation takes 5–30 minutes. Continue with the steps below while you wait.
 
@@ -38,28 +85,30 @@ DNS propagation takes 5–30 minutes. Continue with the steps below while you wa
 
 ## Part 3 — Server Setup
 
-SSH into the droplet:
+SSH into the instance:
 
 ```bash
-ssh root@64.23.xxx.xxx
+ssh -i ~/.ssh/mudhiyan-key.pem ubuntu@54.123.xxx.xxx
 ```
+
+> Note: The default user on Ubuntu EC2 is `ubuntu`, not `root`.
 
 Run the following commands:
 
 ```bash
 # Update system packages
-apt update && apt upgrade -y
+sudo apt update && sudo apt upgrade -y
 
 # Install Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt install -y nodejs
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+sudo apt install -y nodejs
 
 # Install PM2 (process manager) and Nginx
-npm install -g pm2
-apt install -y nginx git
+sudo npm install -g pm2
+sudo apt install -y nginx git
 
 # Install Certbot for SSL
-apt install -y certbot python3-certbot-nginx
+sudo apt install -y certbot python3-certbot-nginx
 ```
 
 ---
@@ -68,7 +117,8 @@ apt install -y certbot python3-certbot-nginx
 
 ```bash
 # Clone the repository
-git clone https://github.com/aliabdulrab7/mudhiyan-workshop.git /var/www/mudhiyan
+sudo git clone https://github.com/aliabdulrab7/mudhiyan-workshop.git /var/www/mudhiyan
+sudo chown -R ubuntu:ubuntu /var/www/mudhiyan
 cd /var/www/mudhiyan
 
 # Install all dependencies
@@ -102,15 +152,16 @@ module.exports = {
 EOF
 ```
 
-> **Important:** Replace `REPLACE-WITH-A-RANDOM-64-CHARACTER-SECRET` with a real random string.
-> Generate one with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+> Generate a secure JWT secret:
+> `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
 Start the app:
 
 ```bash
 pm2 start ecosystem.config.cjs
 pm2 save
-pm2 startup   # copy and run the printed command to auto-start on reboot
+pm2 startup
+# Copy and run the printed sudo command to auto-start on reboot
 ```
 
 ---
@@ -118,7 +169,7 @@ pm2 startup   # copy and run the printed command to auto-start on reboot
 ## Part 5 — Configure Nginx
 
 ```bash
-nano /etc/nginx/sites-available/mudhiyan
+sudo nano /etc/nginx/sites-available/mudhiyan
 ```
 
 Paste the following (replace `yourdomain.com` with your actual domain):
@@ -149,9 +200,9 @@ server {
 Enable the site and reload Nginx:
 
 ```bash
-ln -s /etc/nginx/sites-available/mudhiyan /etc/nginx/sites-enabled/
-nginx -t          # verify config is valid
-systemctl reload nginx
+sudo ln -s /etc/nginx/sites-available/mudhiyan /etc/nginx/sites-enabled/
+sudo nginx -t          # verify config is valid
+sudo systemctl reload nginx
 ```
 
 ---
@@ -160,10 +211,10 @@ systemctl reload nginx
 
 HTTPS is required for Web Bluetooth (Niimbot printer) and camera access.
 
-Make sure your domain's DNS is pointing to the droplet before running this:
+Make sure your domain's DNS is pointing to the Elastic IP before running this:
 
 ```bash
-certbot --nginx -d yourdomain.com -d www.yourdomain.com
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 ```
 
 Follow the prompts:
@@ -190,16 +241,16 @@ Open `https://yourdomain.com` in Chrome → should redirect to `/login`.
 
 **Default credentials after seed:**
 
-| Role             | Username   | Password    |
-|------------------|------------|-------------|
+| Role             | Username   | Password      |
+|------------------|------------|---------------|
 | Workshop manager | `workshop` | `workshop123` |
-| Shop employee    | `employee1`| `shop123`   |
+| Shop employee    | `employee1`| `shop123`     |
 
 ---
 
 ## CI/CD — Auto-Deploy via GitHub Actions
 
-Every push to `master` automatically runs tests then deploys to your Droplet.
+Every push to `master` automatically runs tests then deploys to your EC2 instance.
 
 ### One-time setup: Add GitHub Secrets
 
@@ -207,30 +258,48 @@ Go to **GitHub → your repo → Settings → Secrets and variables → Actions 
 
 | Secret name | Value |
 |-------------|-------|
-| `DROPLET_IP` | Your Droplet IP (e.g. `64.23.xxx.xxx`) |
-| `SSH_PRIVATE_KEY` | Contents of `~/.ssh/id_rsa` on your Mac |
+| `DROPLET_IP` | Your Elastic IP (e.g. `54.123.xxx.xxx`) |
+| `SSH_PRIVATE_KEY` | Contents of `~/.ssh/mudhiyan-key.pem` |
 | `PUBLIC_HOST` | Your domain (e.g. `yourdomain.com`) |
 
-### One-time setup: Allow GitHub to SSH into the Droplet
+To get the private key content:
 
-On your Mac, copy your public key:
 ```bash
-cat ~/.ssh/id_rsa.pub
+cat ~/.ssh/mudhiyan-key.pem
 ```
 
-On the Droplet, add it to authorized keys:
-```bash
-echo "PASTE_PUBLIC_KEY_HERE" >> ~/.ssh/authorized_keys
-```
+Copy the entire output including `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----`.
 
-After this, every `git push` triggers:
+### One-time setup: Allow GitHub to SSH as ubuntu
+
+The deploy workflow SSHs as `ubuntu`. Update the workflow's SSH username:
+
+In `.github/workflows/deploy.yml` and `backup.yml`, ensure `username: ubuntu` is set (already configured).
+
+After adding secrets, every `git push` triggers:
 1. Backend tests (17 tests) — deploy is blocked if any fail
 2. `git pull` + client rebuild + `pm2 restart` on the server
 3. Health check — confirms the API responded `{"ok":true}`
 
 ### Database backups
 
-A separate workflow runs every day at 2 AM UTC and saves a `.db` snapshot as a GitHub Actions artifact (retained for 30 days). You can also trigger it manually from the Actions tab.
+A separate workflow runs every day at 2 AM UTC and saves a `.db` snapshot as a GitHub Actions artifact (retained for 30 days). Trigger manually from the Actions tab anytime.
+
+---
+
+## Cost Optimization (Phase 6)
+
+| Resource | Cost | Notes |
+|----------|------|-------|
+| t2.micro | Free (12 months) → ~$8/mo | Free tier: 750 hrs/mo for first year |
+| t3.micro | ~$8/mo | Better performance after free tier |
+| Elastic IP | Free when attached | $0.005/hr if unattached — always keep it attached |
+| Storage (20 GB gp3) | ~$1.60/mo | |
+| Data transfer | ~$0/mo | First 100 GB/mo outbound is free |
+
+**To reduce costs after free tier:**
+- Use a **1-year Reserved Instance** for t3.micro → saves ~40% (~$5/mo)
+- Set a **billing alert** in AWS → Billing → Budgets → Create budget → alert at $15/mo
 
 ---
 
@@ -244,25 +313,19 @@ PUBLIC_HOST=yourdomain.com npm run build --prefix client
 pm2 restart mudhiyan
 ```
 
+Or just push to `master` — GitHub Actions handles it automatically.
+
 ---
 
 ## Database Backup
 
-The SQLite database is stored at `server/data/workshop.db` on the server (not in git).
+The SQLite database is stored at `/var/www/mudhiyan/server/data/workshop.db` on the server (not in git).
 
 To download a backup to your Mac:
 
 ```bash
-scp root@64.23.xxx.xxx:/var/www/mudhiyan/server/data/workshop.db ./workshop-backup-$(date +%Y%m%d).db
-```
-
-Set up a daily automated backup with cron:
-
-```bash
-# On the server — backs up daily at 2am
-crontab -e
-# Add this line:
-0 2 * * * cp /var/www/mudhiyan/server/data/workshop.db /var/www/mudhiyan/server/data/workshop-$(date +\%Y\%m\%d).db
+scp -i ~/.ssh/mudhiyan-key.pem ubuntu@54.123.xxx.xxx:/var/www/mudhiyan/server/data/workshop.db \
+    ./workshop-backup-$(date +%Y%m%d).db
 ```
 
 ---
@@ -272,6 +335,7 @@ crontab -e
 | Issue | Command |
 |-------|---------|
 | App not starting | `pm2 logs mudhiyan` |
-| Nginx error | `nginx -t` then `journalctl -u nginx` |
-| SSL certificate error | `certbot renew --dry-run` |
-| Check which port Express is on | `ss -tlnp \| grep 3737` |
+| Nginx error | `sudo nginx -t` then `sudo journalctl -u nginx` |
+| SSL certificate error | `sudo certbot renew --dry-run` |
+| Check Express port | `ss -tlnp \| grep 3737` |
+| Instance unreachable | Check Security Group inbound rules in AWS Console |
