@@ -67,6 +67,18 @@ if (!columnExists('orders', 'customer_token')) {
 // Create index on customer_token after the column is guaranteed to exist
 db.exec(`CREATE INDEX IF NOT EXISTS idx_cust_tok ON orders(customer_token) WHERE customer_token IS NOT NULL`);
 
+// ── Comments table ────────────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS order_comments (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id   INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    author     TEXT NOT NULL,
+    body       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_comments_order ON order_comments(order_id);
+`);
+
 // ── createOrder transaction ───────────────────────────────────────────────────
 
 const createOrder = db.transaction((data) => {

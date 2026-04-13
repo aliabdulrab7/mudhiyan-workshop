@@ -112,23 +112,50 @@ router.patch('/:id/status', requireRole('workshop'), (req, res) => {
   res.json(db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id));
 });
 
-// PATCH /api/orders/:id/cost — workshop only
+// PATCH /api/orders/:id/cost — workshop only, allowed at any status
 router.patch('/:id/cost', requireRole('workshop'), (req, res) => {
   const cost = parseInt(req.body.cost, 10);
   if (isNaN(cost) || cost < 0) return res.status(400).json({ error: 'تكلفة غير صالحة' });
 
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-  if (order.status !== 'received') {
-    return res.status(400).json({ error: 'يمكن تحديد السعر فقط عند استلام الطلب' });
+
+  // Only change status when order is still in received state
+  let newStatus = order.status;
+  if (order.status === 'received') {
+    newStatus = cost > 0 ? 'pending_approval' : 'in_progress';
   }
 
-  const newStatus = cost > 0 ? 'pending_approval' : 'in_progress';
   db.prepare(
     `UPDATE orders SET cost = ?, status = ?, updated_at = datetime('now','localtime') WHERE id = ?`
   ).run(cost, newStatus, req.params.id);
 
   res.json(db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id));
+});
+
+// GET /api/orders/:id/comments
+router.get('/:id/comments', (req, res) => {
+  const comments = db.prepare(
+    `SELECT * FROM order_comments WHERE order_id = ? ORDER BY created_at ASC`
+  ).all(req.params.id);
+  res.json(comments);
+});
+
+// POST /api/orders/:id/comments — workshop only
+router.post('/:id/comments', requireRole('workshop'), (req, res) => {
+  const { body } = req.body;
+  if (!body || !body.trim()) return res.status(400).json({ error: 'التعليق لا يمكن أن يكون فارغاً' });
+
+  const order = db.prepare('SELECT id FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+
+  const result = db.prepare(
+    `INSERT INTO order_comments (order_id, author, body) VALUES (?, ?, ?)`
+  ).run(req.params.id, req.user.username, body.trim());
+
+  res.status(201).json(
+    db.prepare('SELECT * FROM order_comments WHERE id = ?').get(result.lastInsertRowid)
+  );
 });
 
 module.exports = router;

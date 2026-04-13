@@ -86,3 +86,22 @@ export async function approveOrder(token) {
   }
   return res.json();
 }
+
+export async function getComments(orderId) {
+  const res = await fetch(`${BASE}/${orderId}/comments`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('فشل تحميل التعليقات');
+  return res.json();
+}
+
+export async function addComment(orderId, body) {
+  const res = await fetch(`${BASE}/${orderId}/comments`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل إضافة التعليق');
+  }
+  return res.json();
+}

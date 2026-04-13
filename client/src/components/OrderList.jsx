@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getOrders, updateOrderStatus } from '../api/orders';
 import StatusBadge, { STATUS } from './StatusBadge';
+import OrderDetail from './OrderDetail';
 import { useNavigate } from 'react-router-dom';
 import { getRole } from '../api/auth';
 
@@ -24,13 +25,19 @@ const FILTERS = [
 ];
 
 export default function OrderList({ refresh }) {
-  const [orders, setOrders] = useState([]);
-  const [status, setStatus] = useState('all');
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  const isMobile = useMobile();
+  const [orders, setOrders]       = useState([]);
+  const [status, setStatus]       = useState('all');
+  const [search, setSearch]       = useState('');
+  const [loading, setLoading]     = useState(true);
+  const [selected, setSelected]   = useState(null);
+  const navigate   = useNavigate();
+  const isMobile   = useMobile();
   const isWorkshop = getRole() === 'workshop';
+
+  function handleOrderUpdated(updated) {
+    setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+    setSelected(updated);
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -136,7 +143,8 @@ export default function OrderList({ refresh }) {
               padding: '14px 16px',
               borderBottom: '1px solid rgba(201,168,76,0.08)',
               animationDelay: `${i * 30}ms`,
-            }}>
+              cursor: 'pointer',
+            }} onClick={() => setSelected(order)}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                 <span className="order-stamp">{order.order_number}</span>
                 <StatusBadge status={order.status} />
@@ -145,7 +153,7 @@ export default function OrderList({ refresh }) {
               <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '8px' }}>
                 {order.piece_type}{order.notes ? ` — ${order.notes.slice(0, 40)}` : ''} · {formatDate(order.created_at)}
               </div>
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
                 {isWorkshop && nextStatus[order.status] && (
                   <button
                     className={isMobile ? 'btn-ghost mobile-status-btn' : 'btn-ghost-sm'}
@@ -200,7 +208,9 @@ export default function OrderList({ refresh }) {
                 borderBottom: i < orders.length - 1 ? '1px solid rgba(201,168,76,0.08)' : 'none',
                 alignItems: 'center',
                 animationDelay: `${i * 30}ms`,
+                cursor: 'pointer',
               }}
+              onClick={() => setSelected(order)}
             >
               <span className="order-stamp">{order.order_number}</span>
 
@@ -227,7 +237,7 @@ export default function OrderList({ refresh }) {
 
               <StatusBadge status={order.status} />
 
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
                 {isWorkshop && nextStatus[order.status] && (
                   <button
                     className="btn-ghost-sm"
@@ -243,6 +253,15 @@ export default function OrderList({ refresh }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Order detail panel */}
+      {selected && (
+        <OrderDetail
+          order={selected}
+          onClose={() => setSelected(null)}
+          onUpdated={handleOrderUpdated}
+        />
       )}
     </div>
   );
