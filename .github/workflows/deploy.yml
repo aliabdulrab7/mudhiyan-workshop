@@ -1,0 +1,60 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install server dependencies
+        run: npm install --prefix server
+
+      - name: Run backend tests
+        run: npm test --prefix server
+
+  deploy:
+    name: Deploy
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /var/www/mudhiyan
+
+            echo "==> Pulling latest code"
+            git pull origin master
+
+            echo "==> Installing client dependencies"
+            npm install --prefix client --production=false
+
+            echo "==> Building React client"
+            PUBLIC_HOST=${{ secrets.PUBLIC_HOST }} npm run build --prefix client
+
+            echo "==> Restarting Express server"
+            pm2 restart mudhiyan
+
+            echo "==> Verifying health"
+            sleep 3
+            curl -sf https://${{ secrets.PUBLIC_HOST }}/api/health | grep '"ok":true'
+
+            echo "==> Deploy complete"

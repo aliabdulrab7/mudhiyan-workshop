@@ -1,0 +1,43 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # every day at 2:00 AM UTC
+  workflow_dispatch:        # allow manual trigger
+
+jobs:
+  backup:
+    name: Backup SQLite Database
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download database from server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            BACKUP_DIR=/var/www/mudhiyan/server/data/backups
+            mkdir -p $BACKUP_DIR
+            cp /var/www/mudhiyan/server/data/workshop.db \
+               $BACKUP_DIR/workshop-$(date +%Y%m%d-%H%M%S).db
+            # Keep only last 30 backups
+            ls -t $BACKUP_DIR/*.db | tail -n +31 | xargs -r rm
+
+      - name: Copy backup to runner
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: /var/www/mudhiyan/server/data/backups/
+          target: ./db-backup
+          strip_components: 7
+
+      - name: Upload backup as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: db-backup/*.db
+          retention-days: 30

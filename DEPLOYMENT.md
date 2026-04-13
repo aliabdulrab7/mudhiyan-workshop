@@ -197,6 +197,43 @@ Open `https://yourdomain.com` in Chrome → should redirect to `/login`.
 
 ---
 
+## CI/CD — Auto-Deploy via GitHub Actions
+
+Every push to `master` automatically runs tests then deploys to your Droplet.
+
+### One-time setup: Add GitHub Secrets
+
+Go to **GitHub → your repo → Settings → Secrets and variables → Actions → New repository secret** and add:
+
+| Secret name | Value |
+|-------------|-------|
+| `DROPLET_IP` | Your Droplet IP (e.g. `64.23.xxx.xxx`) |
+| `SSH_PRIVATE_KEY` | Contents of `~/.ssh/id_rsa` on your Mac |
+| `PUBLIC_HOST` | Your domain (e.g. `yourdomain.com`) |
+
+### One-time setup: Allow GitHub to SSH into the Droplet
+
+On your Mac, copy your public key:
+```bash
+cat ~/.ssh/id_rsa.pub
+```
+
+On the Droplet, add it to authorized keys:
+```bash
+echo "PASTE_PUBLIC_KEY_HERE" >> ~/.ssh/authorized_keys
+```
+
+After this, every `git push` triggers:
+1. Backend tests (17 tests) — deploy is blocked if any fail
+2. `git pull` + client rebuild + `pm2 restart` on the server
+3. Health check — confirms the API responded `{"ok":true}`
+
+### Database backups
+
+A separate workflow runs every day at 2 AM UTC and saves a `.db` snapshot as a GitHub Actions artifact (retained for 30 days). You can also trigger it manually from the Actions tab.
+
+---
+
 ## Updating the App After Code Changes
 
 ```bash
