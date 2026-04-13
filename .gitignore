@@ -5,3 +5,5 @@ server/data/
 dist/
 .env
 *.db
+*.pem
+.DS_Store
