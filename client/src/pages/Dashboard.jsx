@@ -14,10 +14,11 @@ function useMobile() {
 }
 
 const STAT_CARDS = [
-  { key: 'received',    label: 'مستلمة',     icon: '◈', color: 'var(--status-received-fg)'  },
-  { key: 'in_progress', label: 'قيد العمل',  icon: '⟳', color: 'var(--status-progress-fg)'  },
-  { key: 'ready',       label: 'جاهزة',      icon: '✓', color: 'var(--status-ready-fg)'      },
-  { key: 'delivered',   label: 'مُسلَّمة',   icon: '✦', color: 'var(--gold)'                  },
+  { key: 'received',         label: 'مستلمة',           icon: '◈', color: 'var(--status-received-fg)'  },
+  { key: 'pending_approval', label: 'بانتظار الموافقة',  icon: '⏳', color: 'var(--status-pending-fg)'   },
+  { key: 'in_progress',      label: 'قيد العمل',         icon: '⟳', color: 'var(--status-progress-fg)'  },
+  { key: 'ready',            label: 'جاهزة',             icon: '✓', color: 'var(--status-ready-fg)'      },
+  { key: 'delivered',        label: 'مُسلَّمة',          icon: '✦', color: 'var(--gold)'                  },
 ];
 
 export default function Dashboard() {
