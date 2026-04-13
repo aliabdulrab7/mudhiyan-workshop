@@ -1,4 +1,13 @@
+import { getToken } from './auth';
+
 const BASE = '/api/orders';
+
+function authHeaders() {
+  const token = getToken();
+  const h = { 'Content-Type': 'application/json' };
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  return h;
+}
 
 export async function getConfig() {
   const res = await fetch('/api/config');
@@ -10,13 +19,13 @@ export async function getOrders({ status, search } = {}) {
   const params = new URLSearchParams();
   if (status && status !== 'all') params.set('status', status);
   if (search) params.set('search', search);
-  const res = await fetch(`${BASE}?${params}`);
+  const res = await fetch(`${BASE}?${params}`, { headers: authHeaders() });
   if (!res.ok) throw new Error('فشل تحميل الطلبات');
   return res.json();
 }
 
 export async function getStats() {
-  const res = await fetch('/api/orders/stats');
+  const res = await fetch('/api/orders/stats', { headers: authHeaders() });
   if (!res.ok) throw new Error('فشل تحميل الإحصائيات');
   return res.json();
 }
@@ -24,7 +33,7 @@ export async function getStats() {
 export async function createOrder(data) {
   const res = await fetch(BASE, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -35,7 +44,7 @@ export async function createOrder(data) {
 }
 
 export async function getOrderByBarcode(value) {
-  const res = await fetch(`${BASE}/barcode/${encodeURIComponent(value)}`);
+  const res = await fetch(`${BASE}/barcode/${encodeURIComponent(value)}`, { headers: authHeaders() });
   if (!res.ok) throw new Error('الطلب غير موجود');
   return res.json();
 }
@@ -43,9 +52,37 @@ export async function getOrderByBarcode(value) {
 export async function updateOrderStatus(id, status) {
   const res = await fetch(`${BASE}/${id}/status`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error('فشل تحديث الحالة');
+  return res.json();
+}
+
+export async function updateCost(id, cost) {
+  const res = await fetch(`${BASE}/${id}/cost`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ cost }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل تحديث التكلفة');
+  }
+  return res.json();
+}
+
+export async function getTrackOrder(token) {
+  const res = await fetch(`/api/track/${token}`);
+  if (!res.ok) throw new Error('الطلب غير موجود');
+  return res.json();
+}
+
+export async function approveOrder(token) {
+  const res = await fetch(`/api/track/${token}/approve`, { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل الموافقة');
+  }
   return res.json();
 }
