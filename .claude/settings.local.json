@@ -22,7 +22,13 @@
       "Bash(npx jest:*)",
       "Bash(git:*)",
       "Bash(npm test:*)",
-      "Bash(gh auth:*)"
+      "Bash(gh auth:*)",
+      "Bash(chmod 400 /Users/waled/Desktop/mudhiyan-workshop/mudhiyan-key.pem)",
+      "Bash(ssh:*)",
+      "Bash(aws ec2 describe-instances:*)",
+      "Bash(rsync:*)",
+      "Bash(dig +short:*)",
+      "Bash(gh run:*)"
     ]
   }
 }

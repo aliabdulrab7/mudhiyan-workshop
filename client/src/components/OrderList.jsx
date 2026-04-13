@@ -57,13 +57,17 @@ export default function OrderList({ refresh }) {
   }
 
   const nextStatus = {
-    in_progress: 'ready',
-    ready: 'delivered',
+    received:         'in_progress',
+    pending_approval: 'in_progress',
+    in_progress:      'ready',
+    ready:            'delivered',
   };
 
   const nextLabel = {
-    in_progress: 'تعيين جاهزة',
-    ready: 'تسليم',
+    received:         'بدء الإصلاح',
+    pending_approval: 'موافقة يدوية',
+    in_progress:      'تعيين جاهزة',
+    ready:            'تسليم',
   };
 
   return (

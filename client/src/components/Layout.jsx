@@ -2,9 +2,10 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { clearAuth, getRole } from "../api/auth";
 
 const nav = [
-  { to: "/",     icon: "◈", label: "الطلبات" },
-  { to: "/new",  icon: "✦", label: "صيانة جديدة", roles: ["shop_employee"] },
-  { to: "/scan", icon: "⌖", label: "مسح" },
+  { to: "/",        icon: "◈", label: "الطلبات" },
+  { to: "/new",     icon: "✦", label: "صيانة جديدة", roles: ["shop_employee"] },
+  { to: "/scan",    icon: "⌖", label: "مسح" },
+  { to: "/branches",icon: "⊛", label: "الفروع", roles: ["workshop"] },
 ];
 
 export default function Layout({ children }) {

@@ -5,6 +5,7 @@ const os = require('os');
 const ordersRouter = require('./routes/orders');
 const authRouter   = require('./routes/auth');
 const trackRouter  = require('./routes/track');
+const adminRouter  = require('./routes/admin');
 
 const app = express();
 
@@ -43,5 +44,6 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth',   authRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/track',  trackRouter);
+app.use('/api/admin',  adminRouter);
 
 module.exports = app;

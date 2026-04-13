@@ -6,6 +6,7 @@ import NewOrder     from './pages/NewOrder';
 import ScanPage     from './pages/ScanPage';
 import LoginPage    from './pages/LoginPage';
 import TrackPage    from './pages/TrackPage';
+import BranchesPage from './pages/BranchesPage';
 
 export default function App() {
   return (
@@ -22,8 +23,9 @@ export default function App() {
               <Routes>
                 <Route path="/"     element={<Dashboard />} />
                 <Route path="/new"  element={<NewOrder />} />
-                <Route path="/scan" element={<ScanPage />} />
-                <Route path="*"     element={<Navigate to="/" replace />} />
+                <Route path="/scan"     element={<ScanPage />} />
+                <Route path="/branches" element={<BranchesPage />} />
+                <Route path="*"         element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>
           </PrivateRoute>
