@@ -1,19 +1,34 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import NewOrder from './pages/NewOrder';
-import ScanPage from './pages/ScanPage';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Layout       from './components/Layout';
+import PrivateRoute from './components/PrivateRoute';
+import Dashboard    from './pages/Dashboard';
+import NewOrder     from './pages/NewOrder';
+import ScanPage     from './pages/ScanPage';
+import LoginPage    from './pages/LoginPage';
+import TrackPage    from './pages/TrackPage';
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/new" element={<NewOrder />} />
-          <Route path="/scan" element={<ScanPage />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        {/* Public */}
+        <Route path="/login"         element={<LoginPage />} />
+        <Route path="/track/:token"  element={<TrackPage />} />
+
+        {/* Protected */}
+        <Route path="/*" element={
+          <PrivateRoute>
+            <Layout>
+              <Routes>
+                <Route path="/"     element={<Dashboard />} />
+                <Route path="/new"  element={<NewOrder />} />
+                <Route path="/scan" element={<ScanPage />} />
+                <Route path="*"     element={<Navigate to="/" replace />} />
+              </Routes>
+            </Layout>
+          </PrivateRoute>
+        } />
+      </Routes>
     </BrowserRouter>
   );
 }
