@@ -1,8 +1,9 @@
 const STATUS = {
-  received:    { label: 'مستلمة',     bg: 'var(--status-received-bg)',  fg: 'var(--status-received-fg)'  },
-  in_progress: { label: 'قيد العمل',  bg: 'var(--status-progress-bg)',  fg: 'var(--status-progress-fg)'  },
-  ready:       { label: 'جاهزة',      bg: 'var(--status-ready-bg)',     fg: 'var(--status-ready-fg)'      },
-  delivered:   { label: 'تم التسليم', bg: 'var(--status-delivered-bg)', fg: 'var(--status-delivered-fg)' },
+  received:         { label: 'مستلمة',          bg: 'var(--status-received-bg)',  fg: 'var(--status-received-fg)'  },
+  pending_approval: { label: 'بانتظار الموافقة', bg: 'var(--status-pending-bg)',   fg: 'var(--status-pending-fg)'   },
+  in_progress:      { label: 'قيد العمل',        bg: 'var(--status-progress-bg)',  fg: 'var(--status-progress-fg)'  },
+  ready:            { label: 'جاهزة',            bg: 'var(--status-ready-bg)',     fg: 'var(--status-ready-fg)'     },
+  delivered:        { label: 'تم التسليم',       bg: 'var(--status-delivered-bg)', fg: 'var(--status-delivered-fg)' },
 };
 
 export default function StatusBadge({ status }) {
