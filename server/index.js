@@ -1,8 +1,8 @@
 const app  = require('./app');
+const os   = require('os');
 const PORT = process.env.PORT || 3737;
 
 app.listen(PORT, '0.0.0.0', () => {
-  const os  = require('os');
   const nets = os.networkInterfaces();
   let lan = 'localhost';
   for (const name of Object.keys(nets)) {
