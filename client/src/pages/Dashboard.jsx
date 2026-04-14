@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getStats, getOrders } from '../api/orders';
+import { getStats, getOrders, getBranchStats } from '../api/orders';
 import { getRole } from '../api/auth';
 import OrderList from '../components/OrderList';
 import Toast from '../components/Toast';
@@ -37,6 +37,8 @@ const STATUS_COLORS = {
 export default function Dashboard() {
   const [stats, setStats]             = useState(null);
   const [actionOrders, setActionOrders] = useState({ received: [], pending: [] });
+  const [branchStats, setBranchStats] = useState([]);
+  const [selectedBranch, setSelectedBranch] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [refresh, setRefresh]         = useState(0);
   const [toasts, setToasts]           = useState([]);
@@ -45,13 +47,15 @@ export default function Dashboard() {
   const isWorkshop = getRole() === 'workshop';
 
   async function loadData() {
-    const [s, received, pending] = await Promise.all([
+    const [s, received, pending, branches] = await Promise.all([
       getStats().catch(() => null),
       isWorkshop ? getOrders({ status: 'received' })         : Promise.resolve([]),
       isWorkshop ? getOrders({ status: 'pending_approval' }) : Promise.resolve([]),
+      isWorkshop ? getBranchStats().catch(() => [])          : Promise.resolve([]),
     ]);
     if (s) setStats(s);
     setActionOrders({ received, pending });
+    setBranchStats(branches);
   }
 
   useEffect(() => { loadData(); }, [refresh]);
@@ -188,9 +192,45 @@ export default function Dashboard() {
 
       <div className="gold-line" style={{ marginBottom: '24px' }} />
 
+      {/* Branch overview — workshop only */}
+      {isWorkshop && branchStats.length > 0 && (
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              الفروع
+            </span>
+            {selectedBranch && (
+              <button
+                onClick={() => setSelectedBranch(null)}
+                style={{ background: 'transparent', border: 'none', color: '#58a6ff', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Almarai, sans-serif' }}
+              >
+                ← عرض الكل
+              </button>
+            )}
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: '8px',
+          }}>
+            {branchStats.map(branch => (
+              <BranchCard
+                key={branch.shop_id}
+                branch={branch}
+                active={selectedBranch === branch.shop_id}
+                onClick={() => setSelectedBranch(selectedBranch === branch.shop_id ? null : branch.shop_id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="gold-line" style={{ marginBottom: '24px' }} />
+
       <OrderList
-        key={filterStatus}
+        key={`${filterStatus}-${selectedBranch}`}
         defaultStatus={filterStatus}
+        shopId={selectedBranch}
         refresh={refresh}
         onRefresh={() => setRefresh(r => r + 1)}
       />
@@ -201,6 +241,53 @@ export default function Dashboard() {
         </button>
       )}
     </motion.div>
+  );
+}
+
+function BranchCard({ branch, active, onClick }) {
+  const activeCount = branch.received + branch.pending_approval + branch.in_progress + branch.ready;
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      style={{
+        background: active ? 'rgba(88,166,255,0.08)' : '#161b22',
+        border: `1px solid ${active ? 'rgba(88,166,255,0.40)' : '#30363d'}`,
+        borderRadius: '8px',
+        padding: '12px 14px',
+        cursor: 'pointer',
+        textAlign: 'right',
+        transition: 'all 0.15s',
+        outline: active ? '2px solid rgba(88,166,255,0.5)' : 'none',
+        outlineOffset: '2px',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#e6edf3' }}>{branch.shop_name}</span>
+        {branch.ready > 0 && (
+          <span style={{
+            background: 'rgba(63,185,80,0.15)', color: '#3fb950',
+            borderRadius: '12px', padding: '2px 8px',
+            fontSize: '0.68rem', fontWeight: 700,
+            border: '1px solid rgba(63,185,80,0.25)',
+          }}>
+            {branch.ready} جاهز
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: '10px', fontSize: '0.75rem' }}>
+        <span style={{ color: '#58a6ff' }}>◈ {branch.received}</span>
+        <span style={{ color: '#388bfd' }}>⟳ {branch.in_progress}</span>
+        <span style={{ color: '#3fb950' }}>✓ {branch.ready}</span>
+        {branch.pending_approval > 0 && (
+          <span style={{ color: '#d29922' }}>⏳ {branch.pending_approval}</span>
+        )}
+      </div>
+      {activeCount === 0 && (
+        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>لا طلبات نشطة</div>
+      )}
+    </motion.button>
   );
 }
 

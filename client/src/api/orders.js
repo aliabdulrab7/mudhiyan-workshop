@@ -15,12 +15,19 @@ export async function getConfig() {
   return res.json();
 }
 
-export async function getOrders({ status, search } = {}) {
+export async function getOrders({ status, search, shop_id } = {}) {
   const params = new URLSearchParams();
   if (status && status !== 'all') params.set('status', status);
   if (search) params.set('search', search);
+  if (shop_id) params.set('shop_id', shop_id);
   const res = await fetch(`${BASE}?${params}`, { headers: authHeaders() });
   if (!res.ok) throw new Error('فشل تحميل الطلبات');
+  return res.json();
+}
+
+export async function getBranchStats() {
+  const res = await fetch(`${BASE}/branch-stats`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('فشل تحميل إحصائيات الفروع');
   return res.json();
 }
 

@@ -27,19 +27,47 @@ router.get('/stats', (req, res) => {
   res.json(row);
 });
 
+// GET /api/orders/branch-stats — workshop only: per-branch breakdown
+router.get('/branch-stats', requireRole('workshop'), (req, res) => {
+  const rows = db.prepare(`
+    SELECT
+      s.id   AS shop_id,
+      s.name AS shop_name,
+      COALESCE(SUM(o.status = 'received'),         0) AS received,
+      COALESCE(SUM(o.status = 'pending_approval'), 0) AS pending_approval,
+      COALESCE(SUM(o.status = 'in_progress'),      0) AS in_progress,
+      COALESCE(SUM(o.status = 'ready'),            0) AS ready,
+      COALESCE(SUM(o.status = 'delivered'),        0) AS delivered,
+      COUNT(o.id)                                      AS total
+    FROM shops s
+    LEFT JOIN orders o ON o.shop_id = s.id
+    GROUP BY s.id
+    ORDER BY (COALESCE(SUM(o.status = 'ready'), 0)) DESC, s.name
+  `).all();
+  res.json(rows);
+});
+
 // GET /api/orders/barcode/:value — must be before /:id
 router.get('/barcode/:value', (req, res) => {
   const isWorkshop = req.user.role === 'workshop';
   const order = isWorkshop
-    ? db.prepare('SELECT * FROM orders WHERE order_number = ?').get(req.params.value)
-    : db.prepare('SELECT * FROM orders WHERE order_number = ? AND shop_id = ?').get(req.params.value, req.user.shop_id);
+    ? db.prepare(`
+        SELECT o.*, COALESCE(s.name, '') AS shop_name
+        FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+        WHERE o.order_number = ?
+      `).get(req.params.value)
+    : db.prepare(`
+        SELECT o.*, COALESCE(s.name, '') AS shop_name
+        FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+        WHERE o.order_number = ? AND o.shop_id = ?
+      `).get(req.params.value, req.user.shop_id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   res.json(order);
 });
 
 // GET /api/orders
 router.get('/', (req, res) => {
-  const { status, search, limit, offset } = req.query;
+  const { status, search, limit, offset, shop_id } = req.query;
   const isWorkshop = req.user.role === 'workshop';
 
   if (status && status !== 'all' && !ALLOWED_STATUSES.includes(status)) {
@@ -49,18 +77,30 @@ router.get('/', (req, res) => {
   const safeLimit  = Math.min(Math.max(parseInt(limit,  10) || 50, 1), 500);
   const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
 
-  let query  = 'SELECT * FROM orders WHERE 1=1';
+  let query = `
+    SELECT o.*, COALESCE(s.name, '') AS shop_name
+    FROM orders o
+    LEFT JOIN shops s ON s.id = o.shop_id
+    WHERE 1=1`;
   const params = [];
 
-  if (!isWorkshop) { query += ' AND shop_id = ?'; params.push(req.user.shop_id); }
-  if (status && status !== 'all') { query += ' AND status = ?'; params.push(status); }
+  if (!isWorkshop) {
+    query += ' AND o.shop_id = ?';
+    params.push(req.user.shop_id);
+  } else if (shop_id) {
+    // Workshop can filter by a specific branch
+    query += ' AND o.shop_id = ?';
+    params.push(parseInt(shop_id, 10));
+  }
+
+  if (status && status !== 'all') { query += ' AND o.status = ?'; params.push(status); }
   if (search) {
-    query += ' AND (customer_name LIKE ? OR order_number LIKE ? OR phone LIKE ?)';
+    query += ' AND (o.customer_name LIKE ? OR o.order_number LIKE ? OR o.phone LIKE ?)';
     const like = `%${search}%`;
     params.push(like, like, like);
   }
 
-  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+  query += ' ORDER BY o.created_at DESC LIMIT ? OFFSET ?';
   params.push(safeLimit, safeOffset);
 
   res.json(db.prepare(query).all(...params));
@@ -70,8 +110,16 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   const isWorkshop = req.user.role === 'workshop';
   const order = isWorkshop
-    ? db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id)
-    : db.prepare('SELECT * FROM orders WHERE id = ? AND shop_id = ?').get(req.params.id, req.user.shop_id);
+    ? db.prepare(`
+        SELECT o.*, COALESCE(s.name, '') AS shop_name
+        FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+        WHERE o.id = ?
+      `).get(req.params.id)
+    : db.prepare(`
+        SELECT o.*, COALESCE(s.name, '') AS shop_name
+        FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+        WHERE o.id = ? AND o.shop_id = ?
+      `).get(req.params.id, req.user.shop_id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   res.json(order);
 });
@@ -99,15 +147,38 @@ router.post('/', requireRole('shop_employee'), (req, res) => {
   }
 });
 
-// PATCH /api/orders/:id/status — workshop only
-router.patch('/:id/status', requireRole('workshop'), (req, res) => {
+// PATCH /api/orders/:id/status
+// Workshop: any transition. shop_employee: ready → delivered only (their own orders).
+router.patch('/:id/status', requireAuth, (req, res) => {
   const { status } = req.body;
+  const isWorkshop = req.user.role === 'workshop';
+
   if (!ALLOWED_STATUSES.includes(status)) {
     return res.status(400).json({ error: 'حالة غير صالحة' });
   }
-  const result = db.prepare(
-    `UPDATE orders SET status = ?, updated_at = datetime('now','localtime') WHERE id = ?`
-  ).run(status, req.params.id);
+
+  if (!isWorkshop) {
+    // Branch employees may only mark their own ready orders as delivered
+    if (status !== 'delivered') {
+      return res.status(403).json({ error: 'غير مصرح' });
+    }
+    const order = db.prepare(
+      'SELECT status FROM orders WHERE id = ? AND shop_id = ?'
+    ).get(req.params.id, req.user.shop_id);
+    if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+    if (order.status !== 'ready') {
+      return res.status(400).json({ error: 'لا يمكن تسليم هذا الطلب بعد' });
+    }
+  }
+
+  const result = isWorkshop
+    ? db.prepare(
+        `UPDATE orders SET status = ?, updated_at = datetime('now','localtime') WHERE id = ?`
+      ).run(status, req.params.id)
+    : db.prepare(
+        `UPDATE orders SET status = ?, updated_at = datetime('now','localtime') WHERE id = ? AND shop_id = ?`
+      ).run(status, req.params.id, req.user.shop_id);
+
   if (result.changes === 0) return res.status(404).json({ error: 'الطلب غير موجود' });
   res.json(db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id));
 });

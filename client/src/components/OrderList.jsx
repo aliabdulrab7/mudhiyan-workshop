@@ -27,7 +27,7 @@ const FILTERS = [
   { value: 'delivered',        label: 'تم التسليم' },
 ];
 
-export default function OrderList({ refresh, defaultStatus = 'all', onRefresh }) {
+export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, shopId = null }) {
   const [orders, setOrders]       = useState([]);
   const [status, setStatus]       = useState(defaultStatus);
   const [search, setSearch]       = useState('');
@@ -45,11 +45,11 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
 
   useEffect(() => {
     setLoading(true);
-    getOrders({ status, search })
+    getOrders({ status, search, shop_id: shopId })
       .then(setOrders)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [status, search, refresh]);
+  }, [status, search, refresh, shopId]);
 
   async function changeStatus(order, newStatus) {
     try {
@@ -175,6 +175,15 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
                     {nextLabel[order.status]}
                   </button>
                 )}
+                {!isWorkshop && order.status === 'ready' && (
+                  <button
+                    className={isMobile ? 'btn-gold mobile-status-btn' : 'btn-ghost-sm'}
+                    style={isMobile ? {} : { borderColor: 'rgba(63,185,80,0.4)', color: '#3fb950' }}
+                    onClick={() => changeStatus(order, 'delivered')}
+                  >
+                    ✓ تسليم للعميل
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}
@@ -264,8 +273,17 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
                     {nextLabel[order.status]}
                   </button>
                 )}
+                {!isWorkshop && order.status === 'ready' && (
+                  <button
+                    className="btn-ghost-sm"
+                    style={{ borderColor: 'rgba(63,185,80,0.4)', color: '#3fb950' }}
+                    onClick={() => changeStatus(order, 'delivered')}
+                  >
+                    ✓ تسليم
+                  </button>
+                )}
                 {order.status === 'delivered' && (
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>✓</span>
+                  <span style={{ color: '#3fb950', fontSize: '0.78rem' }}>✓</span>
                 )}
               </div>
             </motion.div>

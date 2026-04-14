@@ -180,14 +180,28 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             <section style={{ padding: '0 28px' }}>
               <SectionTitle>الإجراءات</SectionTitle>
 
+              {/* Branch employee: deliver to customer */}
+              {!isWorkshop && order.status === 'ready' && (
+                <div style={{ marginBottom: '12px' }}>
+                  <button
+                    className="btn-gold"
+                    style={{ width: '100%', justifyContent: 'center', background: '#238636', borderColor: 'rgba(63,185,80,0.3)' }}
+                    disabled={savingStatus}
+                    onClick={handleStatusAdvance}
+                  >
+                    {savingStatus ? 'جاري التحديث...' : '✓ تسليم القطعة للعميل'}
+                  </button>
+                </div>
+              )}
+
               {order.status === 'ready' && (
                 <div style={{ marginBottom: '16px' }}>
                   <button
-                    className="btn-gold"
+                    className="btn-ghost"
                     style={{ width: '100%', justifyContent: 'center' }}
                     onClick={() => window.open(buildReadyWaUrl(order.phone, order.customer_name, order.order_number), '_blank', 'noopener,noreferrer')}
                   >
-                    📲 إرسال رسالة الاستلام للعميل (WhatsApp)
+                    📲 إرسال رسالة الاستلام (WhatsApp)
                   </button>
                 </div>
               )}
