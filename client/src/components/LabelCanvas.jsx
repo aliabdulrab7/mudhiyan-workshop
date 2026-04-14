@@ -4,143 +4,63 @@ import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 import { getConfig } from "../api/orders";
 
-// B21: 40mm × 30mm @ 203 DPI = 320 × 240 px
-const W = 320;
-const H = 160;
+// Portrait orientation for 20mm x 40mm labels
+const W = 160;
+const H = 320;
 
-// ── Customer label — QR code points to /track/:customer_token ────────────────
-async function drawCustomerLabel(canvas, order) {
+// Draw a simplified vertical label (Serial, Name, Barcode)
+async function drawMiniLabel(canvas, order, title) {
   const ctx = canvas.getContext("2d");
   canvas.width = W;
   canvas.height = H;
 
+  // Background
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "#CCCCCC";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(2, 2, W - 4, H - 4);
 
-  // Header
-  ctx.fillStyle = "#1B2B5E";
-  ctx.fillRect(2, 2, W - 4, 34);
-  ctx.fillStyle = "#C9973A";
-  ctx.font = "bold 13px Almarai, Arial";
-  ctx.direction = "rtl";
-  ctx.textAlign = "right";
-  ctx.fillText("مصنع المضيان", W - 10, 23);
-
-  // Order number
+  // Serial Number (Top)
   ctx.fillStyle = "#111111";
-  ctx.font = 'bold 13px "JetBrains Mono", monospace';
+  ctx.font = 'bold 22px "JetBrains Mono", monospace';
   ctx.textAlign = "center";
   ctx.direction = "ltr";
-  ctx.fillText(order.order_number, W / 2, 52);
+  ctx.fillText(order.order_number, W / 2, 45);
 
-  // Customer + piece
-  ctx.font = "bold 12px Almarai, Arial";
+  // Customer Name (Middle)
+  ctx.fillStyle = "#333333";
+  ctx.font = "bold 18px Almarai, Arial";
   ctx.direction = "rtl";
-  ctx.textAlign = "right";
-  ctx.fillStyle = "#222222";
-  ctx.fillText(order.customer_name, W - 10, 72);
-  ctx.font = "10px Almarai, Arial";
-  ctx.fillStyle = "#555555";
-  ctx.fillText(order.piece_type, W - 10, 88);
-
-  // QR code
-  try {
-    const { ip, port, protocol } = await getConfig();
-    if (ip === "localhost" || ip === "127.0.0.1") {
-      ctx.font = "bold 9px Arial";
-      ctx.fillStyle = "#CC0000";
-      ctx.textAlign = "center";
-      ctx.direction = "ltr";
-      ctx.fillText("QR unavailable — check network", W / 2, 170);
-      return;
-    }
-
-    const proto = protocol || "http";
-    const portPart = (proto === "https" && port === 443) || (proto === "http" && port === 80) ? "" : `:${port}`;
-    const trackUrl = `${proto}://${ip}${portPart}/track/${order.customer_token}`;
-    const qrCanvas = document.createElement("canvas");
-    await QRCode.toCanvas(qrCanvas, trackUrl, {
-      width: 110, margin: 1,
-      color: { dark: "#000000", light: "#FFFFFF" },
-      errorCorrectionLevel: "M",
-    });
-    ctx.drawImage(qrCanvas, W - 120, 100);
-
-    // Scan instruction
-    ctx.font = "9px Almarai, Arial";
-    ctx.fillStyle = "#888888";
-    ctx.direction = "rtl";
-    ctx.textAlign = "right";
-    ctx.fillText("امسح للمتابعة والموافقة", W - 10, 98);
-  } catch (e) {
-    console.error("Customer label QR failed", e);
-  }
-}
-
-// ── Shop label — CODE128 barcode for internal scanning ───────────────────────
-function drawShopLabel(canvas, order) {
-  const ctx = canvas.getContext("2d");
-  canvas.width = W;
-  canvas.height = H;
-
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "#CCCCCC";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(2, 2, W - 4, H - 4);
-
-  // Header
-  ctx.fillStyle = "#1B2B5E";
-  ctx.fillRect(2, 2, W - 4, 34);
-  ctx.fillStyle = "#C9973A";
-  ctx.font = "bold 13px Almarai, Arial";
-  ctx.direction = "rtl";
-  ctx.textAlign = "right";
-  ctx.fillText("نسخة الورشة", W - 10, 23);
-
-  // Order number
-  ctx.fillStyle = "#111111";
-  ctx.font = 'bold 13px "JetBrains Mono", monospace';
   ctx.textAlign = "center";
-  ctx.direction = "ltr";
-  ctx.fillText(order.order_number, W / 2, 52);
+  ctx.fillText(order.customer_name, W / 2, 85);
 
-  // Customer + piece + date
-  ctx.font = "bold 12px Almarai, Arial";
-  ctx.direction = "rtl";
-  ctx.textAlign = "right";
-  ctx.fillStyle = "#222222";
-  ctx.fillText(order.customer_name, W - 10, 72);
-  ctx.font = "10px Almarai, Arial";
-  ctx.fillStyle = "#555555";
-  const dateStr = new Date(order.created_at).toLocaleDateString("ar-SA");
-  ctx.fillText(`${order.piece_type} — ${dateStr}`, W - 10, 88);
-
-  // CODE128 barcode
+  // Barcode (Bottom)
   try {
     const barcodeCanvas = document.createElement("canvas");
     JsBarcode(barcodeCanvas, order.order_number, {
       format: "CODE128",
-      width: 2,
-      height: 70,
+      width: 1.5,
+      height: 100,
       displayValue: false,
       margin: 4,
       background: "#FFFFFF",
       lineColor: "#000000",
     });
-    const bx = Math.max(2, Math.floor((W - barcodeCanvas.width) / 2));
-    ctx.drawImage(barcodeCanvas, bx, 100);
+    
+    // Draw barcode centered and near bottom
+    const bx = (W - barcodeCanvas.width) / 2;
+    ctx.drawImage(barcodeCanvas, bx, 120);
   } catch (e) {
     console.error("Barcode draw failed", e);
-    ctx.font = "10px Arial";
-    ctx.fillStyle = "#CC0000";
-    ctx.textAlign = "center";
-    ctx.direction = "ltr";
-    ctx.fillText("Barcode error", W / 2, 160);
   }
+}
+
+async function drawCustomerLabel(canvas, order) {
+  return drawMiniLabel(canvas, order, "عميل");
+}
+
+function drawShopLabel(canvas, order) {
+  // Sync wrapper for drawMiniLabel
+  const ctx = canvas.getContext("2d");
+  drawMiniLabel(canvas, order, "ورشة");
 }
 
 export default function LabelCanvas({ order, autoPrint = false }) {

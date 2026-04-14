@@ -2,8 +2,8 @@ import { useRef, useEffect, useState } from "react";
 import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 
-const W = 320;
-const H = 160;
+const W = 160;
+const H = 320;
 
 function drawReadyLabel(canvas, order) {
   const ctx = canvas.getContext("2d");
@@ -13,51 +13,42 @@ function drawReadyLabel(canvas, order) {
   // Background
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "#CCCCCC";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(2, 2, W - 4, H - 4);
 
-  // Header
+  // Status (Top)
   ctx.fillStyle = "#065F46";
-  ctx.fillRect(2, 2, W - 4, 40);
-  ctx.fillStyle = "#10B981";
-  ctx.font = "bold 20px Almarai, Arial";
-  ctx.direction = "rtl";
+  ctx.font = "bold 18px Almarai, Arial";
   ctx.textAlign = "center";
-  ctx.fillText("جاهز للاستلام — READY", W / 2, 28);
+  ctx.direction = "rtl";
+  ctx.fillText("جاهز - READY", W / 2, 40);
 
-  // Order number
+  // Order Number
   ctx.fillStyle = "#111111";
-  ctx.font = 'bold 16px "JetBrains Mono", monospace';
+  ctx.font = 'bold 22px "JetBrains Mono", monospace';
   ctx.textAlign = "center";
   ctx.direction = "ltr";
-  ctx.fillText(order.order_number, W / 2, 65);
+  ctx.fillText(order.order_number, W / 2, 80);
 
-  // Customer + piece
-  ctx.font = "bold 14px Almarai, Arial";
+  // Customer Name
+  ctx.fillStyle = "#333333";
+  ctx.font = "bold 18px Almarai, Arial";
   ctx.direction = "rtl";
   ctx.textAlign = "center";
-  ctx.fillStyle = "#222222";
-  ctx.fillText(order.customer_name, W / 2, 85);
-  
-  ctx.font = "12px Almarai, Arial";
-  ctx.fillStyle = "#555555";
-  ctx.fillText(order.piece_type, W / 2, 105);
+  ctx.fillText(order.customer_name, W / 2, 115);
 
-  // CODE128 barcode
+  // Barcode (Bottom)
   try {
     const barcodeCanvas = document.createElement("canvas");
     JsBarcode(barcodeCanvas, order.order_number, {
       format: "CODE128",
-      width: 2,
-      height: 60,
+      width: 1.5,
+      height: 100,
       displayValue: false,
       margin: 4,
       background: "#FFFFFF",
       lineColor: "#000000",
     });
-    const bx = Math.max(2, Math.floor((W - barcodeCanvas.width) / 2));
-    ctx.drawImage(barcodeCanvas, bx, 120);
+    const bx = (W - barcodeCanvas.width) / 2;
+    ctx.drawImage(barcodeCanvas, bx, 150);
   } catch (e) {
     console.error("Barcode draw failed", e);
   }
