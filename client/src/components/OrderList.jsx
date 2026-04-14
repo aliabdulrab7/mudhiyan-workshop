@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getOrders, updateOrderStatus } from '../api/orders';
 import StatusBadge, { STATUS } from './StatusBadge';
 import OrderDetail from './OrderDetail';
 import { useNavigate } from 'react-router-dom';
 import { getRole } from '../api/auth';
 import { buildReadyWaUrl } from '../utils/whatsapp';
+import SkeletonLoader from './SkeletonLoader';
 
 function useMobile() {
   const [mobile, setMobile] = React.useState(window.innerWidth < 768);
@@ -118,9 +120,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
 
       {/* Table / Cards */}
       {loading ? (
-        <div style={{ color: 'var(--text-muted)', padding: '40px', textAlign: 'center' }}>
-          جاري التحميل...
-        </div>
+        <SkeletonLoader type="list" count={4} isMobile={isMobile} />
       ) : orders.length === 0 ? (
         <div style={{
           color: 'var(--text-muted)',
@@ -140,13 +140,23 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
           borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
         }}>
+          <AnimatePresence mode="popLayout">
           {orders.map((order, i) => (
-            <div key={order.id} className="order-row row-animate" style={{
-              padding: '14px 16px',
-              borderBottom: '1px solid rgba(201,168,76,0.08)',
-              animationDelay: `${i * 30}ms`,
-              cursor: 'pointer',
-            }} onClick={() => setSelected(order)}>
+            <motion.div
+              key={order.id}
+              layout
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
+              className="order-row"
+              style={{
+                padding: '14px 16px',
+                borderBottom: '1px solid rgba(201,168,76,0.08)',
+                cursor: 'pointer',
+              }}
+              onClick={() => setSelected(order)}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                 <span className="order-stamp">{order.order_number}</span>
                 <StatusBadge status={order.status} />
@@ -168,8 +178,9 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>✓</span>
                 )}
               </div>
-            </div>
+            </motion.div>
           ))}
+          </AnimatePresence>
         </div>
       ) : (
         /* ── Desktop table view ── */
@@ -199,17 +210,22 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
           </div>
 
           {/* Rows */}
+          <AnimatePresence mode="popLayout">
           {orders.map((order, i) => (
-            <div
+            <motion.div
               key={order.id}
-              className="order-row row-animate"
+              layout
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
+              className="order-row"
               style={{
                 display: 'grid',
                 gridTemplateColumns: '180px 1fr 110px 120px 130px 140px',
                 padding: '13px 16px',
                 borderBottom: i < orders.length - 1 ? '1px solid rgba(201,168,76,0.08)' : 'none',
                 alignItems: 'center',
-                animationDelay: `${i * 30}ms`,
                 cursor: 'pointer',
               }}
               onClick={() => setSelected(order)}
@@ -252,8 +268,9 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>✓</span>
                 )}
               </div>
-            </div>
+            </motion.div>
           ))}
+          </AnimatePresence>
         </div>
       )}
 

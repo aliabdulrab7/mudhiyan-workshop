@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getTrackOrder, approveOrder } from '../api/orders';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 const STEPS_ALL = ['received', 'pending_approval', 'in_progress', 'ready', 'delivered'];
 const STEPS_NO_APPROVAL = ['received', 'in_progress', 'ready', 'delivered'];
@@ -62,11 +64,7 @@ export default function TrackPage() {
     }
   }
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8F9FB' }}>
-      <div style={{ color: '#9CA3AF', fontFamily: 'Almarai, sans-serif' }}>جاري التحميل...</div>
-    </div>
-  );
+  if (loading) return <SkeletonLoader type="track" />;
 
   if (notFound) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8F9FB', padding: '20px' }}>
@@ -84,16 +82,22 @@ export default function TrackPage() {
   const currentIdx = steps.indexOf(order.status);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#F8F9FB',
-      fontFamily: 'Almarai, sans-serif',
-      direction: 'rtl',
-      padding: '24px 16px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'flex-start',
-    }}>
+    <AnimatePresence>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      style={{
+        minHeight: '100vh',
+        background: '#F8F9FB',
+        fontFamily: 'Almarai, sans-serif',
+        direction: 'rtl',
+        padding: '24px 16px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+      }}
+    >
       <div style={{ width: '100%', maxWidth: '480px' }}>
 
         {/* Header */}
@@ -247,6 +251,7 @@ export default function TrackPage() {
           هذه الصفحة للاستخدام الشخصي فقط
         </div>
       </div>
-    </div>
+    </motion.div>
+    </AnimatePresence>
   );
 }

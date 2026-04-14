@@ -5,6 +5,7 @@ import { getRole } from '../api/auth';
 import OrderList from '../components/OrderList';
 import Toast from '../components/Toast';
 import { useApprovalNotifications } from '../hooks/useApprovalNotifications';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 function useMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 768);
@@ -114,7 +115,7 @@ export default function Dashboard() {
       )}
 
       {/* Stat cards */}
-      {stats && (
+      {stats ? (
         <div
           className={isMobile ? 'scroll-row' : ''}
           style={isMobile ? {
@@ -158,6 +159,8 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+      ) : (
+        <SkeletonLoader type="stats" isMobile={isMobile} />
       )}
 
       <div className="gold-line" style={{ marginBottom: '24px' }} />

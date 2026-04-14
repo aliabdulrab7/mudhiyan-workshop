@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mmote/niimbluelib": "^0.0.1-alpha.38",
+    "framer-motion": "^12.38.0",
     "html5-qrcode": "^2.3.8",
     "jsbarcode": "^3.12.3",
     "qrcode": "^1.5.4",
