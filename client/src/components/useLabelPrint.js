@@ -38,9 +38,19 @@ export default function useLabelPrint() {
   }
 
   // Print multiple canvases sequentially in one Bluetooth session
-  async function printAll(canvases) {
+  async function printAll(canvases, options = {}) {
     const client = clientRef.current;
     if (!client) { setError('غير متصل بالطابعة'); return; }
+
+    const copiesPerCanvas = Math.max(1, Number(options.copiesPerCanvas) || 1);
+    const maxLabels = options.maxLabels == null ? Infinity : Math.max(1, Number(options.maxLabels) || 1);
+    const printableCanvases = canvases.filter(Boolean).slice(0, maxLabels);
+    const totalPages = printableCanvases.length * copiesPerCanvas;
+
+    if (totalPages === 0) {
+      setError('لا توجد ملصقات صالحة للطباعة');
+      return;
+    }
 
     setIsPrinting(true);
     setError('');
@@ -55,14 +65,14 @@ export default function useLabelPrint() {
         (async () => {
           const taskType = client.getPrintTaskType() ?? 'D110';
           const printTask = client.abstraction.newPrintTask(taskType, {
-            totalPages: canvases.length,
+            totalPages,
             density: 3,
           });
           await printTask.printInit();
 
-          for (const canvas of canvases) {
+          for (const canvas of printableCanvases) {
             const encoded = ImageEncoder.encodeCanvas(canvas, 'top');
-            await printTask.printPage(encoded, 1);
+            await printTask.printPage(encoded, copiesPerCanvas);
             await printTask.waitForPageFinished();
           }
 

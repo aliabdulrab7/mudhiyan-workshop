@@ -79,20 +79,22 @@ function drawReadyLabel(canvas, order) {
 
 export default function ReadyLabelCanvas({ order, autoPrint = false }) {
   const labelRef = useRef(null);
+  const autoPrintedOrderRef = useRef(null);
   const [ready, setReady] = useState(false);
-  const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
   const { connect, printAll, disconnect, isConnected, isPrinting, error: btError } = useLabelPrint();
 
   useEffect(() => {
-    if (autoPrint && ready && isConnected && !isPrinting && !hasAutoPrinted && labelRef.current) {
-      setHasAutoPrinted(true);
-      printAll([labelRef.current]);
-    }
-  }, [autoPrint, ready, isConnected, isPrinting, hasAutoPrinted, printAll]);
+    if (!autoPrint || !order?.id || !ready || !isConnected || isPrinting || !labelRef.current) return;
+    if (autoPrintedOrderRef.current === order.id) return;
+
+    autoPrintedOrderRef.current = order.id;
+    printAll([labelRef.current], { copiesPerCanvas: 1, maxLabels: 1 });
+  }, [autoPrint, order?.id, ready, isConnected, isPrinting, printAll]);
 
   useEffect(() => {
     if (!order || !labelRef.current) return;
     setReady(false);
+    autoPrintedOrderRef.current = null;
     Promise.resolve().then(() => {
       drawReadyLabel(labelRef.current, order);
       setReady(true);
@@ -135,7 +137,7 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
         <div style={{ display: "flex", gap: "10px", width: "100%", maxWidth: "320px" }}>
           <button
             className="btn-gold"
-            onClick={() => printAll([labelRef.current])}
+            onClick={() => printAll([labelRef.current], { copiesPerCanvas: 1, maxLabels: 1 })}
             disabled={isPrinting || !ready}
             style={{ flex: 1, justifyContent: "center" }}
           >
