@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { createOrder } from '../api/orders';
 
-const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'أخرى'];
+const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 
-const newRow = () => ({ item_type: 'خاتم', quantity: 1, notes: '' });
+const newRow = () => ({ item_type: 'خاتم', quantity: 1, notes: '', workshop_comment: '' });
 
 export default function OrderForm({ onSuccess }) {
   const [customerName, setCustomerName] = useState('');
@@ -32,6 +32,10 @@ export default function OrderForm({ onSuccess }) {
     if (phoneDigits.length !== 9)     return setError('يرجى إدخال 9 أرقام بعد رمز الدولة');
     if (items.length === 0)           return setError('يرجى إضافة صنف واحد على الأقل');
 
+    // Validate mandatory comments
+    const missingComment = items.find(it => !it.workshop_comment.trim());
+    if (missingComment) return setError('يرجى إضافة الملاحظات الفنية لكل صنف');
+
     setLoading(true);
     try {
       const order = await createOrder({
@@ -41,6 +45,7 @@ export default function OrderForm({ onSuccess }) {
           item_type: r.item_type,
           quantity:  Number(r.quantity) || 1,
           notes:     r.notes.trim(),
+          workshop_comment: r.workshop_comment.trim()
         })),
       });
       onSuccess(order);
@@ -126,7 +131,8 @@ export default function OrderForm({ onSuccess }) {
           }}>
             <span>النوع</span>
             <span style={{ textAlign: 'center' }}>العدد</span>
-            <span>تعليق</span>
+            <span>ملاحظات عامة</span>
+            <span>الملاحظات الفنية (إلزامي)</span>
             <span />
           </div>
 
@@ -136,11 +142,11 @@ export default function OrderForm({ onSuccess }) {
               key={i}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '2fr 72px 1fr 32px',
-                padding: '6px 8px',
+                gridTemplateColumns: '1.2fr 60px 1.5fr 2fr 32px',
+                padding: '10px 8px',
                 borderBottom: i < items.length - 1 ? '1px solid #F3F4F6' : 'none',
-                alignItems: 'center',
-                gap: '6px',
+                alignItems: 'start',
+                gap: '8px',
                 background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)',
               }}
             >
@@ -168,11 +174,20 @@ export default function OrderForm({ onSuccess }) {
               {/* Notes */}
               <input
                 type="text"
-                placeholder="تعليق..."
+                placeholder="ملاحظات..."
                 value={row.notes}
                 onChange={e => updateRow(i, 'notes', e.target.value)}
                 className="input-base"
-                style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                style={{ padding: '8px 10px', fontSize: '0.85rem' }}
+              />
+
+              {/* Technical comments */}
+              <textarea
+                placeholder="الإصلاح المطلوب... (إلزامي)"
+                value={row.workshop_comment}
+                onChange={e => updateRow(i, 'workshop_comment', e.target.value)}
+                className="input-base"
+                style={{ padding: '8px 10px', fontSize: '0.85rem', resize: 'vertical', minHeight: '38px', height: '38px' }}
               />
 
               {/* Delete row */}

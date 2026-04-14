@@ -100,6 +100,12 @@ export async function getComments(orderId) {
   return res.json();
 }
 
+export async function getOrderHistory(id) {
+  const res = await fetch(`${BASE}/${id}/history`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('فشل تحميل سجل الحالات');
+  return res.json();
+}
+
 export async function addComment(orderId, body) {
   const res = await fetch(`${BASE}/${orderId}/comments`, {
     method: 'POST',

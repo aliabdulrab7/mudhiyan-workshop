@@ -3,7 +3,18 @@ const { db, createOrder } = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
-const ALLOWED_STATUSES = ['received', 'pending_approval', 'in_progress', 'ready', 'delivered', 'returned'];
+
+// New 9-stage workflow
+const STATUS_SEQUENCE = [
+  'received', 'diagnosing', 'waiting_approval', 'in_repair',
+  'quality_check', 'ready_for_pickup', 'invoiced', 'delivered', 'closed',
+];
+
+// Legacy statuses kept for existing data backward compatibility
+const ALLOWED_STATUSES = [
+  ...STATUS_SEQUENCE,
+  'pending_approval', 'in_progress', 'ready', 'returned',
+];
 
 // All order routes require auth
 router.use(requireAuth);
@@ -17,12 +28,16 @@ router.get('/stats', (req, res) => {
   const row = db.prepare(`
     SELECT
       COUNT(*) AS total,
-      SUM(status = 'received')          AS received,
-      SUM(status = 'pending_approval')  AS pending_approval,
-      SUM(status = 'in_progress')       AS in_progress,
-      SUM(status = 'ready')             AS ready,
-      SUM(status = 'delivered')         AS delivered,
-      SUM(status = 'returned')          AS returned
+      SUM(status = 'received')                                                    AS received,
+      SUM(status = 'diagnosing')                                                  AS diagnosing,
+      SUM(status IN ('waiting_approval','pending_approval'))                       AS waiting_approval,
+      SUM(status IN ('in_repair','in_progress'))                                   AS in_repair,
+      SUM(status = 'quality_check')                                               AS quality_check,
+      SUM(status IN ('ready_for_pickup','ready'))                                  AS ready_for_pickup,
+      SUM(status = 'invoiced')                                                    AS invoiced,
+      SUM(status = 'delivered')                                                   AS delivered,
+      SUM(status = 'closed')                                                      AS closed,
+      SUM(status = 'returned')                                                    AS returned
     FROM orders ${where}
   `).get(...params);
   res.json(row);
@@ -34,17 +49,16 @@ router.get('/branch-stats', requireRole('workshop'), (req, res) => {
     SELECT
       s.id   AS shop_id,
       s.name AS shop_name,
-      COALESCE(SUM(o.status = 'received'),         0) AS received,
-      COALESCE(SUM(o.status = 'pending_approval'), 0) AS pending_approval,
-      COALESCE(SUM(o.status = 'in_progress'),      0) AS in_progress,
-      COALESCE(SUM(o.status = 'ready'),            0) AS ready,
-      COALESCE(SUM(o.status = 'delivered'),        0) AS delivered,
-      COALESCE(SUM(o.status = 'returned'),         0) AS returned,
-      COUNT(o.id)                                      AS total
+      COALESCE(SUM(o.status = 'received'), 0)                                        AS received,
+      COALESCE(SUM(o.status IN ('waiting_approval','pending_approval')), 0)           AS pending_approval,
+      COALESCE(SUM(o.status IN ('in_repair','in_progress','diagnosing')), 0)          AS in_progress,
+      COALESCE(SUM(o.status IN ('ready_for_pickup','ready','quality_check')), 0)      AS ready,
+      COALESCE(SUM(o.status IN ('invoiced','delivered')), 0)                          AS delivered,
+      COUNT(o.id)                                                                     AS total
     FROM shops s
     LEFT JOIN orders o ON o.shop_id = s.id
     GROUP BY s.id
-    ORDER BY (COALESCE(SUM(o.status = 'ready'), 0)) DESC, s.name
+    ORDER BY (COALESCE(SUM(o.status IN ('ready_for_pickup','ready','quality_check')), 0)) DESC, s.name
   `).all();
   res.json(rows);
 });
@@ -64,7 +78,10 @@ router.get('/barcode/:value', (req, res) => {
         WHERE o.order_number = ? AND o.shop_id = ?
       `).get(req.params.value, req.user.shop_id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-  res.json(order);
+  const items = db.prepare(
+    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+  ).all(order.id);
+  res.json({ ...order, items });
 });
 
 // GET /api/orders
@@ -80,7 +97,10 @@ router.get('/', (req, res) => {
   const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
 
   let query = `
-    SELECT o.*, COALESCE(s.name, '') AS shop_name
+    SELECT o.*, COALESCE(s.name, '') AS shop_name,
+      (SELECT GROUP_CONCAT(oi.item_name, '، ')
+       FROM order_items oi WHERE oi.order_id = o.id
+       ORDER BY oi.sort_order) AS items_summary
     FROM orders o
     LEFT JOIN shops s ON s.id = o.shop_id
     WHERE 1=1`;
@@ -90,12 +110,23 @@ router.get('/', (req, res) => {
     query += ' AND o.shop_id = ?';
     params.push(req.user.shop_id);
   } else if (shop_id) {
-    // Workshop can filter by a specific branch
     query += ' AND o.shop_id = ?';
     params.push(parseInt(shop_id, 10));
   }
 
-  if (status && status !== 'all') { query += ' AND o.status = ?'; params.push(status); }
+  // Map legacy status filters to new equivalents
+  if (status && status !== 'all') {
+    if (status === 'in_progress') {
+      query += " AND o.status IN ('in_repair','in_progress','diagnosing')";
+    } else if (status === 'pending_approval') {
+      query += " AND o.status IN ('waiting_approval','pending_approval')";
+    } else if (status === 'ready') {
+      query += " AND o.status IN ('ready_for_pickup','ready','quality_check')";
+    } else {
+      query += ' AND o.status = ?';
+      params.push(status);
+    }
+  }
   if (search) {
     query += ' AND (o.customer_name LIKE ? OR o.order_number LIKE ? OR o.phone LIKE ?)';
     const like = `%${search}%`;
@@ -129,6 +160,14 @@ router.get('/:id', (req, res) => {
   res.json({ ...order, items });
 });
 
+// GET /api/orders/:id/history
+router.get('/:id/history', (req, res) => {
+  const history = db.prepare(
+    `SELECT * FROM order_status_history WHERE order_id = ? ORDER BY created_at DESC`
+  ).all(req.params.id);
+  res.json(history);
+});
+
 // POST /api/orders — shop_employee only
 router.post('/', requireRole('shop_employee'), (req, res) => {
   const { customer_name, phone, items } = req.body;
@@ -140,27 +179,28 @@ router.post('/', requireRole('shop_employee'), (req, res) => {
     return res.status(400).json({ error: 'يجب إضافة صنف واحد على الأقل' });
   }
 
-  const ALLOWED_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'أخرى'];
   for (const item of items) {
-    if (!ALLOWED_TYPES.includes(item.item_type)) {
-      return res.status(400).json({ error: `نوع غير صالح: ${item.item_type}` });
+    if (!item.item_name || !item.item_name.trim()) {
+      return res.status(400).json({ error: 'اسم الصنف مطلوب لكل عنصر' });
     }
-    const qty = parseInt(item.quantity, 10);
-    if (isNaN(qty) || qty < 1 || qty > 99) {
-      return res.status(400).json({ error: 'العدد يجب أن يكون بين 1 و 99' });
+    if (!item.workshop_comment || !item.workshop_comment.trim()) {
+      return res.status(400).json({ error: 'تعليق الورشة مطلوب لكل صنف' });
     }
   }
 
   try {
     const created = createOrder({
       customer_name: customer_name.trim(),
-      phone: phone.trim(),
-      items: items.map(i => ({
-        item_type: i.item_type,
-        quantity:  parseInt(i.quantity, 10),
-        notes:     (i.notes || '').trim(),
+      phone:         phone.trim(),
+      items:         items.map(i => ({
+        item_name:        i.item_name.trim(),
+        brand:            (i.brand || '').trim(),
+        model:            (i.model || '').trim(),
+        serial_number:    (i.serial_number || '').trim(),
+        workshop_comment: i.workshop_comment.trim(),
       })),
-      shop_id: req.user.shop_id,
+      shop_id:    req.user.shop_id,
+      created_by: req.user.username,
     });
     res.status(201).json(created);
   } catch {
@@ -169,7 +209,6 @@ router.post('/', requireRole('shop_employee'), (req, res) => {
 });
 
 // PATCH /api/orders/:id/status
-// Workshop: any transition. shop_employee: ready → delivered only (their own orders).
 router.patch('/:id/status', requireAuth, (req, res) => {
   const { status } = req.body;
   const isWorkshop = req.user.role === 'workshop';
@@ -179,17 +218,37 @@ router.patch('/:id/status', requireAuth, (req, res) => {
   }
 
   if (!isWorkshop) {
-    // Branch employees may only mark their own ready orders as delivered or returned
-    if (status !== 'delivered' && status !== 'returned') {
-      return res.status(403).json({ error: 'غير مصرح' });
-    }
-    const order = db.prepare(
+    // Branch employees: specific allowed transitions only
+    const currentOrder = db.prepare(
       'SELECT status FROM orders WHERE id = ? AND shop_id = ?'
     ).get(req.params.id, req.user.shop_id);
-    if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-    if (order.status !== 'ready') {
-      return res.status(400).json({ error: 'لا يمكن تغيير حالة هذا الطلب بعد' });
+    if (!currentOrder) return res.status(404).json({ error: 'الطلب غير موجود' });
+
+    const allowed = [
+      ['ready_for_pickup', 'invoiced'],
+      ['invoiced', 'delivered'],
+      ['ready', 'delivered'],    // legacy
+      ['ready', 'returned'],     // legacy
+    ];
+    const ok = allowed.some(([f, t]) => f === currentOrder.status && t === status);
+    if (!ok) return res.status(403).json({ error: 'غير مصرح' });
+  } else {
+    // Workshop: enforce sequential progression for new status values
+    const currentOrder = db.prepare('SELECT status FROM orders WHERE id = ?').get(req.params.id);
+    if (!currentOrder) return res.status(404).json({ error: 'الطلب غير موجود' });
+
+    const fromIdx = STATUS_SEQUENCE.indexOf(currentOrder.status);
+    const toIdx   = STATUS_SEQUENCE.indexOf(status);
+
+    if (fromIdx !== -1 && toIdx !== -1 && toIdx !== fromIdx + 1) {
+      return res.status(400).json({ error: 'لا يمكن تخطي مراحل الطلب' });
     }
+
+    // Record status history
+    db.prepare(`
+      INSERT INTO order_status_history (order_id, from_status, to_status, changed_by)
+      VALUES (?, ?, ?, ?)
+    `).run(req.params.id, currentOrder.status, status, req.user.username);
   }
 
   const result = isWorkshop
@@ -201,10 +260,19 @@ router.patch('/:id/status', requireAuth, (req, res) => {
       ).run(status, req.params.id, req.user.shop_id);
 
   if (result.changes === 0) return res.status(404).json({ error: 'الطلب غير موجود' });
-  res.json(db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id));
+
+  const updated = db.prepare(`
+    SELECT o.*, COALESCE(s.name, '') AS shop_name
+    FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+    WHERE o.id = ?
+  `).get(req.params.id);
+  const items = db.prepare(
+    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+  ).all(updated.id);
+  res.json({ ...updated, items });
 });
 
-// PATCH /api/orders/:id/cost — workshop only, allowed at any status
+// PATCH /api/orders/:id/cost — workshop only
 router.patch('/:id/cost', requireRole('workshop'), (req, res) => {
   const cost = parseInt(req.body.cost, 10);
   if (isNaN(cost) || cost < 0) return res.status(400).json({ error: 'تكلفة غير صالحة' });
@@ -212,17 +280,40 @@ router.patch('/:id/cost', requireRole('workshop'), (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
 
-  // Only change status when order is still in received state
+  // Auto-transition to waiting_approval if cost set
   let newStatus = order.status;
-  if (order.status === 'received') {
-    newStatus = cost > 0 ? 'pending_approval' : 'in_progress';
+  if (['received', 'diagnosing'].includes(order.status) && cost > 0) {
+    newStatus = 'waiting_approval';
+  } else if (order.status === 'received' && cost === 0) {
+    newStatus = 'diagnosing';
+  }
+
+  if (newStatus !== order.status) {
+    db.prepare(`
+      INSERT INTO order_status_history (order_id, from_status, to_status, changed_by)
+      VALUES (?, ?, ?, ?)
+    `).run(order.id, order.status, newStatus, req.user.username);
   }
 
   db.prepare(
     `UPDATE orders SET cost = ?, status = ?, updated_at = datetime('now','localtime') WHERE id = ?`
   ).run(cost, newStatus, req.params.id);
 
-  res.json(db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id));
+  const updated = db.prepare(`
+    SELECT o.*, COALESCE(s.name, '') AS shop_name
+    FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+    WHERE o.id = ?
+  `).get(req.params.id);
+  const items = db.prepare(
+    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+  ).all(updated.id);
+
+  if (newStatus === 'waiting_approval') {
+    // Signal frontend to open WhatsApp approval link
+    res.json({ ...updated, items, _sendApproval: true });
+  } else {
+    res.json({ ...updated, items });
+  }
 });
 
 // GET /api/orders/:id/comments

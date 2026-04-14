@@ -15,15 +15,10 @@ const QR_X = 258;
 const QR_SIZE = 100;
 
 /**
- * Draw one order label:
- *   y=60  — order number (left, monospace)
- *   y=78  — customer name (right, RTL)
- *   y=88  — separator
- *   y=95  — QR code (right column, 100×100)
- *   y=108 — items list (left column, up to 3)
- *   y=195 — bottom of QR / safe boundary
+ * ── Customer label ──
+ * qr_content: customer_tracking_url
  */
-async function drawOrderLabel(canvas, order) {
+async function drawCustomerLabel(canvas, order) {
   const ctx = canvas.getContext("2d");
   canvas.width = W;
   canvas.height = H;
@@ -31,86 +26,139 @@ async function drawOrderLabel(canvas, order) {
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
 
-  // ── Order number ──
+  // ── Header — Brand ──
   ctx.fillStyle = "#111111";
-  ctx.font = 'bold 16px "JetBrains Mono", monospace';
-  ctx.textAlign = "left";
-  ctx.direction = "ltr";
-  ctx.fillText(order.order_number, PAD, PAD + 20);
-
-  // ── Customer name ──
-  ctx.fillStyle = "#333333";
-  ctx.font = "bold 15px Arial";
+  ctx.font = 'bold 20px Almarai, Arial';
   ctx.textAlign = "right";
   ctx.direction = "rtl";
-  let name = order.customer_name;
-  const maxNameW = W - PAD * 2;
-  while (ctx.measureText(name).width > maxNameW && name.length > 2) {
-    name = name.slice(0, -1);
-  }
-  if (name !== order.customer_name) name += "…";
-  ctx.fillText(name, W - PAD, PAD + 38);
+  ctx.fillText("مصنع المضيان", W - PAD, PAD + 25);
+
+  // ── Order number ──
+  ctx.fillStyle = "#374151";
+  ctx.font = 'bold 16px "JetBrains Mono", monospace';
+  ctx.textAlign = "right";
+  ctx.direction = "rtl";
+  ctx.fillText(order.order_number, W - PAD, PAD + 50);
 
   // ── Separator ──
   ctx.strokeStyle = "#E5E7EB";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(PAD, PAD + 48);
-  ctx.lineTo(W - PAD, PAD + 48);
+  ctx.moveTo(PAD, PAD + 60);
+  ctx.lineTo(W - PAD, PAD + 60);
   ctx.stroke();
 
-  // ── QR code (right column) ──
-  const QR_Y = PAD + 55; // y=95, ends y=195 ✓
+  // ── Tracking QR code (Left) ──
   try {
-    let scanUrl = order.order_number;
-    try {
-      const config = await getConfig();
-      scanUrl = `http://${config.ip}/scan?code=${order.order_number}`;
-    } catch (_) {}
+    const config = await getConfig();
+    const proto = config.protocol || "http";
+    const portPart = (proto === "https" && config.port === 443) || (proto === "http" && config.port === 80) ? "" : `:${config.port}`;
+    const trackUrl = `${proto}://${config.ip}${portPart}/track/${order.customer_token}`;
 
     const qrCanvas = document.createElement("canvas");
-    await QRCode.toCanvas(qrCanvas, scanUrl, {
-      width: QR_SIZE,
+    await QRCode.toCanvas(qrCanvas, trackUrl, {
+      width: 140,
       margin: 1,
       color: { dark: "#000000", light: "#FFFFFF" },
     });
-    ctx.drawImage(qrCanvas, QR_X, QR_Y);
+    ctx.drawImage(qrCanvas, PAD, PAD + 65, 120, 120);
+
+    ctx.fillStyle = "#6B7280";
+    ctx.font = "8px Almarai, Arial";
+    ctx.textAlign = "left";
+    ctx.direction = "rtl";
+    ctx.fillText("امسح لمتابعة الطلب", PAD, PAD + 195);
   } catch (e) {
-    console.error("QR draw failed", e);
+    console.error("Customer QR failed", e);
   }
 
-  // ── Items list (left column, x[40..250]) ──
-  const items = order?.items?.length
-    ? order.items
-    : [{ item_type: order?.piece_type || "—", quantity: 1, notes: order?.notes || "" }];
+  // ── Instruction ──
+  ctx.fillStyle = "#111111";
+  ctx.font = "bold 14px Almarai, Arial";
+  ctx.textAlign = "right";
+  ctx.direction = "rtl";
+  ctx.fillText("بطاقة المتابعة", W - PAD, PAD + 84);
 
-  const maxItemW = QR_X - PAD - 8; // ≈ 210px
-  items.slice(0, 3).forEach((item, i) => {
-    let line = `${item.item_type} × ${item.quantity}`;
-    if (item.notes?.trim()) line += ` — ${item.notes.trim()}`;
+  ctx.fillStyle = "#4B5563";
+  ctx.font = "11px Almarai, Arial";
+  ctx.textAlign = "right";
+  ctx.direction = "rtl";
+  ctx.fillText("عزيزنا العميل، يمكنك", W - PAD, PAD + 105);
+  ctx.fillText("متابعة حالة مجوهراتك", W - PAD, PAD + 120);
+  ctx.fillText("عن طريق مسح الرمز", W - PAD, PAD + 135);
+}
 
-    ctx.fillStyle = "#1A6EA0";
-    ctx.font = "bold 12px Arial";
-    ctx.textAlign = "right";
-    ctx.direction = "rtl";
+/**
+ * ── Workshop label ──
+ * Purpose: internal workshop identification with items summary
+ */
+async function drawWorkshopLabel(canvas, order) {
+  const ctx = canvas.getContext("2d");
+  canvas.width = W;
+  canvas.height = H;
 
-    while (ctx.measureText(line).width > maxItemW && line.length > 2) {
-      line = line.slice(0, -1);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Status/Source ──
+  ctx.fillStyle = "#059669";
+  ctx.font = "bold 16px Almarai, Arial";
+  ctx.textAlign = "right";
+  ctx.direction = "rtl";
+  ctx.fillText(order.shop_name || "الورشة المركزية", W - PAD, PAD + 25);
+
+  // ── Order Number ──
+  ctx.fillStyle = "#111111";
+  ctx.font = 'bold 22px "JetBrains Mono", monospace';
+  ctx.textAlign = "left";
+  ctx.direction = "ltr";
+  ctx.fillText(order.order_number, PAD, PAD + 25);
+
+  // ── Separator ──
+  ctx.strokeStyle = "#111111";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD, PAD + 40);
+  ctx.lineTo(W - PAD, PAD + 40);
+  ctx.stroke();
+
+  // ── Customer Info ──
+  ctx.fillStyle = "#111111";
+  ctx.font = "bold 14px Almarai, Arial";
+  ctx.textAlign = "right";
+  ctx.direction = "rtl";
+  ctx.fillText(order.customer_name, W - PAD, PAD + 60);
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.fillText(order.phone, W - PAD, PAD + 75);
+
+  // ── Items List ──
+  const items = order?.items || [];
+  ctx.fillStyle = "#374151";
+  ctx.font = "bold 11px Almarai, Arial";
+  ctx.textAlign = "right";
+  ctx.direction = "rtl";
+  ctx.fillText("الأصناف:", W - PAD, PAD + 95);
+
+  items.slice(0, 4).forEach((item, i) => {
+    let line = `• ${item.item_name}`;
+    if (item.workshop_comment) line += ` (${item.workshop_comment})`;
+
+    ctx.font = "9px Almarai, Arial";
+    const maxW = W - PAD * 2;
+    while (ctx.measureText(line).width > maxW && line.length > 5) {
+      line = line.slice(0, -1) + "…";
     }
-    ctx.fillText(line, QR_X - 8, PAD + 72 + i * 17);
+    ctx.fillText(line, W - PAD - 10, PAD + 112 + i * 14);
   });
 
-  if (items.length > 3) {
-    ctx.fillStyle = "#999999";
-    ctx.font = "11px Arial";
-    ctx.textAlign = "right";
-    ctx.direction = "rtl";
-    ctx.fillText(`+${items.length - 3} أخرى`, QR_X - 8, PAD + 72 + 3 * 17);
+  if (items.length > 4) {
+    ctx.fillText(`+${items.length - 4} أصناف أخرى...`, W - PAD - 10, PAD + 112 + 4 * 14);
   }
 }
 
-export default function LabelCanvas({ order, autoPrint = false, copies = 2 }) {
-  const canvasRef = useRef(null);
+export default function LabelCanvas({ order, autoPrint = false }) {
+  const customerRef = useRef(null);
+  const shopRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
   const { connect, printAll, disconnect, isConnected, isPrinting, error: btError } = useLabelPrint();
@@ -121,7 +169,8 @@ export default function LabelCanvas({ order, autoPrint = false, copies = 2 }) {
 
     const draw = async () => {
       try {
-        if (canvasRef.current) await drawOrderLabel(canvasRef.current, order);
+        if (customerRef.current) await drawCustomerLabel(customerRef.current, order);
+        if (shopRef.current)     await drawWorkshopLabel(shopRef.current, order);
         setReady(true);
       } catch (err) {
         console.error("Label draw failed", err);
@@ -136,43 +185,50 @@ export default function LabelCanvas({ order, autoPrint = false, copies = 2 }) {
     }
   }, [order]);
 
-  // Auto-print once connected and ready — print `copies` times
+  // Auto-print Once
   useEffect(() => {
     if (!autoPrint || !ready || !isConnected || isPrinting || hasAutoPrinted) return;
-    if (!canvasRef.current) return;
     setHasAutoPrinted(true);
-    const canvasList = Array(copies).fill(canvasRef.current);
-    printAll(canvasList);
-  }, [autoPrint, ready, isConnected, isPrinting, hasAutoPrinted, copies, printAll]);
+    printAll([customerRef.current, shopRef.current]);
+  }, [autoPrint, ready, isConnected, isPrinting, hasAutoPrinted, printAll]);
 
   const handlePrint = useCallback(() => {
-    if (canvasRef.current) {
-      const canvasList = Array(copies).fill(canvasRef.current);
-      printAll(canvasList);
+    if (ready && isConnected) {
+      printAll([customerRef.current, shopRef.current]);
     }
-  }, [copies, printAll]);
+  }, [ready, isConnected, printAll]);
 
   const bluetoothAvailable = typeof navigator !== "undefined" && !!navigator.bluetooth;
 
   return (
     <div>
-      {/* Label preview */}
-      <div style={{ marginBottom: "16px" }}>
-        <div style={{
-          border: "1px solid #E5E7EB",
-          borderRadius: "var(--radius)",
-          overflow: "hidden",
-          background: "#fff",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-          display: "inline-block",
-          opacity: ready ? 1 : 0.4,
-          transition: "opacity 0.3s",
-        }}>
-          <canvas
-            ref={canvasRef}
-            style={{ display: "block", maxWidth: "200px" }}
-          />
-        </div>
+      {/* Label previews */}
+      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "16px" }}>
+        {[
+          { ref: customerRef, title: "ملصق العميل" },
+          { ref: shopRef,     title: "ملصق الورشة" },
+        ].map(({ ref, title }) => (
+          <div key={title}>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "6px", textAlign: "center" }}>
+              {title}
+            </div>
+            <div style={{
+              border: "1px solid #E5E7EB",
+              borderRadius: "var(--radius)",
+              overflow: "hidden",
+              background: "#fff",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              display: "inline-block",
+              opacity: ready ? 1 : 0.4,
+              transition: "opacity 0.3s",
+            }}>
+              <canvas
+                ref={ref}
+                style={{ display: "block", maxWidth: "160px" }}
+              />
+            </div>
+          </div>
+        ))}
       </div>
 
       {!ready && (
@@ -208,7 +264,7 @@ export default function LabelCanvas({ order, autoPrint = false, copies = 2 }) {
                 disabled={isPrinting || !ready}
                 onClick={handlePrint}
               >
-                {isPrinting ? "جاري الطباعة..." : `⎙ طباعة ${copies} ملصقات`}
+                {isPrinting ? "جاري الطباعة..." : "⎙ طباعة الملصقات"}
               </button>
               <button className="btn-ghost-sm" onClick={disconnect}>قطع الاتصال</button>
             </>

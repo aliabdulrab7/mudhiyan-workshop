@@ -1,28 +1,47 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { updateOrderStatus, updateCost, getComments, addComment } from '../api/orders';
+import { updateOrderStatus, updateCost, getComments, addComment, getOrderHistory } from '../api/orders';
 import { getRole } from '../api/auth';
 import StatusBadge, { STATUS } from './StatusBadge';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 
 const NEXT_STATUS = {
-  received:         'in_progress',
-  pending_approval: 'in_progress',
+  received:         'diagnosing',
+  diagnosing:       'waiting_approval',
+  waiting_approval: 'in_repair',
+  in_repair:        'quality_check',
+  quality_check:    'ready_for_pickup',
+  ready_for_pickup: 'invoiced',
+  invoiced:         'delivered',
+  delivered:        'closed',
+
+  // legacy mapping
+  pending_approval: 'in_repair',
   in_progress:      'ready',
   ready:            'delivered',
 };
 
 const NEXT_LABEL = {
-  received:         'بدء الإصلاح',
-  pending_approval: 'موافقة يدوية',
-  in_progress:      'تعيين جاهزة',
+  received:         'بدء التشخيص',
+  diagnosing:       'طلب موافقة',
+  waiting_approval: 'بدء الإصلاح',
+  in_repair:        'فحص الجودة',
+  quality_check:    'جاهز للاستلام',
+  ready_for_pickup: 'إصدار فاتورة',
+  invoiced:         'تسليم',
+  delivered:        'إغلاق',
+
+  // legacy mapping
+  pending_approval: 'بدء الإصلاح',
+  in_progress:      'جاهز للاستلام',
   ready:            'تسليم',
 };
 
 export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [order, setOrder]         = useState(initial);
   const [comments, setComments]   = useState([]);
+  const [history, setHistory]     = useState([]);
   const [newComment, setNewComment] = useState('');
   const [cost, setCost]           = useState(String(initial.cost ?? 0));
   const [savingCost, setSavingCost]     = useState(false);
@@ -33,11 +52,14 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
 
-  useEffect(() => { loadComments(); }, [order.id]);
+  useEffect(() => {
+    loadComments();
+    loadHistory();
+  }, [order.id]);
   useEffect(() => { commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [comments]);
 
-  async function loadComments() {
-    try { setComments(await getComments(order.id)); }
+  async function loadHistory() {
+    try { setHistory(await getOrderHistory(order.id)); }
     catch { /* non-critical */ }
   }
 
@@ -54,7 +76,8 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     try {
       const updated = await updateOrderStatus(order.id, next);
       update(updated);
-      if (updated.status === 'ready') setJustMarkedReady(true);
+      loadHistory();
+      if (updated.status === 'ready' || updated.status === 'ready_for_pickup') setJustMarkedReady(true);
     }
     catch (e) { setError(e.message); }
     finally { setSavingStatus(false); }
@@ -175,34 +198,50 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                 <div style={{ border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden' }}>
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 48px 1fr',
-                    padding: '6px 10px',
+                    gridTemplateColumns: '1.2fr 48px 1.5fr 2fr',
+                    padding: '8px 10px',
                     background: '#F9FAFB',
                     borderBottom: '1px solid #E5E7EB',
                     fontSize: '0.68rem',
                     color: 'var(--text-muted)',
                     fontWeight: 700,
                     letterSpacing: '0.06em',
-                    gap: '6px',
+                    gap: '10px',
                   }}>
                     <span>النوع</span>
                     <span style={{ textAlign: 'center' }}>العدد</span>
-                    <span>تعليق</span>
+                    <span>عام</span>
+                    <span>فني</span>
                   </div>
                   {order.items.map((item, i) => (
                     <div key={item.id ?? i} style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 48px 1fr',
-                      padding: '8px 10px',
+                      gridTemplateColumns: '1.2fr 48px 1.5fr 2fr',
+                      padding: '10px 10px',
                       borderBottom: i < order.items.length - 1 ? '1px solid #F3F4F6' : 'none',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '0.875rem',
+                      alignItems: 'start',
+                      gap: '10px',
+                      fontSize: '0.82rem',
                     }}>
-                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.item_type}</span>
+                      <div>
+                        <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{item.item_name || item.item_type}</div>
+                        {(item.brand || item.model) && (
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                            {item.brand} {item.model}
+                          </div>
+                        )}
+                        {item.serial_number && (
+                          <div style={{ fontSize: '0.65rem', fontFamily: 'JetBrains Mono, monospace', color: '#2980B9' }}>
+                            {item.serial_number}
+                          </div>
+                        )}
+                      </div>
                       <span style={{ textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', color: '#2980B9', fontWeight: 700 }}>{item.quantity}</span>
-                      <span style={{ color: item.notes ? 'var(--text-secondary)' : 'var(--text-muted)', fontStyle: item.notes ? 'normal' : 'italic', fontSize: '0.82rem' }}>
+                      <span style={{ color: item.notes ? 'var(--text-secondary)' : 'var(--text-muted)', fontSize: '0.78rem' }}>
                         {item.notes || '—'}
+                      </span>
+                      <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 500 }}>
+                        {item.workshop_comment || '—'}
                       </span>
                     </div>
                   ))}
@@ -276,7 +315,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     </div>
                     {order.status === 'received' && (
                       <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '6px' }}>
-                        تحديد التكلفة سينقل الطلب إلى "بانتظار الموافقة"
+                        تحديد التكلفة سينقل الطلب إلى "بانتظار الموافقة" تلقائياً
                       </div>
                     )}
                   </div>
@@ -287,7 +326,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     </div>
                   )}
 
-                  {order.status === 'ready' && (
+                  {(order.status === 'ready' || order.status === 'ready_for_pickup') && (
                     <div style={{ marginTop: '24px' }}>
                       <SectionTitle>ملصق الجاهزية</SectionTitle>
                       <ReadyLabelCanvas order={order} autoPrint={justMarkedReady} />
@@ -297,6 +336,37 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
               )}
             </section>
           )}
+
+          <Divider />
+
+          {/* Status History */}
+          <section style={{ padding: '0 28px' }}>
+            <SectionTitle>سجل العمليات</SectionTitle>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {history.map((h, i) => (
+                <div key={h.id} style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: i === 0 ? '#16A34A' : '#E5E7EB', marginTop: '6px' }} />
+                    {i < history.length - 1 && <div style={{ width: '1px', flex: 1, background: '#F3F4F6' }} />}
+                  </div>
+                  <div style={{ paddingBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <StatusBadge status={h.to_status} small />
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                        {new Date(h.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      بواسطة: <span style={{ fontWeight: 600 }}>{h.changed_by}</span>
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {new Date(h.created_at).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
           <Divider />
 
