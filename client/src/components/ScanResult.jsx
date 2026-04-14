@@ -4,6 +4,7 @@ import CostEditor from './CostEditor';
 import { updateOrderStatus } from '../api/orders';
 import { getRole } from '../api/auth';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
+import ReadyLabelCanvas from './ReadyLabelCanvas';
 
 function useMobile() {
   const [mobile, setMobile] = React.useState(window.innerWidth < 768);
@@ -19,6 +20,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
   const isMobile   = useMobile();
   const [order, setOrder] = useState(initialOrder);
   const [promoting, setPromoting] = useState(false);
+  const [justMarkedReady, setJustMarkedReady] = useState(false);
   const isWorkshop = getRole() === 'workshop';
 
   function handleOrderUpdate(updated) {
@@ -36,7 +38,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       const updated = await updateOrderStatus(order.id, 'ready');
       handleOrderUpdate(updated);
       if (updated.status === 'ready') {
-        window.open(buildReadyWaUrl(updated.phone, updated.customer_name, updated.order_number), '_blank', 'noopener,noreferrer');
+        setJustMarkedReady(true);
       }
     } catch (e) {
       console.error(e);
@@ -146,13 +148,29 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           marginBottom: '16px',
         }}>
           <div style={{ fontSize: '0.82rem', color: 'var(--status-ready-fg)', marginBottom: '10px', fontWeight: 600 }}>
-            ✓ القطعة جاهزة — أبلغ العميل
+            ✓ القطعة جاهزة — أبلغ العميل بالاستلام
           </div>
           <a href={readyWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <button className="btn-gold" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>
-              📲 أبلغ العميل بالاستلام
+            <button className="btn-gold" style={{ fontSize: '0.85rem', padding: '8px 16px', width: '100%', justifyContent: 'center' }}>
+              📲 إرسال رسالة الاستلام للعميل (WhatsApp)
             </button>
           </a>
+        </div>
+      )}
+
+      {/* Ready Label — workshop + ready */}
+      {isWorkshop && order.status === 'ready' && (
+        <div style={{
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--gold-border)',
+          borderRadius: 'var(--radius)',
+          padding: '12px 14px',
+          marginBottom: '16px',
+        }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+            ملصق الجاهزية (للطباعة والإرفاق بالقطعة)
+          </div>
+          <ReadyLabelCanvas order={order} autoPrint={justMarkedReady} />
         </div>
       )}
 

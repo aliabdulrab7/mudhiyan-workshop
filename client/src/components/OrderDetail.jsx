@@ -3,6 +3,7 @@ import { updateOrderStatus, updateCost, getComments, addComment } from '../api/o
 import { getRole } from '../api/auth';
 import StatusBadge, { STATUS } from './StatusBadge';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
+import ReadyLabelCanvas from './ReadyLabelCanvas';
 
 const NEXT_STATUS = {
   received:         'in_progress',
@@ -26,6 +27,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [savingCost, setSavingCost]     = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [savingComment, setSavingComment] = useState(false);
+  const [justMarkedReady, setJustMarkedReady] = useState(false);
   const [error, setError]         = useState('');
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
@@ -57,7 +59,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
       const updated = await updateOrderStatus(order.id, next);
       update(updated);
       if (updated.status === 'ready') {
-        window.open(buildReadyWaUrl(updated.phone, updated.customer_name, updated.order_number), '_blank', 'noopener,noreferrer');
+        setJustMarkedReady(true);
       }
     }
     catch (e) { setError(e.message); }
@@ -154,24 +156,40 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 
           <Divider />
 
-          {/* Status + Cost — workshop only */}
-          {isWorkshop && (
+          {/* Actions */}
+          {(isWorkshop || order.status === 'ready') && (
             <section style={{ padding: '0 24px' }}>
               <SectionTitle>الإجراءات</SectionTitle>
 
-              {/* Advance status */}
-              {NEXT_STATUS[order.status] && (
+              {/* Send QA message - available to everyone when ready */}
+              {order.status === 'ready' && (
                 <div style={{ marginBottom: '16px' }}>
                   <button
                     className="btn-gold"
                     style={{ width: '100%', justifyContent: 'center' }}
-                    disabled={savingStatus}
-                    onClick={handleStatusAdvance}
+                    onClick={() => window.open(buildReadyWaUrl(order.phone, order.customer_name, order.order_number), '_blank', 'noopener,noreferrer')}
                   >
-                    {savingStatus ? 'جاري التحديث...' : `← ${NEXT_LABEL[order.status]}`}
+                    📲 إرسال رسالة الاستلام للعميل (WhatsApp)
                   </button>
                 </div>
               )}
+
+              {/* Status + Cost — workshop only */}
+              {isWorkshop && (
+                <>
+                  {/* Advance status */}
+                  {NEXT_STATUS[order.status] && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <button
+                        className="btn-primary"
+                        style={{ width: '100%', justifyContent: 'center' }}
+                        disabled={savingStatus}
+                        onClick={handleStatusAdvance}
+                      >
+                        {savingStatus ? 'جاري التحديث...' : `← ${NEXT_LABEL[order.status]}`}
+                      </button>
+                    </div>
+                  )}
 
               {/* Cost editor */}
               <div>
@@ -203,10 +221,20 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                 )}
               </div>
 
-              {error && (
-                <div style={{ marginTop: '12px', color: '#DC2626', fontSize: '0.83rem', padding: '8px 12px', background: 'rgba(239,68,68,0.08)', borderRadius: 'var(--radius)' }}>
-                  {error}
-                </div>
+                  {error && (
+                    <div style={{ marginTop: '12px', color: '#DC2626', fontSize: '0.83rem', padding: '8px 12px', background: 'rgba(239,68,68,0.08)', borderRadius: 'var(--radius)' }}>
+                      {error}
+                    </div>
+                  )}
+
+                  {/* Ready Label section */}
+                  {order.status === 'ready' && (
+                    <div style={{ marginTop: '24px' }}>
+                      <SectionTitle>ملصق الجاهزية</SectionTitle>
+                      <ReadyLabelCanvas order={order} autoPrint={justMarkedReady} />
+                    </div>
+                  )}
+                </>
               )}
             </section>
           )}

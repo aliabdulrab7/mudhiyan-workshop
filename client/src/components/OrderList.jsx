@@ -53,9 +53,6 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
     try {
       const updated = await updateOrderStatus(order.id, newStatus);
       setOrders(prev => prev.map(o => o.id === order.id ? updated : o));
-      if (updated.status === 'ready') {
-        window.open(buildReadyWaUrl(updated.phone, updated.customer_name, updated.order_number), '_blank', 'noopener,noreferrer');
-      }
     } catch (e) {
       console.error(e);
     }
