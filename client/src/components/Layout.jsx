@@ -122,6 +122,14 @@ export default function Layout({ children }) {
             <span>{label}</span>
           </NavLink>
         ))}
+        <button
+          onClick={handleLogout}
+          className="tab-item"
+          style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+        >
+          <span className="tab-icon">⇤</span>
+          <span>خروج</span>
+        </button>
       </nav>
     </div>
   );

@@ -24,9 +24,9 @@ const FILTERS = [
   { value: 'delivered',        label: 'تم التسليم' },
 ];
 
-export default function OrderList({ refresh }) {
+export default function OrderList({ refresh, defaultStatus = 'all', onRefresh }) {
   const [orders, setOrders]       = useState([]);
-  const [status, setStatus]       = useState('all');
+  const [status, setStatus]       = useState(defaultStatus);
   const [search, setSearch]       = useState('');
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(null);
@@ -37,6 +37,7 @@ export default function OrderList({ refresh }) {
   function handleOrderUpdated(updated) {
     setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
     setSelected(updated);
+    onRefresh?.();
   }
 
   useEffect(() => {
