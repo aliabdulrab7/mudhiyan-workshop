@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { updateOrderStatus, updateCost, getComments, addComment } from '../api/orders';
 import { getRole } from '../api/auth';
 import StatusBadge, { STATUS } from './StatusBadge';
@@ -32,13 +33,8 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
 
-  useEffect(() => {
-    loadComments();
-  }, [order.id]);
-
-  useEffect(() => {
-    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [comments]);
+  useEffect(() => { loadComments(); }, [order.id]);
+  useEffect(() => { commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [comments]);
 
   async function loadComments() {
     try { setComments(await getComments(order.id)); }
@@ -58,9 +54,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     try {
       const updated = await updateOrderStatus(order.id, next);
       update(updated);
-      if (updated.status === 'ready') {
-        setJustMarkedReady(true);
-      }
+      if (updated.status === 'ready') setJustMarkedReady(true);
     }
     catch (e) { setError(e.message); }
     finally { setSavingStatus(false); }
@@ -102,51 +96,76 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   return (
     <>
       {/* Overlay */}
-      <div
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)',
-          zIndex: 300, backdropFilter: 'blur(2px)',
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          zIndex: 300, backdropFilter: 'blur(4px)',
         }}
       />
 
       {/* Panel */}
-      <div style={{
-        position: 'fixed', top: 0, left: 0, bottom: 0,
-        width: 'min(480px, 100vw)',
-        background: 'var(--bg-surface)',
-        boxShadow: '4px 0 32px rgba(0,0,0,0.18)',
-        zIndex: 301,
-        display: 'flex', flexDirection: 'column',
-        overflowY: 'auto',
-      }}>
+      <motion.div
+        initial={{ x: -300, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: -300, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        style={{
+          position: 'fixed', top: 0, left: 0, bottom: 0,
+          width: 'min(480px, 100vw)',
+          background: 'rgba(13,18,37,0.95)',
+          backdropFilter: 'blur(24px)',
+          boxShadow: '4px 0 48px rgba(0,0,0,0.5)',
+          zIndex: 301,
+          display: 'flex', flexDirection: 'column',
+          overflowY: 'auto',
+          borderLeft: '1px solid rgba(255,255,255,0.04)',
+        }}
+      >
         {/* Header */}
         <div style={{
-          background: 'var(--bg-sidebar)', color: '#fff',
-          padding: '20px 24px', flexShrink: 0,
+          background: 'linear-gradient(180deg, rgba(27,43,94,0.8), rgba(13,18,37,0.95))',
+          color: '#fff',
+          padding: '24px 28px', flexShrink: 0,
+          borderBottom: '1px solid rgba(255,255,255,0.04)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)', marginBottom: '4px' }}>تفاصيل الطلب</div>
-              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '1rem', fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: '6px' }}>تفاصيل الطلب</div>
+              <div style={{
+                fontFamily: 'JetBrains Mono, monospace', fontSize: '1.05rem', fontWeight: 700,
+                background: 'linear-gradient(135deg, var(--gold), var(--gold-bright))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '0.04em',
+              }}>
                 {order.order_number}
               </div>
             </div>
             <button
               onClick={onClose}
-              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}
+              style={{
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem', cursor: 'pointer',
+                lineHeight: 1, padding: '6px 10px', borderRadius: '8px',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; e.target.style.color = '#fff'; }}
+              onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.05)'; e.target.style.color = 'rgba(255,255,255,0.5)'; }}
             >×</button>
           </div>
           <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <StatusBadge status={order.status} />
-            <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)' }}>{dateStr}</span>
+            <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)' }}>{dateStr}</span>
           </div>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 24px' }}>
-
           {/* Order info */}
-          <section style={{ padding: '20px 24px 0' }}>
+          <section style={{ padding: '24px 28px 0' }}>
             <InfoRow label="العميل"  value={order.customer_name} bold />
             <InfoRow label="القطعة"  value={order.piece_type} />
             <InfoRow label="الجوال"  value={'+' + order.phone} mono />
@@ -158,10 +177,9 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 
           {/* Actions */}
           {(isWorkshop || order.status === 'ready') && (
-            <section style={{ padding: '0 24px' }}>
+            <section style={{ padding: '0 28px' }}>
               <SectionTitle>الإجراءات</SectionTitle>
 
-              {/* Send QA message - available to everyone when ready */}
               {order.status === 'ready' && (
                 <div style={{ marginBottom: '16px' }}>
                   <button
@@ -174,10 +192,8 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                 </div>
               )}
 
-              {/* Status + Cost — workshop only */}
               {isWorkshop && (
                 <>
-                  {/* Advance status */}
                   {NEXT_STATUS[order.status] && (
                     <div style={{ marginBottom: '16px' }}>
                       <button
@@ -191,43 +207,29 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     </div>
                   )}
 
-              {/* Cost editor */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                  تكلفة الإصلاح (ريال)
-                </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    className="input-base"
-                    type="number"
-                    min="0"
-                    value={cost}
-                    onChange={e => setCost(e.target.value)}
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    className="btn-primary"
-                    onClick={handleSaveCost}
-                    disabled={savingCost}
-                    style={{ flexShrink: 0 }}
-                  >
-                    {savingCost ? '...' : 'حفظ'}
-                  </button>
-                </div>
-                {order.status === 'received' && (
-                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '6px' }}>
-                    تحديد التكلفة سينقل الطلب إلى "بانتظار الموافقة"
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                      تكلفة الإصلاح (ريال)
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input className="input-base" type="number" min="0" value={cost} onChange={e => setCost(e.target.value)} style={{ flex: 1 }} />
+                      <button className="btn-primary" onClick={handleSaveCost} disabled={savingCost} style={{ flexShrink: 0 }}>
+                        {savingCost ? '...' : 'حفظ'}
+                      </button>
+                    </div>
+                    {order.status === 'received' && (
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                        تحديد التكلفة سينقل الطلب إلى "بانتظار الموافقة"
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
                   {error && (
-                    <div style={{ marginTop: '12px', color: '#DC2626', fontSize: '0.83rem', padding: '8px 12px', background: 'rgba(239,68,68,0.08)', borderRadius: 'var(--radius)' }}>
+                    <div style={{ marginTop: '12px', color: '#FCA5A5', fontSize: '0.83rem', padding: '10px 14px', background: 'rgba(239,68,68,0.08)', borderRadius: 'var(--radius)', border: '1px solid rgba(239,68,68,0.15)' }}>
                       {error}
                     </div>
                   )}
 
-                  {/* Ready Label section */}
                   {order.status === 'ready' && (
                     <div style={{ marginTop: '24px' }}>
                       <SectionTitle>ملصق الجاهزية</SectionTitle>
@@ -242,10 +244,9 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
           <Divider />
 
           {/* Comments */}
-          <section style={{ padding: '0 24px' }}>
+          <section style={{ padding: '0 28px' }}>
             <SectionTitle>التعليقات {comments.length > 0 && `(${comments.length})`}</SectionTitle>
 
-            {/* Comment list */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
               {comments.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
@@ -254,20 +255,21 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
               ) : (
                 comments.map(c => (
                   <div key={c.id} style={{
-                    background: 'var(--bg-elevated)',
-                    borderRadius: 'var(--radius)',
-                    padding: '10px 14px',
-                    borderRight: '3px solid var(--gold-border)',
+                    background: 'rgba(255,255,255,0.02)',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    borderRight: '3px solid rgba(212,168,67,0.15)',
+                    border: '1px solid rgba(255,255,255,0.03)',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)', fontFamily: 'JetBrains Mono, monospace' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#818CF8', fontFamily: 'JetBrains Mono, monospace' }}>
                         {c.author}
                       </span>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                         {new Date(c.created_at).toLocaleString('ar-SA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                    <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
                       {c.body}
                     </div>
                   </div>
@@ -276,7 +278,6 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
               <div ref={commentsEndRef} />
             </div>
 
-            {/* Add comment — workshop only */}
             {isWorkshop && (
               <form onSubmit={handleAddComment} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <textarea
@@ -294,14 +295,14 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             )}
           </section>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }
 
 function InfoRow({ label, value, bold, mono }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--bg-elevated)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
       <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{label}</span>
       <span style={{
         fontWeight: bold ? 700 : 400,
@@ -317,12 +318,12 @@ function InfoRow({ label, value, bold, mono }) {
 
 function SectionTitle({ children }) {
   return (
-    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px' }}>
+    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
       {children}
     </div>
   );
 }
 
 function Divider() {
-  return <div className="gold-line" style={{ margin: '20px 0' }} />;
+  return <div className="gold-line" style={{ margin: '24px 0' }} />;
 }

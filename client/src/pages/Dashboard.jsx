@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getStats, getOrders } from '../api/orders';
 import { getRole } from '../api/auth';
 import OrderList from '../components/OrderList';
@@ -17,6 +18,22 @@ function useMobile() {
   return mobile;
 }
 
+const STAT_CARDS = [
+  { key: 'received',         label: 'مستلمة',          icon: '◈', gradient: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(99,102,241,0.04))' },
+  { key: 'pending_approval', label: 'بانتظار الموافقة', icon: '⏳', gradient: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.04))' },
+  { key: 'in_progress',      label: 'قيد العمل',        icon: '⟳', gradient: 'linear-gradient(135deg, rgba(59,130,246,0.12), rgba(59,130,246,0.04))' },
+  { key: 'ready',            label: 'جاهزة',            icon: '✓', gradient: 'linear-gradient(135deg, rgba(52,211,153,0.12), rgba(52,211,153,0.04))' },
+  { key: 'delivered',        label: 'مُسلَّمة',         icon: '✦', gradient: 'linear-gradient(135deg, rgba(167,139,250,0.12), rgba(167,139,250,0.04))' },
+];
+
+const STATUS_COLORS = {
+  received: '#818CF8',
+  pending_approval: '#FBBF24',
+  in_progress: '#60A5FA',
+  ready: '#34D399',
+  delivered: '#A78BFA',
+};
+
 export default function Dashboard() {
   const [stats, setStats]             = useState(null);
   const [actionOrders, setActionOrders] = useState({ received: [], pending: [] });
@@ -27,7 +44,6 @@ export default function Dashboard() {
   const navigate  = useNavigate();
   const isWorkshop = getRole() === 'workshop';
 
-  // Load stats + action-required orders
   async function loadData() {
     const [s, received, pending] = await Promise.all([
       getStats().catch(() => null),
@@ -40,7 +56,6 @@ export default function Dashboard() {
 
   useEffect(() => { loadData(); }, [refresh]);
 
-  // Notification handler
   const handleApproved = useCallback((order) => {
     setToasts(prev => [...prev, { ...order, _toastId: Date.now() + Math.random() }]);
     setRefresh(r => r + 1);
@@ -61,23 +76,34 @@ export default function Dashboard() {
   });
 
   return (
-    <div style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)' }}>
-
-      {/* In-app toast notifications */}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)' }}
+    >
       <Toast
         notifications={toasts.map(t => ({ id: t._toastId, ...t }))}
         onDismiss={dismissToast}
       />
 
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+      <div style={{ marginBottom: '28px' }}>
+        <h1 style={{
+          margin: 0,
+          fontSize: '1.6rem',
+          fontWeight: 800,
+          background: 'linear-gradient(135deg, var(--text-primary), var(--text-secondary))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          letterSpacing: '-0.01em',
+        }}>
           لوحة الطلبات
         </h1>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>{dateStr}</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '6px' }}>{dateStr}</div>
       </div>
 
-      {/* ── Action-required panels — workshop only ── */}
+      {/* Action panels — workshop only */}
       {isWorkshop && (
         <div style={{
           display: 'grid',
@@ -85,26 +111,19 @@ export default function Dashboard() {
           gap: '14px',
           marginBottom: '28px',
         }}>
-          {/* Received — needs cost assessment */}
           <ActionPanel
-            icon="◈"
-            title="تنتظر التقييم"
+            icon="◈" title="تنتظر التقييم"
             count={actionOrders.received.length}
-            accent="var(--status-received-fg)"
-            accentBg="var(--status-received-bg)"
+            accent="#818CF8"
             emptyText="لا توجد طلبات جديدة"
             orders={actionOrders.received}
             active={filterStatus === 'received'}
             onFilterClick={() => applyFilter(filterStatus === 'received' ? 'all' : 'received')}
           />
-
-          {/* Pending approval — waiting for customer */}
           <ActionPanel
-            icon="⏳"
-            title="بانتظار موافقة العميل"
+            icon="⏳" title="بانتظار موافقة العميل"
             count={actionOrders.pending.length}
-            accent="var(--status-pending-fg)"
-            accentBg="var(--status-pending-bg)"
+            accent="#FBBF24"
             emptyText="لا توجد طلبات بانتظار الموافقة"
             orders={actionOrders.pending}
             active={filterStatus === 'pending_approval'}
@@ -119,44 +138,48 @@ export default function Dashboard() {
         <div
           className={isMobile ? 'scroll-row' : ''}
           style={isMobile ? {
-            display: 'flex', gap: '12px', marginBottom: '24px',
+            display: 'flex', gap: '10px', marginBottom: '24px',
           } : {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-            gap: '12px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '10px',
             marginBottom: '28px',
           }}
         >
-          {[
-            { key: 'received',         label: 'مستلمة',          icon: '◈', color: 'var(--status-received-fg)'  },
-            { key: 'pending_approval', label: 'بانتظار الموافقة', icon: '⏳', color: 'var(--status-pending-fg)'   },
-            { key: 'in_progress',      label: 'قيد العمل',        icon: '⟳', color: 'var(--status-progress-fg)'  },
-            { key: 'ready',            label: 'جاهزة',            icon: '✓', color: 'var(--status-ready-fg)'      },
-            { key: 'delivered',        label: 'مُسلَّمة',         icon: '✦', color: 'var(--gold)'                  },
-          ].map(({ key, label, icon, color }) => (
-            <button
+          {STAT_CARDS.map(({ key, label, icon, gradient }, i) => (
+            <motion.button
               key={key}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06, duration: 0.3 }}
               onClick={() => applyFilter(filterStatus === key ? 'all' : key)}
               style={{
-                background: filterStatus === key ? 'rgba(201,151,58,0.08)' : 'var(--bg-surface)',
-                border: `1px solid ${filterStatus === key ? 'var(--gold)' : 'var(--gold-border)'}`,
-                borderRadius: 'var(--radius-lg)',
-                padding: '14px 16px',
-                display: 'flex', flexDirection: 'column', gap: '6px',
+                background: filterStatus === key ? `${gradient}, rgba(212,168,67,0.04)` : gradient,
+                border: `1px solid ${filterStatus === key ? 'rgba(212,168,67,0.25)' : 'rgba(255,255,255,0.04)'}`,
+                borderRadius: '14px',
+                padding: '16px 18px',
+                display: 'flex', flexDirection: 'column', gap: '8px',
                 cursor: 'pointer',
                 textAlign: 'right',
-                transition: 'all 0.15s',
-                ...(isMobile ? { minWidth: '110px', flexShrink: 0 } : {}),
+                transition: 'all 0.2s ease',
+                ...(isMobile ? { minWidth: '120px', flexShrink: 0 } : {}),
+                boxShadow: filterStatus === key ? '0 0 20px rgba(212,168,67,0.06)' : 'none',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ color, fontSize: '0.9rem' }}>{icon}</span>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{label}</span>
+                <span style={{ color: STATUS_COLORS[key], fontSize: '0.85rem' }}>{icon}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{label}</span>
               </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1 }}>
+              <div style={{
+                fontSize: '2rem',
+                fontWeight: 800,
+                color: STATUS_COLORS[key],
+                fontFamily: 'JetBrains Mono, monospace',
+                lineHeight: 1,
+              }}>
                 {stats[key] ?? 0}
               </div>
-            </button>
+            </motion.button>
           ))}
         </div>
       ) : (
@@ -177,46 +200,48 @@ export default function Dashboard() {
           ✦
         </button>
       )}
-    </div>
+    </motion.div>
   );
 }
 
-function ActionPanel({ icon, title, count, accent, accentBg, emptyText, orders, active, onFilterClick, highlight }) {
+function ActionPanel({ icon, title, count, accent, emptyText, orders, active, onFilterClick, highlight }) {
   return (
-    <div
+    <motion.div
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
       onClick={onFilterClick}
       style={{
-        background: 'var(--bg-surface)',
-        border: `1px solid ${highlight && count > 0 ? accent : 'var(--gold-border)'}`,
-        borderRadius: 'var(--radius-lg)',
-        padding: '16px 18px',
+        background: 'rgba(17,24,42,0.6)',
+        backdropFilter: 'blur(16px)',
+        border: `1px solid ${highlight && count > 0 ? `${accent}33` : 'rgba(255,255,255,0.04)'}`,
+        borderRadius: '16px',
+        padding: '18px 20px',
         cursor: 'pointer',
-        transition: 'all 0.15s',
+        transition: 'all 0.2s',
         outline: active ? `2px solid ${accent}` : 'none',
         outlineOffset: '2px',
+        boxShadow: count > 0 ? `0 0 24px ${accent}08` : 'none',
       }}
     >
-      {/* Panel header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '1rem', color: accent }}>{icon}</span>
           <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{title}</span>
         </div>
         <span style={{
-          background: count > 0 ? accentBg : 'var(--bg-elevated)',
+          background: count > 0 ? `${accent}18` : 'rgba(255,255,255,0.04)',
           color: count > 0 ? accent : 'var(--text-muted)',
           fontFamily: 'JetBrains Mono, monospace',
           fontWeight: 800,
           fontSize: '0.95rem',
-          padding: '2px 10px',
+          padding: '3px 12px',
           borderRadius: '20px',
-          border: `1px solid ${count > 0 ? accent : 'transparent'}`,
+          border: `1px solid ${count > 0 ? `${accent}30` : 'transparent'}`,
         }}>
           {count}
         </span>
       </div>
 
-      {/* Order snippets */}
       {count === 0 ? (
         <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>{emptyText}</div>
       ) : (
@@ -224,9 +249,9 @@ function ActionPanel({ icon, title, count, accent, accentBg, emptyText, orders, 
           {orders.slice(0, 3).map(o => (
             <div key={o.id} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '6px 8px',
-              background: 'var(--bg-elevated)',
-              borderRadius: '6px',
+              padding: '7px 10px',
+              background: 'rgba(255,255,255,0.02)',
+              borderRadius: '8px',
               fontSize: '0.8rem',
             }}>
               <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{o.customer_name}</span>
@@ -242,6 +267,6 @@ function ActionPanel({ icon, title, count, accent, accentBg, emptyText, orders, 
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

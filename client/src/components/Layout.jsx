@@ -24,32 +24,49 @@ export default function Layout({ children }) {
 
       {/* Sidebar — desktop */}
       <aside className="sidebar" style={{
-        width: "220px",
-        minWidth: "220px",
-        background: "var(--bg-sidebar)",
+        width: "240px",
+        minWidth: "240px",
+        background: "linear-gradient(180deg, #0D1225 0%, #0A0E1B 100%)",
         display: "flex",
         flexDirection: "column",
         padding: "0",
+        borderLeft: "1px solid rgba(212,168,67,0.08)",
+        position: "relative",
+        overflow: "hidden",
       }}>
-        <div style={{ padding: "28px 20px 20px" }}>
+        {/* Ambient glow */}
+        <div style={{
+          position: "absolute",
+          top: "-40px",
+          right: "-40px",
+          width: "180px",
+          height: "180px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(212,168,67,0.08) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }} />
+
+        <div style={{ padding: "32px 24px 24px", position: "relative" }}>
           <div style={{
             fontFamily: "Almarai, sans-serif",
             fontWeight: 800,
-            fontSize: "1.15rem",
-            color: "var(--gold)",
-            letterSpacing: "0.02em",
+            fontSize: "1.25rem",
+            background: "linear-gradient(135deg, var(--gold), var(--gold-bright))",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "0.01em",
             lineHeight: 1.3,
           }}>
             مصنع المضيان
           </div>
-          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.72rem", marginTop: "3px" }}>
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.72rem", marginTop: "4px", letterSpacing: "0.02em" }}>
             إدارة صيانة المجوهرات
           </div>
         </div>
 
-        <div className="gold-line" style={{ margin: "0 16px" }} />
+        <div className="gold-line" style={{ margin: "0 20px" }} />
 
-        <nav style={{ padding: "12px 10px", flex: 1 }}>
+        <nav style={{ padding: "16px 14px", flex: 1 }}>
           {visibleNav.map(({ to, icon, label }) => (
             <NavLink
               key={to}
@@ -58,54 +75,55 @@ export default function Layout({ children }) {
               style={({ isActive }) => ({
                 display: "flex",
                 alignItems: "center",
-                gap: "10px",
-                padding: "10px 12px",
-                borderRadius: "8px",
+                gap: "12px",
+                padding: "12px 14px",
+                borderRadius: "12px",
                 marginBottom: "4px",
-                color: isActive ? "var(--gold)" : "rgba(255,255,255,0.65)",
-                background: isActive ? "rgba(201,151,58,0.12)" : "transparent",
+                color: isActive ? "var(--gold)" : "rgba(255,255,255,0.5)",
+                background: isActive ? "rgba(212,168,67,0.08)" : "transparent",
                 borderRight: isActive ? "2px solid var(--gold)" : "2px solid transparent",
                 textDecoration: "none",
                 fontSize: "0.9rem",
                 fontWeight: isActive ? 700 : 400,
-                transition: "all 0.15s",
+                transition: "all 0.2s ease",
+                ...(isActive ? { boxShadow: "0 0 20px rgba(212,168,67,0.05)" } : {}),
               })}
             >
-              <span style={{ fontSize: "1rem", opacity: 0.85 }}>{icon}</span>
+              <span style={{ fontSize: "1.05rem", opacity: 0.85 }}>{icon}</span>
               {label}
             </NavLink>
           ))}
         </nav>
 
-        <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ padding: "20px 24px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
           <button
             onClick={handleLogout}
             style={{
               width: "100%",
-              background: "transparent",
-              border: "1px solid rgba(255,255,255,0.15)",
-              color: "rgba(255,255,255,0.5)",
-              borderRadius: "6px",
-              padding: "7px 12px",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              color: "rgba(255,255,255,0.4)",
+              borderRadius: "10px",
+              padding: "9px 14px",
               fontSize: "0.78rem",
               fontFamily: "Almarai, sans-serif",
               cursor: "pointer",
               textAlign: "right",
-              transition: "all 0.15s",
+              transition: "all 0.2s",
             }}
-            onMouseEnter={e => { e.target.style.color = "#fff"; e.target.style.borderColor = "rgba(255,255,255,0.35)"; }}
-            onMouseLeave={e => { e.target.style.color = "rgba(255,255,255,0.5)"; e.target.style.borderColor = "rgba(255,255,255,0.15)"; }}
+            onMouseEnter={e => { e.target.style.color = "var(--gold)"; e.target.style.borderColor = "rgba(212,168,67,0.2)"; e.target.style.background = "rgba(212,168,67,0.04)"; }}
+            onMouseLeave={e => { e.target.style.color = "rgba(255,255,255,0.4)"; e.target.style.borderColor = "rgba(255,255,255,0.08)"; e.target.style.background = "rgba(255,255,255,0.03)"; }}
           >
             تسجيل الخروج ←
           </button>
-          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.65rem", marginTop: "8px" }}>
+          <div style={{ color: "rgba(255,255,255,0.15)", fontSize: "0.62rem", marginTop: "10px", textAlign: "center" }}>
             يتطلب Chrome أو Edge للطباعة
           </div>
         </div>
       </aside>
 
       {/* Main content */}
-      <main style={{ flex: 1, overflow: "auto", background: "var(--bg-primary)" }}>
+      <main style={{ flex: 1, overflow: "auto", background: "transparent" }}>
         {children}
       </main>
 

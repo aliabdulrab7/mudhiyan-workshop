@@ -7,3 +7,4 @@ dist/
 *.db
 *.pem
 .DS_Store
+github-actions-deployer_accessKeys.csv

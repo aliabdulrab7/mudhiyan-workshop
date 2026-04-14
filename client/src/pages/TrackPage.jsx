@@ -15,6 +15,14 @@ const STEP_LABELS = {
   delivered:        'سُلِّم',
 };
 
+const STEP_COLORS = {
+  received: '#818CF8',
+  pending_approval: '#FBBF24',
+  in_progress: '#60A5FA',
+  ready: '#34D399',
+  delivered: '#A78BFA',
+};
+
 const STATUS_MESSAGES = {
   received:         'تم استلام قطعتك، سيتم تقييمها قريباً',
   pending_approval: 'يرجى الموافقة على تكلفة الإصلاح أدناه',
@@ -37,7 +45,6 @@ export default function TrackPage() {
       getTrackOrder(token)
         .then(data => {
           setOrder(data);
-          // Keep polling if not in terminal states
           if (data && ['received', 'pending_approval', 'in_progress'].includes(data.status)) {
             timeoutId = setTimeout(fetchOrder, 10000);
           }
@@ -45,9 +52,7 @@ export default function TrackPage() {
         .catch(() => setNotFound(true))
         .finally(() => setLoading(false));
     }
-
     fetchOrder();
-
     return () => clearTimeout(timeoutId);
   }, [token]);
 
@@ -67,15 +72,16 @@ export default function TrackPage() {
   if (loading) return <SkeletonLoader type="track" />;
 
   if (notFound) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8F9FB', padding: '20px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0B0F1A', padding: '20px' }}>
       <div style={{ textAlign: 'center', fontFamily: 'Almarai, sans-serif' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '16px', opacity: 0.3 }}>◈</div>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#111827', marginBottom: '8px' }}>الطلب غير موجود</div>
-        <div style={{ color: '#9CA3AF', fontSize: '0.9rem' }}>تأكد من الرابط أو المسح مجدداً</div>
+        <div style={{ fontSize: '3rem', marginBottom: '16px', opacity: 0.2, color: 'var(--gold)' }}>◈</div>
+        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '8px' }}>الطلب غير موجود</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>تأكد من الرابط أو المسح مجدداً</div>
       </div>
     </div>
   );
 
+  const activeColor = STEP_COLORS[order.status] || '#D4A843';
   const usePendingStep = order.status === 'pending_approval' ||
     STEPS_ALL.indexOf(order.status) > STEPS_ALL.indexOf('pending_approval');
   const steps = usePendingStep ? STEPS_ALL : STEPS_NO_APPROVAL;
@@ -89,86 +95,149 @@ export default function TrackPage() {
       transition={{ duration: 0.4, ease: 'easeOut' }}
       style={{
         minHeight: '100vh',
-        background: '#F8F9FB',
+        background: '#0B0F1A',
         fontFamily: 'Almarai, sans-serif',
         direction: 'rtl',
         padding: '24px 16px',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'flex-start',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ width: '100%', maxWidth: '480px' }}>
+      {/* Background glow tied to current status */}
+      <div style={{
+        position: 'absolute',
+        top: '-100px',
+        right: '50%',
+        transform: 'translateX(50%)',
+        width: '400px',
+        height: '400px',
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${activeColor}08 0%, transparent 60%)`,
+        pointerEvents: 'none',
+        filter: 'blur(60px)',
+      }} />
+
+      <div style={{ width: '100%', maxWidth: '480px', position: 'relative' }}>
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1B2B5E', marginBottom: '4px' }}>
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              background: 'rgba(212,168,67,0.08)',
+              border: '1px solid rgba(212,168,67,0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px',
+              fontSize: '1.2rem',
+              color: 'var(--gold)',
+            }}
+          >
+            ◈
+          </motion.div>
+          <div style={{
+            fontSize: '1.3rem',
+            fontWeight: 800,
+            background: 'linear-gradient(135deg, var(--gold), var(--gold-bright))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '4px',
+          }}>
             مصنع المضيان
           </div>
-          <div style={{ color: '#9CA3AF', fontSize: '0.78rem' }}>إدارة صيانة المجوهرات</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>إدارة صيانة المجوهرات</div>
         </div>
 
-        <div style={{
-          background: '#FFFFFF',
-          border: '1px solid rgba(201,151,58,0.25)',
-          borderRadius: '12px',
-          padding: '24px',
-          boxShadow: '0 2px 16px rgba(27,43,94,0.06)',
-        }}>
-
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.4 }}
+          style={{
+            background: 'rgba(17,24,42,0.7)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.05)',
+            borderRadius: '18px',
+            padding: '28px',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.3)',
+          }}
+        >
           {/* Order number + piece type */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '6px' }}>رقم الطلب</div>
-            <span style={{
-              fontFamily: '"JetBrains Mono", monospace',
-              background: '#EEF2FF',
-              border: '1px solid rgba(27,43,94,0.15)',
-              borderRadius: '6px',
-              padding: '4px 12px',
-              color: '#1B2B5E',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-            }}>
+          <div style={{ marginBottom: '22px' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '6px' }}>رقم الطلب</div>
+            <span className="order-stamp" style={{ fontSize: '0.88rem', padding: '5px 14px' }}>
               {order.order_number}
             </span>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '4px' }}>نوع القطعة</div>
-            <div style={{ fontWeight: 600, color: '#111827' }}>{order.piece_type}</div>
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>نوع القطعة</div>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{order.piece_type}</div>
           </div>
 
           {/* Progress tracker */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '12px' }}>مراحل الطلب</div>
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '14px' }}>مراحل الطلب</div>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               {steps.map((step, i) => {
                 const completed = i < currentIdx;
                 const active    = i === currentIdx;
+                const stepColor = STEP_COLORS[step] || '#D4A843';
                 return (
                   <React.Fragment key={step}>
                     {i > 0 && (
-                      <div style={{ flex: 1, height: '2px', background: completed ? '#C9973A' : '#E5E7EB' }} />
+                      <motion.div
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
+                        style={{
+                          flex: 1,
+                          height: '2px',
+                          background: completed ? stepColor : 'rgba(255,255,255,0.06)',
+                          transformOrigin: 'right',
+                        }}
+                      />
                     )}
-                    <div style={{
-                      width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
-                      background: completed ? '#C9973A' : active ? '#1B2B5E' : '#E5E7EB',
-                      color: (completed || active) ? '#FFFFFF' : '#9CA3AF',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '0.7rem', fontWeight: 700,
-                    }}>
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2 + i * 0.1, type: 'spring', stiffness: 200 }}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        background: completed ? stepColor : active ? `${stepColor}20` : 'rgba(255,255,255,0.04)',
+                        border: active ? `2px solid ${stepColor}` : completed ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                        color: (completed || active) ? (completed ? '#0B0F1A' : stepColor) : 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        ...(active ? { boxShadow: `0 0 16px ${stepColor}20` } : {}),
+                      }}
+                    >
                       {completed ? '✓' : i + 1}
-                    </div>
+                    </motion.div>
                   </React.Fragment>
                 );
               })}
             </div>
-            <div style={{ display: 'flex', marginTop: '8px' }}>
+            <div style={{ display: 'flex', marginTop: '10px' }}>
               {steps.map((step, i) => (
                 <div key={step} style={{
-                  flex: i === 0 ? '0 0 28px' : 1,
-                  fontSize: '0.58rem',
-                  color: step === order.status ? '#1B2B5E' : '#9CA3AF',
+                  flex: i === 0 ? '0 0 32px' : 1,
+                  fontSize: '0.55rem',
+                  color: step === order.status ? (STEP_COLORS[step] || 'var(--text-primary)') : 'var(--text-muted)',
                   fontWeight: step === order.status ? 700 : 400,
                   textAlign: i === 0 ? 'right' : i === steps.length - 1 ? 'left' : 'center',
                   marginLeft: i > 0 ? '-14px' : 0,
@@ -183,71 +252,93 @@ export default function TrackPage() {
           </div>
 
           {/* Status message */}
-          <div style={{
-            background: order.status === 'ready' ? 'rgba(6,95,70,0.06)' : 'rgba(27,43,94,0.04)',
-            border: `1px solid ${order.status === 'ready' ? 'rgba(6,95,70,0.2)' : 'rgba(27,43,94,0.1)'}`,
-            borderRadius: '8px',
-            padding: '12px 16px',
-            marginBottom: order.status === 'pending_approval' ? '16px' : '0',
-            color: order.status === 'ready' ? '#065F46' : '#1B2B5E',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-          }}>
+          <motion.div
+            key={order.status}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            style={{
+              background: order.status === 'ready' ? 'rgba(52,211,153,0.08)' : `${activeColor}08`,
+              border: `1px solid ${order.status === 'ready' ? 'rgba(52,211,153,0.15)' : `${activeColor}15`}`,
+              borderRadius: '12px',
+              padding: '14px 18px',
+              marginBottom: order.status === 'pending_approval' ? '18px' : '0',
+              color: order.status === 'ready' ? '#34D399' : activeColor,
+              fontSize: '0.9rem',
+              fontWeight: 500,
+            }}
+          >
             {STATUS_MESSAGES[order.status]}
-          </div>
+          </motion.div>
 
           {/* Cost approval */}
           {order.status === 'pending_approval' && !approved && (
-            <div style={{
-              background: '#FFFBEB',
-              border: '1px solid rgba(201,151,58,0.35)',
-              borderRadius: '8px',
-              padding: '16px',
-            }}>
-              <div style={{ fontSize: '0.82rem', color: '#92400E', marginBottom: '4px' }}>رسوم الإصلاح</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1B2B5E', marginBottom: '16px' }}>
-                {order.cost} ريال سعودي
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                background: 'rgba(245,158,11,0.06)',
+                border: '1px solid rgba(245,158,11,0.15)',
+                borderRadius: '14px',
+                padding: '20px',
+              }}
+            >
+              <div style={{ fontSize: '0.82rem', color: '#FBBF24', marginBottom: '6px' }}>رسوم الإصلاح</div>
+              <div style={{
+                fontSize: '1.8rem',
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #FBBF24, #F59E0B)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                marginBottom: '18px',
+                fontFamily: 'JetBrains Mono, monospace',
+              }}>
+                {order.cost} <span style={{ fontSize: '0.9rem' }}>ريال</span>
               </div>
-              <button
+              <motion.button
                 onClick={handleApprove}
                 disabled={approving}
+                whileTap={{ scale: 0.97 }}
                 style={{
                   width: '100%',
                   padding: '14px 0',
-                  background: '#1B2B5E',
-                  color: '#C9973A',
+                  background: 'linear-gradient(135deg, #FBBF24, #D97706)',
+                  color: '#0B0F1A',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '12px',
                   fontSize: '1rem',
                   fontWeight: 700,
                   fontFamily: 'Almarai, sans-serif',
                   cursor: approving ? 'not-allowed' : 'pointer',
-                  opacity: approving ? 0.7 : 1,
-                  letterSpacing: '0.02em',
+                  opacity: approving ? 0.6 : 1,
+                  boxShadow: '0 4px 20px rgba(245,158,11,0.2)',
                 }}
               >
                 {approving ? '...' : 'أوافق على السعر'}
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           )}
 
           {approved && (
-            <div style={{
-              background: '#ECFDF5',
-              border: '1px solid rgba(6,95,70,0.2)',
-              borderRadius: '8px',
-              padding: '14px',
-              color: '#065F46',
-              textAlign: 'center',
-              fontWeight: 600,
-            }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{
+                background: 'rgba(52,211,153,0.08)',
+                border: '1px solid rgba(52,211,153,0.15)',
+                borderRadius: '12px',
+                padding: '16px',
+                color: '#34D399',
+                textAlign: 'center',
+                fontWeight: 600,
+              }}
+            >
               ✓ تمت الموافقة، جارٍ التنفيذ
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '24px', color: '#9CA3AF', fontSize: '0.72rem' }}>
+        <div style={{ textAlign: 'center', marginTop: '28px', color: 'var(--text-muted)', fontSize: '0.68rem', opacity: 0.6 }}>
           هذه الصفحة للاستخدام الشخصي فقط
         </div>
       </div>
