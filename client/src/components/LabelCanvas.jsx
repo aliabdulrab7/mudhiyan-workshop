@@ -266,7 +266,16 @@ export default function LabelCanvas({ order, autoPrint = false }) {
               >
                 {isPrinting ? "جاري الطباعة..." : "⎙ طباعة الملصقات"}
               </button>
-              <button className="btn-ghost-sm" onClick={disconnect}>قطع الاتصال</button>
+              {isPrinting && (
+                <button 
+                  className="btn-ghost-sm" 
+                  style={{ color: '#DC2626', border: '1px solid rgba(220,38,38,0.2)' }}
+                  onClick={disconnect}
+                >
+                  ⚠ إيقاف إجباري
+                </button>
+              )}
+              {!isPrinting && <button className="btn-ghost-sm" onClick={disconnect}>قطع الاتصال</button>}
             </>
           )}
         </div>

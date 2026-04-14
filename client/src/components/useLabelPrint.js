@@ -45,25 +45,34 @@ export default function useLabelPrint() {
     setIsPrinting(true);
     setError('');
 
+    const PRINT_TIMEOUT = 20000; // 20 seconds
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('انتهت مهلة الطباعة - تحقق من الطابعة')), PRINT_TIMEOUT)
+    );
+
     try {
-      // Auto-detect the correct print task for the connected printer model.
-      // B21S uses 'D110', B21 uses 'B21_V1' — getPrintTaskType() resolves this.
-      const taskType = client.getPrintTaskType() ?? 'D110';
-      const printTask = client.abstraction.newPrintTask(taskType, {
-        totalPages: canvases.length,
-        density: 3,
-      });
-      await printTask.printInit();
+      await Promise.race([
+        (async () => {
+          const taskType = client.getPrintTaskType() ?? 'D110';
+          const printTask = client.abstraction.newPrintTask(taskType, {
+            totalPages: canvases.length,
+            density: 3,
+          });
+          await printTask.printInit();
 
-      for (const canvas of canvases) {
-        const encoded = ImageEncoder.encodeCanvas(canvas, 'top');
-        await printTask.printPage(encoded, 1);
-        await printTask.waitForPageFinished();
-      }
+          for (const canvas of canvases) {
+            const encoded = ImageEncoder.encodeCanvas(canvas, 'top');
+            await printTask.printPage(encoded, 1);
+            await printTask.waitForPageFinished();
+          }
 
-      await printTask.waitForFinished();
+          await printTask.waitForFinished();
+        })(),
+        timeoutPromise
+      ]);
     } catch (e) {
       setError(e.message || 'فشل الطباعة');
+      // If error or timeout, we should probably suggest a reset
     } finally {
       try { await client.abstraction?.printEnd(); } catch (_) {}
       setIsPrinting(false);

@@ -20,18 +20,23 @@ function useMobile() {
 
 const STAT_CARDS = [
   { key: 'received',         label: 'مستلمة',          icon: '◈', gradient: 'linear-gradient(135deg, rgba(41,128,185,0.06), rgba(41,128,185,0.01))' },
-  { key: 'pending_approval', label: 'بانتظار الموافقة', icon: '⏳', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.06), rgba(217,119,6,0.01))' },
-  { key: 'in_progress',      label: 'قيد العمل',        icon: '⟳', gradient: 'linear-gradient(135deg, rgba(26,110,160,0.06), rgba(26,110,160,0.01))' },
-  { key: 'ready',            label: 'جاهزة',            icon: '✓', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01))' },
-  { key: 'delivered',        label: 'مُسلَّمة',         icon: '✦', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.01))' },
+  { key: 'diagnosing',       label: 'تشخيص',          icon: '⚲', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.01))' },
+  { key: 'waiting_approval', label: 'بانتظار الموافقة', icon: '⏳', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.06), rgba(217,119,6,0.01))' },
+  { key: 'in_repair',        label: 'قيد الإصلاح',      icon: '⟳', gradient: 'linear-gradient(135deg, rgba(26,110,160,0.06), rgba(26,110,160,0.01))' },
+  { key: 'quality_check',    label: 'فحص الجودة',      icon: '✓', gradient: 'linear-gradient(135deg, rgba(107,114,128,0.06), rgba(107,114,128,0.01))' },
+  { key: 'ready_for_pickup', label: 'جاهزة للاستلام',   icon: '✦', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01))' },
 ];
 
 const STATUS_COLORS = {
   received:         '#2980B9',
-  pending_approval: '#D97706',
-  in_progress:      '#1A6EA0',
-  ready:            '#16A34A',
-  delivered:        '#7C3AED',
+  diagnosing:       '#7C3AED',
+  waiting_approval: '#D97706',
+  in_repair:        '#1A6EA0',
+  quality_check:    '#6B7280',
+  ready_for_pickup: '#16A34A',
+  delivered:        '#1E293B',
+  invoiced:         '#059669',
+  closed:           '#64748B',
 };
 
 export default function Dashboard() {
