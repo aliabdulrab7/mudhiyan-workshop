@@ -166,11 +166,58 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 24px' }}>
           {/* Order info */}
           <section style={{ padding: '24px 28px 0' }}>
-            <InfoRow label="العميل"  value={order.customer_name} bold />
-            <InfoRow label="القطعة"  value={order.piece_type} />
-            <InfoRow label="الجوال"  value={'+' + order.phone} mono />
-            {order.notes && <InfoRow label="ملاحظات" value={order.notes} />}
+            <InfoRow label="العميل" value={order.customer_name} bold />
+            <InfoRow label="الجوال" value={'+' + order.phone} mono />
             {order.cost > 0 && <InfoRow label="التكلفة" value={`${order.cost} ريال`} bold />}
+
+            {/* Items table */}
+            {order.items && order.items.length > 0 ? (
+              <div style={{ marginTop: '14px' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+                  الأصناف
+                </div>
+                <div style={{ border: '1px solid #30363d', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 48px 1fr',
+                    padding: '6px 10px',
+                    background: '#0d1117',
+                    borderBottom: '1px solid #30363d',
+                    fontSize: '0.68rem',
+                    color: 'var(--text-muted)',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    gap: '6px',
+                  }}>
+                    <span>النوع</span>
+                    <span style={{ textAlign: 'center' }}>العدد</span>
+                    <span>تعليق</span>
+                  </div>
+                  {order.items.map((item, i) => (
+                    <div key={item.id ?? i} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 48px 1fr',
+                      padding: '8px 10px',
+                      borderBottom: i < order.items.length - 1 ? '1px solid #21262d' : 'none',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.875rem',
+                    }}>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.item_type}</span>
+                      <span style={{ textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', color: '#58a6ff', fontWeight: 700 }}>{item.quantity}</span>
+                      <span style={{ color: item.notes ? 'var(--text-secondary)' : 'var(--text-muted)', fontStyle: item.notes ? 'normal' : 'italic', fontSize: '0.82rem' }}>
+                        {item.notes || '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                <InfoRow label="القطعة" value={order.piece_type} />
+                {order.notes && <InfoRow label="ملاحظات" value={order.notes} />}
+              </>
+            )}
           </section>
 
           <Divider />

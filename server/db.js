@@ -79,6 +79,19 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_comments_order ON order_comments(order_id);
 `);
 
+// ── Order items table ─────────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS order_items (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id   INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    item_type  TEXT NOT NULL,
+    quantity   INTEGER NOT NULL DEFAULT 1,
+    notes      TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_items_order ON order_items(order_id);
+`);
+
 // ── createOrder transaction ───────────────────────────────────────────────────
 
 const createOrder = db.transaction((data) => {
@@ -94,12 +107,33 @@ const createOrder = db.transaction((data) => {
   const order_number   = `WRK-${ymd}-${String(next).padStart(4, '0')}`;
   const customer_token = require('crypto').randomUUID();
 
+  // Compute piece_type summary from items array if provided
+  const items = Array.isArray(data.items) && data.items.length > 0 ? data.items : null;
+  const piece_type = items
+    ? items.map(i => i.quantity > 1 ? `${i.item_type} ×${i.quantity}` : i.item_type).join('، ')
+    : (data.piece_type || '');
+
   const result = db.prepare(`
     INSERT INTO orders (order_number, customer_name, phone, piece_type, notes, shop_id, customer_token)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(order_number, data.customer_name, data.phone, data.piece_type, data.notes, data.shop_id ?? null, customer_token);
+  `).run(order_number, data.customer_name, data.phone, piece_type, data.notes ?? '', data.shop_id ?? null, customer_token);
 
-  return db.prepare('SELECT * FROM orders WHERE id = ?').get(result.lastInsertRowid);
+  const orderId = result.lastInsertRowid;
+
+  // Insert individual items if provided
+  if (items) {
+    const insertItem = db.prepare(`
+      INSERT INTO order_items (order_id, item_type, quantity, notes, sort_order)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    items.forEach((item, i) => {
+      insertItem.run(orderId, item.item_type, item.quantity || 1, item.notes || '', i);
+    });
+  }
+
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order').all(orderId);
+  return { ...order, items: orderItems };
 });
 
 module.exports = { db, createOrder };

@@ -121,24 +121,43 @@ router.get('/:id', (req, res) => {
         WHERE o.id = ? AND o.shop_id = ?
       `).get(req.params.id, req.user.shop_id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-  res.json(order);
+  const items = db.prepare(
+    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+  ).all(order.id);
+  res.json({ ...order, items });
 });
 
 // POST /api/orders — shop_employee only
 router.post('/', requireRole('shop_employee'), (req, res) => {
-  const { customer_name, phone, piece_type, notes = '' } = req.body;
-  if (!customer_name || !phone || !piece_type) {
-    return res.status(400).json({ error: 'الاسم ورقم الجوال ونوع القطعة مطلوبة' });
+  const { customer_name, phone, items } = req.body;
+  if (!customer_name || !phone) {
+    return res.status(400).json({ error: 'الاسم ورقم الجوال مطلوبان' });
   }
   if (customer_name.trim().length > 100) return res.status(400).json({ error: 'الاسم طويل جداً' });
-  if (notes.trim().length > 1000) return res.status(400).json({ error: 'الملاحظات طويلة جداً' });
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'يجب إضافة صنف واحد على الأقل' });
+  }
+
+  const ALLOWED_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'أخرى'];
+  for (const item of items) {
+    if (!ALLOWED_TYPES.includes(item.item_type)) {
+      return res.status(400).json({ error: `نوع غير صالح: ${item.item_type}` });
+    }
+    const qty = parseInt(item.quantity, 10);
+    if (isNaN(qty) || qty < 1 || qty > 99) {
+      return res.status(400).json({ error: 'العدد يجب أن يكون بين 1 و 99' });
+    }
+  }
 
   try {
     const created = createOrder({
       customer_name: customer_name.trim(),
       phone: phone.trim(),
-      piece_type: piece_type.trim(),
-      notes: notes.trim(),
+      items: items.map(i => ({
+        item_type: i.item_type,
+        quantity:  parseInt(i.quantity, 10),
+        notes:     (i.notes || '').trim(),
+      })),
       shop_id: req.user.shop_id,
     });
     res.status(201).json(created);

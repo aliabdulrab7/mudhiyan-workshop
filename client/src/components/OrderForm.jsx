@@ -1,36 +1,47 @@
 import { useState } from 'react';
 import { createOrder } from '../api/orders';
 
-const PIECE_TYPES = ['خاتم', 'سلسلة', 'أسورة', 'قرط', 'دبلة', 'ساعة', 'أخرى'];
+const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'أخرى'];
+
+const newRow = () => ({ item_type: 'خاتم', quantity: 1, notes: '' });
 
 export default function OrderForm({ onSuccess }) {
-  const [form, setForm] = useState({
-    customer_name: '',
-    phone_digits: '',
-    piece_type: '',
-    notes: '',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [phoneDigits,  setPhoneDigits]  = useState('');
+  const [items,        setItems]        = useState([newRow()]);
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState('');
 
-  function set(field, value) {
-    setForm(f => ({ ...f, [field]: value }));
+  function addRow() {
+    setItems(prev => [...prev, newRow()]);
+  }
+
+  function removeRow(i) {
+    if (items.length === 1) return;
+    setItems(prev => prev.filter((_, idx) => idx !== i));
+  }
+
+  function updateRow(i, field, value) {
+    setItems(prev => prev.map((row, idx) => idx === i ? { ...row, [field]: value } : row));
     setError('');
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.customer_name.trim()) return setError('يرجى إدخال اسم العميل');
-    if (form.phone_digits.length !== 9) return setError('يرجى إدخال 9 أرقام بعد رمز الدولة');
-    if (!form.piece_type) return setError('يرجى اختيار نوع القطعة');
+    if (!customerName.trim())         return setError('يرجى إدخال اسم العميل');
+    if (phoneDigits.length !== 9)     return setError('يرجى إدخال 9 أرقام بعد رمز الدولة');
+    if (items.length === 0)           return setError('يرجى إضافة صنف واحد على الأقل');
 
     setLoading(true);
     try {
       const order = await createOrder({
-        customer_name: form.customer_name.trim(),
-        phone: '966' + form.phone_digits,
-        piece_type: form.piece_type,
-        notes: form.notes.trim(),
+        customer_name: customerName.trim(),
+        phone:         '966' + phoneDigits,
+        items:         items.map(r => ({
+          item_type: r.item_type,
+          quantity:  Number(r.quantity) || 1,
+          notes:     r.notes.trim(),
+        })),
       });
       onSuccess(order);
     } catch (err) {
@@ -52,8 +63,8 @@ export default function OrderForm({ onSuccess }) {
           className="input-base"
           type="text"
           placeholder="محمد العتيبي"
-          value={form.customer_name}
-          onChange={e => set('customer_name', e.target.value)}
+          value={customerName}
+          onChange={e => { setCustomerName(e.target.value); setError(''); }}
           autoComplete="off"
           autoCapitalize="words"
         />
@@ -66,11 +77,11 @@ export default function OrderForm({ onSuccess }) {
         </label>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
           <span style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--gold-border)',
+            background: '#21262d',
+            border: '1px solid #30363d',
             borderRadius: 'var(--radius)',
-            padding: '10px 14px',
-            color: 'var(--gold)',
+            padding: '8px 14px',
+            color: '#58a6ff',
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: '0.9rem',
             whiteSpace: 'nowrap',
@@ -82,85 +93,146 @@ export default function OrderForm({ onSuccess }) {
             type="tel"
             inputMode="numeric"
             placeholder="5XXXXXXXX"
-            value={form.phone_digits}
+            value={phoneDigits}
             onChange={e => {
               const val = e.target.value.replace(/\D/g, '').slice(0, 9);
-              set('phone_digits', val);
+              setPhoneDigits(val);
+              setError('');
             }}
             style={{ fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.08em' }}
           />
         </div>
       </div>
 
-      {/* Piece type — tap chips */}
+      {/* Items table */}
       <div>
         <label style={{ display: 'block', marginBottom: '10px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-          نوع القطعة
+          الأصناف
         </label>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px',
-        }}>
-          {PIECE_TYPES.map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => set('piece_type', t)}
+
+        <div style={{ border: '1px solid #30363d', borderRadius: '8px', overflow: 'hidden', marginBottom: '8px' }}>
+          {/* Table header */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '2fr 72px 1fr 32px',
+            padding: '8px 10px',
+            background: '#0d1117',
+            borderBottom: '1px solid #30363d',
+            fontSize: '0.70rem',
+            color: 'var(--text-muted)',
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            gap: '6px',
+          }}>
+            <span>النوع</span>
+            <span style={{ textAlign: 'center' }}>العدد</span>
+            <span>تعليق</span>
+            <span />
+          </div>
+
+          {/* Rows */}
+          {items.map((row, i) => (
+            <div
+              key={i}
               style={{
-                background: form.piece_type === t ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${form.piece_type === t ? 'var(--gold)' : 'rgba(201,168,76,0.15)'}`,
-                color: form.piece_type === t ? 'var(--gold)' : 'var(--text-secondary)',
-                borderRadius: 'var(--radius)',
-                height: '52px',
-                cursor: 'pointer',
-                fontFamily: 'Almarai, sans-serif',
-                fontSize: '0.92rem',
-                fontWeight: form.piece_type === t ? 700 : 400,
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: form.piece_type === t ? '0 0 15px rgba(201,168,76,0.1)' : 'none',
-              }}
-              onMouseEnter={(e) => {
-                if (form.piece_type !== t) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.07)';
-                  e.currentTarget.style.borderColor = 'rgba(201,168,76,0.3)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (form.piece_type !== t) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                  e.currentTarget.style.borderColor = 'rgba(201,168,76,0.15)';
-                }
+                display: 'grid',
+                gridTemplateColumns: '2fr 72px 1fr 32px',
+                padding: '6px 8px',
+                borderBottom: i < items.length - 1 ? '1px solid #21262d' : 'none',
+                alignItems: 'center',
+                gap: '6px',
+                background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
               }}
             >
-              {t}
-            </button>
+              {/* Type */}
+              <select
+                value={row.item_type}
+                onChange={e => updateRow(i, 'item_type', e.target.value)}
+                className="input-base"
+                style={{ padding: '6px 10px', fontSize: '0.88rem' }}
+              >
+                {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+
+              {/* Quantity */}
+              <input
+                type="number"
+                min="1"
+                max="99"
+                value={row.quantity}
+                onChange={e => updateRow(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                className="input-base"
+                style={{ padding: '6px 6px', textAlign: 'center', fontSize: '0.88rem' }}
+              />
+
+              {/* Notes */}
+              <input
+                type="text"
+                placeholder="تعليق..."
+                value={row.notes}
+                onChange={e => updateRow(i, 'notes', e.target.value)}
+                className="input-base"
+                style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+              />
+
+              {/* Delete row */}
+              <button
+                type="button"
+                onClick={() => removeRow(i)}
+                disabled={items.length === 1}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: items.length === 1 ? '#21262d' : '#6e7681',
+                  cursor: items.length === 1 ? 'default' : 'pointer',
+                  fontSize: '1.1rem',
+                  lineHeight: 1,
+                  padding: '4px',
+                  borderRadius: '4px',
+                  transition: 'color 0.15s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={e => { if (items.length > 1) e.currentTarget.style.color = '#f85149'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = items.length === 1 ? '#21262d' : '#6e7681'; }}
+              >
+                ×
+              </button>
+            </div>
           ))}
         </div>
-      </div>
 
-      {/* Notes */}
-      <div>
-        <label style={{ display: 'block', marginBottom: '7px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-          ملاحظات <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>(اختياري)</span>
-        </label>
-        <textarea
-          className="input-base"
-          placeholder="وصف العطل أو تعليمات إضافية..."
-          value={form.notes}
-          onChange={e => set('notes', e.target.value)}
-          rows={3}
-          style={{ resize: 'vertical' }}
-        />
+        {/* Add row */}
+        <button
+          type="button"
+          onClick={addRow}
+          style={{
+            width: '100%',
+            background: 'transparent',
+            border: '1px dashed #30363d',
+            borderRadius: '6px',
+            padding: '8px',
+            color: '#58a6ff',
+            fontSize: '0.85rem',
+            fontFamily: 'Almarai, sans-serif',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#58a6ff'; e.currentTarget.style.background = 'rgba(88,166,255,0.04)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = '#30363d'; e.currentTarget.style.background = 'transparent'; }}
+        >
+          + إضافة صنف
+        </button>
       </div>
 
       {error && (
         <div style={{
-          background: 'rgba(239,68,68,0.1)',
-          border: '1px solid rgba(239,68,68,0.3)',
+          background: 'rgba(248,81,73,0.10)',
+          border: '1px solid rgba(248,81,73,0.25)',
           borderRadius: 'var(--radius)',
           padding: '10px 14px',
-          color: '#FCA5A5',
+          color: '#f85149',
           fontSize: '0.88rem',
         }}>
           {error}
@@ -171,9 +243,9 @@ export default function OrderForm({ onSuccess }) {
         type="submit"
         className="btn-gold"
         disabled={loading}
-        style={{ marginTop: '4px', width: '100%', minHeight: '52px', fontSize: '1rem', justifyContent: 'center' }}
+        style={{ marginTop: '4px', width: '100%', minHeight: '48px', fontSize: '1rem', justifyContent: 'center' }}
       >
-        {loading ? 'جاري الحفظ...' : '✦ حفظ الصيانة'}
+        {loading ? 'جاري الحفظ...' : '✓ حفظ الصيانة'}
       </button>
     </form>
   );
