@@ -3,7 +3,7 @@ const { db, createOrder } = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
-const ALLOWED_STATUSES = ['received', 'pending_approval', 'in_progress', 'ready', 'delivered'];
+const ALLOWED_STATUSES = ['received', 'pending_approval', 'in_progress', 'ready', 'delivered', 'returned'];
 
 // All order routes require auth
 router.use(requireAuth);
@@ -21,7 +21,8 @@ router.get('/stats', (req, res) => {
       SUM(status = 'pending_approval')  AS pending_approval,
       SUM(status = 'in_progress')       AS in_progress,
       SUM(status = 'ready')             AS ready,
-      SUM(status = 'delivered')         AS delivered
+      SUM(status = 'delivered')         AS delivered,
+      SUM(status = 'returned')          AS returned
     FROM orders ${where}
   `).get(...params);
   res.json(row);
@@ -38,6 +39,7 @@ router.get('/branch-stats', requireRole('workshop'), (req, res) => {
       COALESCE(SUM(o.status = 'in_progress'),      0) AS in_progress,
       COALESCE(SUM(o.status = 'ready'),            0) AS ready,
       COALESCE(SUM(o.status = 'delivered'),        0) AS delivered,
+      COALESCE(SUM(o.status = 'returned'),         0) AS returned,
       COUNT(o.id)                                      AS total
     FROM shops s
     LEFT JOIN orders o ON o.shop_id = s.id
@@ -177,8 +179,8 @@ router.patch('/:id/status', requireAuth, (req, res) => {
   }
 
   if (!isWorkshop) {
-    // Branch employees may only mark their own ready orders as delivered
-    if (status !== 'delivered') {
+    // Branch employees may only mark their own ready orders as delivered or returned
+    if (status !== 'delivered' && status !== 'returned') {
       return res.status(403).json({ error: 'غير مصرح' });
     }
     const order = db.prepare(
@@ -186,7 +188,7 @@ router.patch('/:id/status', requireAuth, (req, res) => {
     ).get(req.params.id, req.user.shop_id);
     if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
     if (order.status !== 'ready') {
-      return res.status(400).json({ error: 'لا يمكن تسليم هذا الطلب بعد' });
+      return res.status(400).json({ error: 'لا يمكن تغيير حالة هذا الطلب بعد' });
     }
   }
 

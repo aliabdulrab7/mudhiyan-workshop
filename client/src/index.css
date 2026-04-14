@@ -3,37 +3,37 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary:    #0d1117;
-  --bg-surface:    #161b22;
-  --bg-elevated:   #21262d;
-  --bg-sidebar:    #161b22;
-  --bg-glass:      rgba(22, 27, 34, 0.92);
-  --primary:       #1f6feb;
-  --gold:          #58a6ff;
-  --gold-bright:   #79c0ff;
-  --gold-muted:    #1f6feb;
-  --gold-glow:     rgba(88, 166, 255, 0.10);
-  --gold-border:   #30363d;
-  --text-primary:  #e6edf3;
-  --text-secondary:#8b949e;
-  --text-muted:    #6e7681;
-  --status-received-bg:    rgba(56, 139, 253, 0.10);
-  --status-received-fg:    #58a6ff;
-  --status-pending-bg:     rgba(187, 128, 9, 0.12);
-  --status-pending-fg:     #d29922;
-  --status-progress-bg:    rgba(31, 111, 235, 0.10);
-  --status-progress-fg:    #388bfd;
-  --status-ready-bg:       rgba(46, 160, 67, 0.12);
-  --status-ready-fg:       #3fb950;
-  --status-delivered-bg:   rgba(163, 113, 247, 0.12);
-  --status-delivered-fg:   #a371f7;
-  --radius:    6px;
-  --radius-lg: 12px;
-  --shadow-sm: 0 1px 3px rgba(1,4,9,0.5);
-  --shadow-md: 0 3px 12px rgba(1,4,9,0.5);
-  --shadow-lg: 0 8px 32px rgba(1,4,9,0.6);
-  --shadow-gold: 0 0 20px rgba(88,166,255,0.06);
-  --blur: blur(16px);
+  --bg-primary:    #F8F9FA;
+  --bg-surface:    #FFFFFF;
+  --bg-elevated:   #F1F3F5;
+  --bg-sidebar:    #FFFFFF;
+  --bg-glass:      rgba(255, 255, 255, 0.9);
+  --primary:       #1C7ED6;
+  --gold:          #D4A843;
+  --gold-bright:   #E9C46A;
+  --gold-muted:    #9A7730;
+  --gold-glow:     rgba(212, 168, 67, 0.08);
+  --gold-border:   #E9ECEF;
+  --text-primary:  #212529;
+  --text-secondary:#495057;
+  --text-muted:    #868E96;
+  --status-received-bg:    #E7F5FF;
+  --status-received-fg:    #1C7ED6;
+  --status-pending-bg:     #FFF9DB;
+  --status-pending-fg:     #F59F00;
+  --status-progress-bg:    #E7F5FF;
+  --status-progress-fg:    #228BE6;
+  --status-ready-bg:       #EBFBEE;
+  --status-ready-fg:       #2F9E44;
+  --status-delivered-bg:   #F3F0FF;
+  --status-delivered-fg:   #7950F2;
+  --radius:    8px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 24px rgba(0,0,0,0.1);
+  --shadow-gold: 0 0 20px rgba(212,168,67,0.05);
+  --blur: blur(20px);
 }
 
 * { box-sizing: border-box; }

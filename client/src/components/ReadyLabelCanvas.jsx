@@ -3,7 +3,7 @@ import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 
 const W = 320;
-const H = 240;
+const H = 160;
 
 function drawReadyLabel(canvas, order) {
   const ctx = canvas.getContext("2d");

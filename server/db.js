@@ -63,6 +63,9 @@ if (!columnExists('orders', 'customer_token')) {
   // Backfill existing rows with a unique random hex token
   db.exec(`UPDATE orders SET customer_token = lower(hex(randomblob(16))) WHERE customer_token IS NULL`);
 }
+if (!columnExists('orders', 'is_urgent')) {
+  db.exec(`ALTER TABLE orders ADD COLUMN is_urgent INTEGER NOT NULL DEFAULT 0`);
+}
 
 // Create index on customer_token after the column is guaranteed to exist
 db.exec(`CREATE INDEX IF NOT EXISTS idx_cust_tok ON orders(customer_token) WHERE customer_token IS NOT NULL`);

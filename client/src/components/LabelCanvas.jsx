@@ -1,17 +1,17 @@
 import { useRef, useEffect, useState } from "react";
-import QRCode   from "qrcode";
+import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 import { getConfig } from "../api/orders";
 
 // B21: 40mm × 30mm @ 203 DPI = 320 × 240 px
 const W = 320;
-const H = 240;
+const H = 160;
 
 // ── Customer label — QR code points to /track/:customer_token ────────────────
 async function drawCustomerLabel(canvas, order) {
   const ctx = canvas.getContext("2d");
-  canvas.width  = W;
+  canvas.width = W;
   canvas.height = H;
 
   ctx.fillStyle = "#FFFFFF";
@@ -83,7 +83,7 @@ async function drawCustomerLabel(canvas, order) {
 // ── Shop label — CODE128 barcode for internal scanning ───────────────────────
 function drawShopLabel(canvas, order) {
   const ctx = canvas.getContext("2d");
-  canvas.width  = W;
+  canvas.width = W;
   canvas.height = H;
 
   ctx.fillStyle = "#FFFFFF";
@@ -145,7 +145,7 @@ function drawShopLabel(canvas, order) {
 
 export default function LabelCanvas({ order, autoPrint = false }) {
   const customerRef = useRef(null);
-  const shopRef     = useRef(null);
+  const shopRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
   const { connect, printAll, disconnect, isConnected, isPrinting, error: btError } = useLabelPrint();
@@ -176,7 +176,7 @@ export default function LabelCanvas({ order, autoPrint = false }) {
       <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "16px" }}>
         {[
           { ref: customerRef, title: "ملصق العميل" },
-          { ref: shopRef,     title: "ملصق الورشة" },
+          { ref: shopRef, title: "ملصق الورشة" },
         ].map(({ ref, title }) => (
           <div key={title}>
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "6px", textAlign: "center" }}>
