@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import StatusBadge from './StatusBadge';
 import CostEditor from './CostEditor';
 import { updateOrderStatus } from '../api/orders';
@@ -57,7 +58,17 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
   };
 
   return (
-    <div style={cardStyle}>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      style={{
+        ...cardStyle,
+        background: 'var(--bg-card)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid var(--gold-border)',
+        boxShadow: 'var(--shadow-lg)',
+      }}
+    >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
         <div style={{
@@ -180,7 +191,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           ⌖ مسح آخر
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

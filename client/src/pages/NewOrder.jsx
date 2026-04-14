@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import OrderForm from '../components/OrderForm';
 import LabelCanvas from '../components/LabelCanvas';
 
@@ -14,18 +13,27 @@ export default function NewOrder() {
 
   if (createdOrder) {
     return (
-      <div style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)', maxWidth: '560px', width: '100%' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)', maxWidth: '560px', width: '100%' }}
+      >
         {/* Success header */}
-        <div style={{
-          background: 'var(--status-ready-bg)',
-          border: '1px solid rgba(74,222,128,0.2)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '18px 20px',
-          marginBottom: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-        }}>
+        <motion.div
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          style={{
+            background: 'var(--status-ready-bg)',
+            border: '1px solid rgba(74,222,128,0.2)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '18px 20px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
           <span style={{ color: 'var(--status-ready-fg)', fontSize: '1.4rem' }}>✓</span>
           <div>
             <div style={{ color: 'var(--status-ready-fg)', fontWeight: 700 }}>تم حفظ الصيانة</div>
@@ -33,7 +41,7 @@ export default function NewOrder() {
               العميل: {createdOrder.customer_name} — {createdOrder.piece_type}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Order number stamp */}
         <div style={{ marginBottom: '24px', textAlign: 'center' }}>
@@ -80,12 +88,16 @@ export default function NewOrder() {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)', maxWidth: '520px', width: '100%' }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)', maxWidth: '520px', width: '100%' }}
+    >
       <div style={{ marginBottom: '28px' }}>
         <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
           صيانة جديدة
@@ -98,6 +110,6 @@ export default function NewOrder() {
       <div className="gold-line" style={{ marginBottom: '28px' }} />
 
       <OrderForm onSuccess={setCreatedOrder} />
-    </div>
+    </motion.div>
   );
 }

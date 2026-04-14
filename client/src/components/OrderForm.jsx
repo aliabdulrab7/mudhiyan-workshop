@@ -108,8 +108,8 @@ export default function OrderForm({ onSuccess }) {
               type="button"
               onClick={() => set('piece_type', t)}
               style={{
-                background: form.piece_type === t ? 'rgba(201,168,76,0.15)' : 'var(--bg-elevated)',
-                border: `1px solid ${form.piece_type === t ? 'var(--gold)' : 'var(--gold-border)'}`,
+                background: form.piece_type === t ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${form.piece_type === t ? 'var(--gold)' : 'rgba(201,168,76,0.15)'}`,
                 color: form.piece_type === t ? 'var(--gold)' : 'var(--text-secondary)',
                 borderRadius: 'var(--radius)',
                 height: '52px',
@@ -117,7 +117,20 @@ export default function OrderForm({ onSuccess }) {
                 fontFamily: 'Almarai, sans-serif',
                 fontSize: '0.92rem',
                 fontWeight: form.piece_type === t ? 700 : 400,
-                transition: 'all 0.15s',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: form.piece_type === t ? '0 0 15px rgba(201,168,76,0.1)' : 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (form.piece_type !== t) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.07)';
+                  e.currentTarget.style.borderColor = 'rgba(201,168,76,0.3)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (form.piece_type !== t) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                  e.currentTarget.style.borderColor = 'rgba(201,168,76,0.15)';
+                }
               }}
             >
               {t}
