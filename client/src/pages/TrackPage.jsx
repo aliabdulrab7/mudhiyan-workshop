@@ -30,10 +30,23 @@ export default function TrackPage() {
   const [approved,  setApproved]  = useState(false);
 
   useEffect(() => {
-    getTrackOrder(token)
-      .then(setOrder)
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
+    let timeoutId;
+    function fetchOrder() {
+      getTrackOrder(token)
+        .then(data => {
+          setOrder(data);
+          // Keep polling if not in terminal states
+          if (data && ['received', 'pending_approval', 'in_progress'].includes(data.status)) {
+            timeoutId = setTimeout(fetchOrder, 10000);
+          }
+        })
+        .catch(() => setNotFound(true))
+        .finally(() => setLoading(false));
+    }
+
+    fetchOrder();
+
+    return () => clearTimeout(timeoutId);
   }, [token]);
 
   async function handleApprove() {

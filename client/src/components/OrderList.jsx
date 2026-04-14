@@ -4,6 +4,7 @@ import StatusBadge, { STATUS } from './StatusBadge';
 import OrderDetail from './OrderDetail';
 import { useNavigate } from 'react-router-dom';
 import { getRole } from '../api/auth';
+import { buildReadyWaUrl } from '../utils/whatsapp';
 
 function useMobile() {
   const [mobile, setMobile] = React.useState(window.innerWidth < 768);
@@ -48,10 +49,13 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
       .finally(() => setLoading(false));
   }, [status, search, refresh]);
 
-  async function changeStatus(id, newStatus) {
+  async function changeStatus(order, newStatus) {
     try {
-      const updated = await updateOrderStatus(id, newStatus);
-      setOrders(prev => prev.map(o => o.id === id ? updated : o));
+      const updated = await updateOrderStatus(order.id, newStatus);
+      setOrders(prev => prev.map(o => o.id === order.id ? updated : o));
+      if (updated.status === 'ready') {
+        window.open(buildReadyWaUrl(updated.phone, updated.customer_name, updated.order_number), '_blank', 'noopener,noreferrer');
+      }
     } catch (e) {
       console.error(e);
     }
@@ -158,7 +162,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
                 {isWorkshop && nextStatus[order.status] && (
                   <button
                     className={isMobile ? 'btn-ghost mobile-status-btn' : 'btn-ghost-sm'}
-                    onClick={() => changeStatus(order.id, nextStatus[order.status])}
+                    onClick={() => changeStatus(order, nextStatus[order.status])}
                   >
                     {nextLabel[order.status]}
                   </button>
@@ -242,7 +246,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
                 {isWorkshop && nextStatus[order.status] && (
                   <button
                     className="btn-ghost-sm"
-                    onClick={() => changeStatus(order.id, nextStatus[order.status])}
+                    onClick={() => changeStatus(order, nextStatus[order.status])}
                   >
                     {nextLabel[order.status]}
                   </button>

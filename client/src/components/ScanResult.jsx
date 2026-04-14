@@ -3,6 +3,7 @@ import StatusBadge from './StatusBadge';
 import CostEditor from './CostEditor';
 import { updateOrderStatus } from '../api/orders';
 import { getRole } from '../api/auth';
+import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 
 function useMobile() {
   const [mobile, setMobile] = React.useState(window.innerWidth < 768);
@@ -12,23 +13,6 @@ function useMobile() {
     return () => window.removeEventListener('resize', fn);
   }, []);
   return mobile;
-}
-
-function buildApprovalWaUrl(phone, customerName, cost, trackingUrl) {
-  const message =
-    `السلام عليكم ${customerName}،\n\n` +
-    `تم تقييم قطعتك وتكلفة الإصلاح: ${cost} ريال.\n` +
-    `للموافقة على السعر والمتابعة:\n${trackingUrl}`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-}
-
-function buildReadyWaUrl(phone, customerName, orderNumber) {
-  const message =
-    `السلام عليكم ${customerName}،\n\n` +
-    `نود إعلامكم بأن قطعتكم جاهزة للاستلام.\n` +
-    `رقم الطلب: ${orderNumber}\n\n` +
-    `شكراً لثقتكم بنا 🏅`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUpdated }) {
@@ -42,14 +26,18 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
     onOrderUpdated?.(updated);
   }
 
-  const trackingUrl = `${window.location.protocol}//${window.location.host}/track/${order.customer_token}`;
+  const trackingUrl = buildTrackingUrl(order.customer_token);
   const approvalWaUrl = buildApprovalWaUrl(order.phone, order.customer_name, order.cost, trackingUrl);
   const readyWaUrl    = buildReadyWaUrl(order.phone, order.customer_name, order.order_number);
 
   async function markReady() {
     setPromoting(true);
     try {
-      handleOrderUpdate(await updateOrderStatus(order.id, 'ready'));
+      const updated = await updateOrderStatus(order.id, 'ready');
+      handleOrderUpdate(updated);
+      if (updated.status === 'ready') {
+        window.open(buildReadyWaUrl(updated.phone, updated.customer_name, updated.order_number), '_blank', 'noopener,noreferrer');
+      }
     } catch (e) {
       console.error(e);
     } finally {

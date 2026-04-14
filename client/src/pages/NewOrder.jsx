@@ -7,6 +7,11 @@ export default function NewOrder() {
   const [createdOrder, setCreatedOrder] = useState(null);
   const navigate = useNavigate();
 
+  const trackUrl = createdOrder ? `${window.location.protocol}//${window.location.host}/track/${createdOrder.customer_token}` : '';
+  const receiptWaUrl = createdOrder ? `https://wa.me/${createdOrder.phone}?text=${encodeURIComponent(
+    `السلام عليكم ${createdOrder.customer_name}،\n\nتم استلام طلب الصيانة الخاص بك.\nنوع القطعة: ${createdOrder.piece_type}\nرقم الطلب: ${createdOrder.order_number}\n\nيمكنك متابعة حالة الطلب عبر الرابط:\n${trackUrl}`
+  )}` : '';
+
   if (createdOrder) {
     return (
       <div style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)', maxWidth: '560px', width: '100%' }}>
@@ -45,23 +50,35 @@ export default function NewOrder() {
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '12px' }}>
             معاينة الملصق
           </div>
-          <LabelCanvas order={createdOrder} />
+          <LabelCanvas order={createdOrder} autoPrint={true} />
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            className="btn-ghost"
-            onClick={() => navigate('/')}
-          >
-            ← العودة للطلبات
-          </button>
-          <button
-            className="btn-gold"
-            onClick={() => setCreatedOrder(null)}
-          >
-            ✦ صيانة جديدة
-          </button>
+        <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+          <a href={receiptWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+            <button
+              className="btn-gold"
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              📲 إرسال إيصال الاستلام (WhatsApp)
+            </button>
+          </a>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+            <button
+              className="btn-ghost"
+              onClick={() => navigate('/')}
+              style={{ flex: 1, justifyContent: 'center' }}
+            >
+              ← العودة للطلبات
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => setCreatedOrder(null)}
+              style={{ flex: 1, justifyContent: 'center' }}
+            >
+              ✦ صيانة جديدة
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { updateOrderStatus, updateCost, getComments, addComment } from '../api/orders';
 import { getRole } from '../api/auth';
 import StatusBadge, { STATUS } from './StatusBadge';
+import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 
 const NEXT_STATUS = {
   received:         'in_progress',
@@ -52,7 +53,13 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     if (!next) return;
     setSavingStatus(true);
     setError('');
-    try { update(await updateOrderStatus(order.id, next)); }
+    try {
+      const updated = await updateOrderStatus(order.id, next);
+      update(updated);
+      if (updated.status === 'ready') {
+        window.open(buildReadyWaUrl(updated.phone, updated.customer_name, updated.order_number), '_blank', 'noopener,noreferrer');
+      }
+    }
     catch (e) { setError(e.message); }
     finally { setSavingStatus(false); }
   }
@@ -62,7 +69,13 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     if (isNaN(c) || c < 0) { setError('أدخل مبلغاً صحيحاً'); return; }
     setSavingCost(true);
     setError('');
-    try { update(await updateCost(order.id, c)); }
+    try {
+      const updated = await updateCost(order.id, c);
+      update(updated);
+      if (updated.status === 'pending_approval') {
+        window.open(buildApprovalWaUrl(updated.phone, updated.customer_name, updated.cost, buildTrackingUrl(updated.customer_token)), '_blank', 'noopener,noreferrer');
+      }
+    }
     catch (e) { setError(e.message); }
     finally { setSavingCost(false); }
   }

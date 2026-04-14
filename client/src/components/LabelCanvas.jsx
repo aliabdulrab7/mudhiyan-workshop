@@ -143,11 +143,19 @@ function drawShopLabel(canvas, order) {
   }
 }
 
-export default function LabelCanvas({ order }) {
+export default function LabelCanvas({ order, autoPrint = false }) {
   const customerRef = useRef(null);
   const shopRef     = useRef(null);
   const [ready, setReady] = useState(false);
+  const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
   const { connect, printAll, disconnect, isConnected, isPrinting, error: btError } = useLabelPrint();
+
+  useEffect(() => {
+    if (autoPrint && ready && isConnected && !isPrinting && !hasAutoPrinted && customerRef.current && shopRef.current) {
+      setHasAutoPrinted(true);
+      printAll([customerRef.current, shopRef.current]);
+    }
+  }, [autoPrint, ready, isConnected, isPrinting, hasAutoPrinted, printAll]);
 
   useEffect(() => {
     if (!order || !customerRef.current || !shopRef.current) return;
