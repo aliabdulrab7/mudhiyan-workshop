@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import JsBarcode from "jsbarcode";
+import QRCode from "qrcode";
 import useLabelPrint from "./useLabelPrint";
+import { getConfig } from "../api/orders";
 
 // NIIMBOT B21S — 5cm × 3cm label @ 203 DPI
 // Canvas: 400 × 240 px
@@ -9,16 +10,20 @@ const W = 400;
 const H = 240;
 const PAD = 40;
 
+// QR column: x[258..358], 100×100px — right side of label
+const QR_X = 258;
+const QR_SIZE = 100;
+
 /**
  * Draw one order label:
- *   Row 1 (y=60):  order number
- *   Row 2 (y=78):  customer name (RTL)
- *   Separator (y=88)
- *   Items zone (y=104–144): up to 3 items, "type × qty — notes"
- *   Separator (y=148)
- *   Barcode (y=155, height=42)
+ *   y=60  — order number (left, monospace)
+ *   y=78  — customer name (right, RTL)
+ *   y=88  — separator
+ *   y=95  — QR code (right column, 100×100)
+ *   y=108 — items list (left column, up to 3)
+ *   y=195 — bottom of QR / safe boundary
  */
-function drawOrderLabel(canvas, order) {
+async function drawOrderLabel(canvas, order) {
   const ctx = canvas.getContext("2d");
   canvas.width = W;
   canvas.height = H;
@@ -28,18 +33,18 @@ function drawOrderLabel(canvas, order) {
 
   // ── Order number ──
   ctx.fillStyle = "#111111";
-  ctx.font = 'bold 18px "JetBrains Mono", monospace';
+  ctx.font = 'bold 16px "JetBrains Mono", monospace';
   ctx.textAlign = "left";
   ctx.direction = "ltr";
   ctx.fillText(order.order_number, PAD, PAD + 20);
 
   // ── Customer name ──
   ctx.fillStyle = "#333333";
-  ctx.font = "bold 16px Arial";
+  ctx.font = "bold 15px Arial";
   ctx.textAlign = "right";
   ctx.direction = "rtl";
-  const maxNameW = W - PAD * 2;
   let name = order.customer_name;
+  const maxNameW = W - PAD * 2;
   while (ctx.measureText(name).width > maxNameW && name.length > 2) {
     name = name.slice(0, -1);
   }
@@ -47,69 +52,64 @@ function drawOrderLabel(canvas, order) {
   ctx.fillText(name, W - PAD, PAD + 38);
 
   // ── Separator ──
-  const sep = (y) => {
-    ctx.strokeStyle = "#E5E7EB";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(PAD, y);
-    ctx.lineTo(W - PAD, y);
-    ctx.stroke();
-  };
-  sep(PAD + 48);
+  ctx.strokeStyle = "#E5E7EB";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, PAD + 48);
+  ctx.lineTo(W - PAD, PAD + 48);
+  ctx.stroke();
 
-  // ── Items ──
+  // ── QR code (right column) ──
+  const QR_Y = PAD + 55; // y=95, ends y=195 ✓
+  try {
+    let scanUrl = order.order_number;
+    try {
+      const config = await getConfig();
+      scanUrl = `http://${config.ip}/scan?code=${order.order_number}`;
+    } catch (_) {}
+
+    const qrCanvas = document.createElement("canvas");
+    await QRCode.toCanvas(qrCanvas, scanUrl, {
+      width: QR_SIZE,
+      margin: 1,
+      color: { dark: "#000000", light: "#FFFFFF" },
+    });
+    ctx.drawImage(qrCanvas, QR_X, QR_Y);
+  } catch (e) {
+    console.error("QR draw failed", e);
+  }
+
+  // ── Items list (left column, x[40..250]) ──
   const items = order?.items?.length
     ? order.items
     : [{ item_type: order?.piece_type || "—", quantity: 1, notes: order?.notes || "" }];
 
-  const shown = items.slice(0, 3);
-  shown.forEach((item, i) => {
+  const maxItemW = QR_X - PAD - 8; // ≈ 210px
+  items.slice(0, 3).forEach((item, i) => {
     let line = `${item.item_type} × ${item.quantity}`;
     if (item.notes?.trim()) line += ` — ${item.notes.trim()}`;
 
     ctx.fillStyle = "#1A6EA0";
-    ctx.font = "bold 13px Arial";
+    ctx.font = "bold 12px Arial";
     ctx.textAlign = "right";
     ctx.direction = "rtl";
 
-    const maxW = W - PAD * 2;
-    while (ctx.measureText(line).width > maxW && line.length > 2) {
+    while (ctx.measureText(line).width > maxItemW && line.length > 2) {
       line = line.slice(0, -1);
     }
-    ctx.fillText(line, W - PAD, PAD + 64 + i * 16);
+    ctx.fillText(line, QR_X - 8, PAD + 72 + i * 17);
   });
 
   if (items.length > 3) {
     ctx.fillStyle = "#999999";
-    ctx.font = "12px Arial";
+    ctx.font = "11px Arial";
     ctx.textAlign = "right";
     ctx.direction = "rtl";
-    ctx.fillText(`+${items.length - 3} أخرى`, W - PAD, PAD + 64 + 3 * 16);
-  }
-
-  // ── Separator before barcode ──
-  sep(PAD + 108);
-
-  // ── Barcode (y=155, height=42, ends y=197 < 200 ✓) ──
-  try {
-    const barcodeCanvas = document.createElement("canvas");
-    JsBarcode(barcodeCanvas, order.order_number, {
-      format: "CODE128",
-      width: 2,
-      height: 42,
-      displayValue: false,
-      margin: 0,
-      background: "#FFFFFF",
-      lineColor: "#000000",
-    });
-    const bx = Math.max(PAD, (W - barcodeCanvas.width) / 2);
-    ctx.drawImage(barcodeCanvas, bx, PAD + 115);
-  } catch (e) {
-    console.error("Barcode draw failed", e);
+    ctx.fillText(`+${items.length - 3} أخرى`, QR_X - 8, PAD + 72 + 3 * 17);
   }
 }
 
-export default function LabelCanvas({ order, autoPrint = false }) {
+export default function LabelCanvas({ order, autoPrint = false, copies = 2 }) {
   const canvasRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
@@ -119,9 +119,9 @@ export default function LabelCanvas({ order, autoPrint = false }) {
     if (!order) return;
     setReady(false);
 
-    const draw = () => {
+    const draw = async () => {
       try {
-        if (canvasRef.current) drawOrderLabel(canvasRef.current, order);
+        if (canvasRef.current) await drawOrderLabel(canvasRef.current, order);
         setReady(true);
       } catch (err) {
         console.error("Label draw failed", err);
@@ -136,17 +136,21 @@ export default function LabelCanvas({ order, autoPrint = false }) {
     }
   }, [order]);
 
-  // Auto-print once connected and ready
+  // Auto-print once connected and ready — print `copies` times
   useEffect(() => {
     if (!autoPrint || !ready || !isConnected || isPrinting || hasAutoPrinted) return;
     if (!canvasRef.current) return;
     setHasAutoPrinted(true);
-    printAll([canvasRef.current]);
-  }, [autoPrint, ready, isConnected, isPrinting, hasAutoPrinted, printAll]);
+    const canvasList = Array(copies).fill(canvasRef.current);
+    printAll(canvasList);
+  }, [autoPrint, ready, isConnected, isPrinting, hasAutoPrinted, copies, printAll]);
 
   const handlePrint = useCallback(() => {
-    if (canvasRef.current) printAll([canvasRef.current]);
-  }, [printAll]);
+    if (canvasRef.current) {
+      const canvasList = Array(copies).fill(canvasRef.current);
+      printAll(canvasList);
+    }
+  }, [copies, printAll]);
 
   const bluetoothAvailable = typeof navigator !== "undefined" && !!navigator.bluetooth;
 
@@ -204,7 +208,7 @@ export default function LabelCanvas({ order, autoPrint = false }) {
                 disabled={isPrinting || !ready}
                 onClick={handlePrint}
               >
-                {isPrinting ? "جاري الطباعة..." : "⎙ طباعة الملصق"}
+                {isPrinting ? "جاري الطباعة..." : `⎙ طباعة ${copies} ملصقات`}
               </button>
               <button className="btn-ghost-sm" onClick={disconnect}>قطع الاتصال</button>
             </>
