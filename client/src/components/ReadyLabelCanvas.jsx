@@ -5,6 +5,8 @@ import useLabelPrint from "./useLabelPrint";
 const W = 400;
 const H = 240;
 
+// Draw a simplified horizontal label (Serial, Name, Barcode)
+// Added internal padding (40px) to ensure compatibility with B21S printable area
 function drawReadyLabel(canvas, order) {
   const ctx = canvas.getContext("2d");
   canvas.width  = W;
@@ -14,41 +16,41 @@ function drawReadyLabel(canvas, order) {
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
 
-  // Status (Top Left)
+  // Status (Top Left, padded)
   ctx.fillStyle = "#059669";
   ctx.font = "bold 28px Almarai, Arial";
   ctx.textAlign = "left";
   ctx.direction = "rtl";
-  ctx.fillText("✓ جاهز - READY", 20, 60);
+  ctx.fillText("✓ جاهز - READY", 35, 80);
 
-  // Order Number (Top Center)
+  // Order Number (Top Center, padded)
   ctx.fillStyle = "#111111";
   ctx.font = 'bold 30px "JetBrains Mono", monospace';
   ctx.textAlign = "center";
   ctx.direction = "ltr";
-  ctx.fillText(order.order_number, W / 2, 60);
+  ctx.fillText(order.order_number, W / 2, 80);
 
-  // Customer Name (Top Right)
+  // Customer Name (Top Right, padded)
   ctx.fillStyle = "#333333";
   ctx.font = "bold 26px Almarai, Arial";
   ctx.direction = "rtl";
   ctx.textAlign = "right";
-  ctx.fillText(order.customer_name, W - 20, 60);
+  ctx.fillText(order.customer_name, W - 35, 80);
 
-  // Barcode (Bottom)
+  // Barcode (Bottom, padded)
   try {
     const barcodeCanvas = document.createElement("canvas");
     JsBarcode(barcodeCanvas, order.order_number, {
       format: "CODE128",
-      width: 2.8,
-      height: 110,
+      width: 2.2,
+      height: 90,
       displayValue: false,
       margin: 2,
       background: "#FFFFFF",
       lineColor: "#000000",
     });
     const bx = (W - barcodeCanvas.width) / 2;
-    ctx.drawImage(barcodeCanvas, bx, 100);
+    ctx.drawImage(barcodeCanvas, bx, 115);
   } catch (e) {
     console.error("Barcode draw failed", e);
   }

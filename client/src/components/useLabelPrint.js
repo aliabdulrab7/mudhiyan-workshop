@@ -46,7 +46,7 @@ export default function useLabelPrint() {
     setError('');
 
     try {
-      const printTask = client.abstraction.newPrintTask('B21_V1', {
+      const printTask = client.abstraction.newPrintTask('B21', {
         totalPages: canvases.length,
         density: 3,
       });
