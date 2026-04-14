@@ -26,47 +26,49 @@ export default function Layout({ children }) {
       <aside className="sidebar" style={{
         width: "240px",
         minWidth: "240px",
-        background: "linear-gradient(180deg, #EEF0F8 0%, #E8EBF5 100%)",
+        background: "#161b22",
         display: "flex",
         flexDirection: "column",
         padding: "0",
-        borderLeft: "1px solid rgba(196,152,48,0.15)",
+        borderLeft: "1px solid #30363d",
         position: "relative",
         overflow: "hidden",
       }}>
-        {/* Ambient glow */}
-        <div style={{
-          position: "absolute",
-          top: "-40px",
-          right: "-40px",
-          width: "180px",
-          height: "180px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(196,152,48,0.07) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
-
-        <div style={{ padding: "32px 24px 24px", position: "relative" }}>
+        <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid #21262d" }}>
           <div style={{
-            fontFamily: "Almarai, sans-serif",
-            fontWeight: 800,
-            fontSize: "1.25rem",
-            background: "linear-gradient(135deg, var(--gold), var(--gold-bright))",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            letterSpacing: "0.01em",
-            lineHeight: 1.3,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "4px",
           }}>
-            مصنع المضيان
+            <div style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "6px",
+              background: "#238636",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1rem",
+              color: "#ffffff",
+              flexShrink: 0,
+            }}>◈</div>
+            <div style={{
+              fontFamily: "Almarai, sans-serif",
+              fontWeight: 700,
+              fontSize: "0.95rem",
+              color: "#e6edf3",
+              lineHeight: 1.3,
+            }}>
+              مصنع المضيان
+            </div>
           </div>
-          <div style={{ color: "rgba(26,32,53,0.4)", fontSize: "0.72rem", marginTop: "4px", letterSpacing: "0.02em" }}>
+          <div style={{ color: "#6e7681", fontSize: "0.70rem", marginTop: "6px", paddingRight: "42px" }}>
             إدارة صيانة المجوهرات
           </div>
         </div>
 
-        <div className="gold-line" style={{ margin: "0 20px" }} />
-
-        <nav style={{ padding: "16px 14px", flex: 1 }}>
+        <nav style={{ padding: "8px 8px", flex: 1 }}>
           {visibleNav.map(({ to, icon, label }) => (
             <NavLink
               key={to}
@@ -75,48 +77,46 @@ export default function Layout({ children }) {
               style={({ isActive }) => ({
                 display: "flex",
                 alignItems: "center",
-                gap: "12px",
-                padding: "12px 14px",
-                borderRadius: "12px",
-                marginBottom: "4px",
-                color: isActive ? "var(--gold)" : "rgba(26,32,53,0.55)",
-                background: isActive ? "rgba(196,152,48,0.10)" : "transparent",
-                borderRight: isActive ? "2px solid var(--gold)" : "2px solid transparent",
+                gap: "10px",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                marginBottom: "2px",
+                color: isActive ? "#e6edf3" : "#8b949e",
+                background: isActive ? "rgba(88,166,255,0.10)" : "transparent",
                 textDecoration: "none",
-                fontSize: "0.9rem",
-                fontWeight: isActive ? 700 : 400,
-                transition: "all 0.2s ease",
-                ...(isActive ? { boxShadow: "0 0 20px rgba(196,152,48,0.06)" } : {}),
+                fontSize: "0.875rem",
+                fontWeight: isActive ? 600 : 400,
+                transition: "all 0.15s ease",
               })}
             >
-              <span style={{ fontSize: "1.05rem", opacity: 0.85 }}>{icon}</span>
+              <span style={{ fontSize: "0.9rem", opacity: 0.75 }}>{icon}</span>
               {label}
             </NavLink>
           ))}
         </nav>
 
-        <div style={{ padding: "20px 24px", borderTop: "1px solid rgba(26,32,53,0.06)" }}>
+        <div style={{ padding: "16px 8px", borderTop: "1px solid #21262d" }}>
           <button
             onClick={handleLogout}
             style={{
               width: "100%",
-              background: "rgba(26,32,53,0.04)",
-              border: "1px solid rgba(26,32,53,0.10)",
-              color: "rgba(26,32,53,0.45)",
-              borderRadius: "10px",
-              padding: "9px 14px",
-              fontSize: "0.78rem",
+              background: "transparent",
+              border: "1px solid #30363d",
+              color: "#8b949e",
+              borderRadius: "6px",
+              padding: "7px 12px",
+              fontSize: "0.80rem",
               fontFamily: "Almarai, sans-serif",
               cursor: "pointer",
               textAlign: "right",
-              transition: "all 0.2s",
+              transition: "all 0.15s",
             }}
-            onMouseEnter={e => { e.target.style.color = "var(--gold)"; e.target.style.borderColor = "rgba(196,152,48,0.25)"; e.target.style.background = "rgba(196,152,48,0.06)"; }}
-            onMouseLeave={e => { e.target.style.color = "rgba(26,32,53,0.45)"; e.target.style.borderColor = "rgba(26,32,53,0.10)"; e.target.style.background = "rgba(26,32,53,0.04)"; }}
+            onMouseEnter={e => { e.target.style.color = "#f85149"; e.target.style.borderColor = "rgba(248,81,73,0.4)"; e.target.style.background = "rgba(248,81,73,0.06)"; }}
+            onMouseLeave={e => { e.target.style.color = "#8b949e"; e.target.style.borderColor = "#30363d"; e.target.style.background = "transparent"; }}
           >
             تسجيل الخروج ←
           </button>
-          <div style={{ color: "rgba(26,32,53,0.25)", fontSize: "0.62rem", marginTop: "10px", textAlign: "center" }}>
+          <div style={{ color: "#6e7681", fontSize: "0.62rem", marginTop: "8px", textAlign: "center" }}>
             يتطلب Chrome أو Edge للطباعة
           </div>
         </div>

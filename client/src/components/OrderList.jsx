@@ -92,9 +92,9 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
               onClick={() => setStatus(f.value)}
               className="filter-chip"
               style={{
-                background: status === f.value ? 'rgba(212,168,67,0.1)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${status === f.value ? 'rgba(212,168,67,0.25)' : 'rgba(255,255,255,0.06)'}`,
-                color: status === f.value ? 'var(--gold)' : 'var(--text-muted)',
+                background: status === f.value ? 'rgba(88,166,255,0.12)' : 'transparent',
+                border: `1px solid ${status === f.value ? 'rgba(88,166,255,0.35)' : '#30363d'}`,
+                color: status === f.value ? '#58a6ff' : 'var(--text-muted)',
                 borderRadius: '20px',
                 padding: '6px 16px',
                 fontSize: '0.82rem',
@@ -126,9 +126,9 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
           color: 'var(--text-muted)',
           padding: '60px 20px',
           textAlign: 'center',
-          border: '1px dashed rgba(212,168,67,0.12)',
+          border: '1px dashed #30363d',
           borderRadius: 'var(--radius-lg)',
-          background: 'rgba(17,24,42,0.4)',
+          background: '#161b22',
         }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '12px', opacity: 0.25 }}>◈</div>
           لا توجد طلبات
@@ -136,9 +136,8 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
       ) : isMobile ? (
         /* ── Mobile card view ── */
         <div style={{
-          background: 'rgba(17,24,42,0.5)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.04)',
+          background: '#161b22',
+          border: '1px solid #30363d',
           borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
         }}>
@@ -154,7 +153,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
               className="order-row"
               style={{
                 padding: '14px 16px',
-                borderBottom: '1px solid rgba(255,255,255,0.03)',
+                borderBottom: '1px solid #21262d',
                 cursor: 'pointer',
               }}
               onClick={() => setSelected(order)}
@@ -184,9 +183,8 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
       ) : (
         /* ── Desktop table view ── */
         <div style={{
-          background: 'rgba(17,24,42,0.5)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.04)',
+          background: '#161b22',
+          border: '1px solid #30363d',
           borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
         }}>
@@ -194,8 +192,9 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
           <div style={{
             display: 'grid',
             gridTemplateColumns: '180px 1fr 110px 120px 130px 140px',
-            padding: '14px 18px',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            padding: '10px 18px',
+            borderBottom: '1px solid #30363d',
+            background: '#0d1117',
             fontSize: '0.72rem',
             color: 'var(--text-muted)',
             fontWeight: 700,
@@ -225,7 +224,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh })
                 display: 'grid',
                 gridTemplateColumns: '180px 1fr 110px 120px 130px 140px',
                 padding: '14px 18px',
-                borderBottom: i < orders.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none',
+                borderBottom: i < orders.length - 1 ? '1px solid #21262d' : 'none',
                 alignItems: 'center',
                 cursor: 'pointer',
               }}

@@ -19,19 +19,19 @@ function useMobile() {
 }
 
 const STAT_CARDS = [
-  { key: 'received',         label: 'مستلمة',          icon: '◈', gradient: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(99,102,241,0.04))' },
-  { key: 'pending_approval', label: 'بانتظار الموافقة', icon: '⏳', gradient: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.04))' },
-  { key: 'in_progress',      label: 'قيد العمل',        icon: '⟳', gradient: 'linear-gradient(135deg, rgba(59,130,246,0.12), rgba(59,130,246,0.04))' },
-  { key: 'ready',            label: 'جاهزة',            icon: '✓', gradient: 'linear-gradient(135deg, rgba(52,211,153,0.12), rgba(52,211,153,0.04))' },
-  { key: 'delivered',        label: 'مُسلَّمة',         icon: '✦', gradient: 'linear-gradient(135deg, rgba(167,139,250,0.12), rgba(167,139,250,0.04))' },
+  { key: 'received',         label: 'مستلمة',          icon: '◈', gradient: 'linear-gradient(135deg, rgba(56,139,253,0.08), rgba(56,139,253,0.02))' },
+  { key: 'pending_approval', label: 'بانتظار الموافقة', icon: '⏳', gradient: 'linear-gradient(135deg, rgba(187,128,9,0.08), rgba(187,128,9,0.02))' },
+  { key: 'in_progress',      label: 'قيد العمل',        icon: '⟳', gradient: 'linear-gradient(135deg, rgba(31,111,235,0.08), rgba(31,111,235,0.02))' },
+  { key: 'ready',            label: 'جاهزة',            icon: '✓', gradient: 'linear-gradient(135deg, rgba(46,160,67,0.08), rgba(46,160,67,0.02))' },
+  { key: 'delivered',        label: 'مُسلَّمة',         icon: '✦', gradient: 'linear-gradient(135deg, rgba(163,113,247,0.08), rgba(163,113,247,0.02))' },
 ];
 
 const STATUS_COLORS = {
-  received: '#818CF8',
-  pending_approval: '#FBBF24',
-  in_progress: '#60A5FA',
-  ready: '#34D399',
-  delivered: '#A78BFA',
+  received:         '#58a6ff',
+  pending_approval: '#d29922',
+  in_progress:      '#388bfd',
+  ready:            '#3fb950',
+  delivered:        '#a371f7',
 };
 
 export default function Dashboard() {
@@ -114,7 +114,7 @@ export default function Dashboard() {
           <ActionPanel
             icon="◈" title="تنتظر التقييم"
             count={actionOrders.received.length}
-            accent="#818CF8"
+            accent="#58a6ff"
             emptyText="لا توجد طلبات جديدة"
             orders={actionOrders.received}
             active={filterStatus === 'received'}
@@ -123,7 +123,7 @@ export default function Dashboard() {
           <ActionPanel
             icon="⏳" title="بانتظار موافقة العميل"
             count={actionOrders.pending.length}
-            accent="#FBBF24"
+            accent="#d29922"
             emptyText="لا توجد طلبات بانتظار الموافقة"
             orders={actionOrders.pending}
             active={filterStatus === 'pending_approval'}
@@ -154,16 +154,16 @@ export default function Dashboard() {
               transition={{ delay: i * 0.06, duration: 0.3 }}
               onClick={() => applyFilter(filterStatus === key ? 'all' : key)}
               style={{
-                background: filterStatus === key ? `${gradient}, rgba(212,168,67,0.04)` : gradient,
-                border: `1px solid ${filterStatus === key ? 'rgba(196,152,48,0.30)' : 'rgba(196,152,48,0.10)'}`,
-                borderRadius: '14px',
-                padding: '16px 18px',
+                background: filterStatus === key ? `${gradient}, rgba(88,166,255,0.03)` : gradient,
+                border: `1px solid ${filterStatus === key ? 'rgba(88,166,255,0.30)' : '#30363d'}`,
+                borderRadius: '8px',
+                padding: '14px 16px',
                 display: 'flex', flexDirection: 'column', gap: '8px',
                 cursor: 'pointer',
                 textAlign: 'right',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.15s ease',
                 ...(isMobile ? { minWidth: '120px', flexShrink: 0 } : {}),
-                boxShadow: filterStatus === key ? '0 0 20px rgba(212,168,67,0.06)' : 'none',
+                boxShadow: filterStatus === key ? '0 0 0 3px rgba(88,166,255,0.12)' : 'none',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -211,16 +211,15 @@ function ActionPanel({ icon, title, count, accent, emptyText, orders, active, on
       whileTap={{ scale: 0.99 }}
       onClick={onFilterClick}
       style={{
-        background: 'rgba(17,24,42,0.6)',
-        backdropFilter: 'blur(16px)',
-        border: `1px solid ${highlight && count > 0 ? `${accent}33` : 'rgba(255,255,255,0.04)'}`,
-        borderRadius: '16px',
-        padding: '18px 20px',
+        background: '#161b22',
+        border: `1px solid ${highlight && count > 0 ? `${accent}44` : '#30363d'}`,
+        borderRadius: '8px',
+        padding: '16px 18px',
         cursor: 'pointer',
-        transition: 'all 0.2s',
+        transition: 'all 0.15s',
         outline: active ? `2px solid ${accent}` : 'none',
         outlineOffset: '2px',
-        boxShadow: count > 0 ? `0 0 24px ${accent}08` : 'none',
+        boxShadow: count > 0 ? `0 0 0 3px ${accent}18` : 'none',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -229,7 +228,7 @@ function ActionPanel({ icon, title, count, accent, emptyText, orders, active, on
           <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{title}</span>
         </div>
         <span style={{
-          background: count > 0 ? `${accent}18` : 'rgba(255,255,255,0.04)',
+          background: count > 0 ? `${accent}18` : '#21262d',
           color: count > 0 ? accent : 'var(--text-muted)',
           fontFamily: 'JetBrains Mono, monospace',
           fontWeight: 800,
@@ -250,8 +249,8 @@ function ActionPanel({ icon, title, count, accent, emptyText, orders, active, on
             <div key={o.id} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '7px 10px',
-              background: 'rgba(255,255,255,0.02)',
-              borderRadius: '8px',
+              background: '#21262d',
+              borderRadius: '6px',
               fontSize: '0.8rem',
             }}>
               <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{o.customer_name}</span>

@@ -28,102 +28,53 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-primary)',
+      background: '#0d1117',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '20px',
-      position: 'relative',
-      overflow: 'hidden',
     }}>
-      {/* Background ambient effects */}
-      <div style={{
-        position: 'absolute',
-        top: '-20%',
-        right: '-10%',
-        width: '500px',
-        height: '500px',
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(196,152,48,0.07) 0%, transparent 60%)',
-        pointerEvents: 'none',
-        filter: 'blur(40px)',
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: '-20%',
-        left: '-10%',
-        width: '400px',
-        height: '400px',
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 60%)',
-        pointerEvents: 'none',
-        filter: 'blur(40px)',
-      }} />
-
       <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
         style={{
-          background: 'rgba(255,255,255,0.92)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(196,152,48,0.20)',
-          borderRadius: '20px',
-          padding: '48px 36px 40px',
+          background: '#161b22',
+          border: '1px solid #30363d',
+          borderRadius: '12px',
+          padding: '40px 32px 32px',
           width: '100%',
-          maxWidth: '380px',
-          boxShadow: '0 8px 48px rgba(0,0,0,0.08), 0 0 0 1px rgba(196,152,48,0.04) inset, 0 0 80px rgba(196,152,48,0.04)',
+          maxWidth: '360px',
+          boxShadow: '0 8px 32px rgba(1,4,9,0.6)',
           position: 'relative',
         }}
       >
-        {/* Gold accent line at top */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          right: '20%',
-          left: '20%',
-          height: '2px',
-          background: 'linear-gradient(90deg, transparent, var(--gold), transparent)',
-          borderRadius: '0 0 4px 4px',
-          opacity: 0.6,
-        }} />
-
         {/* Brand */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          {/* Logo mark */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 15 }}
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '18px',
-              background: 'linear-gradient(135deg, rgba(212,168,67,0.12), rgba(212,168,67,0.04))',
-              border: '1px solid rgba(212,168,67,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 18px',
-              fontSize: '1.6rem',
-              color: 'var(--gold)',
-            }}
-          >
-            ◈
-          </motion.div>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
-            fontSize: '1.6rem',
-            fontWeight: 800,
-            background: 'linear-gradient(135deg, var(--gold), var(--gold-bright))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '6px',
+            width: '48px',
+            height: '48px',
+            borderRadius: '10px',
+            background: '#238636',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            fontSize: '1.4rem',
+            color: '#ffffff',
+          }}>
+            ◈
+          </div>
+          <div style={{
+            fontSize: '1.25rem',
+            fontWeight: 700,
+            color: '#e6edf3',
+            marginBottom: '4px',
           }}>
             مصنع المضيان
           </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', letterSpacing: '0.02em' }}>
-            إدارة صيانة المجوهرات
+          <div style={{ color: '#8b949e', fontSize: '0.82rem' }}>
+            تسجيل الدخول إلى حسابك
           </div>
         </div>
 
@@ -178,11 +129,11 @@ export default function LoginPage() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               style={{
-                background: 'rgba(239,68,68,0.08)',
-                border: '1px solid rgba(239,68,68,0.2)',
+                background: 'rgba(248,81,73,0.10)',
+                border: '1px solid rgba(248,81,73,0.25)',
                 borderRadius: '10px',
                 padding: '12px 16px',
-                color: '#DC2626',
+                color: '#f85149',
                 fontSize: '0.85rem',
               }}
             >
@@ -206,7 +157,7 @@ export default function LoginPage() {
           >
             {loading ? (
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ animation: 'pulse-gold 1s infinite', display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#1A2035' }} />
+                <span style={{ animation: 'pulse-gold 1s infinite', display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#ffffff' }} />
                 جاري الدخول
               </span>
             ) : 'تسجيل الدخول'}
