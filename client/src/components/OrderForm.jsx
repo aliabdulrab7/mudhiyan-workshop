@@ -42,7 +42,7 @@ export default function OrderForm({ onSuccess }) {
         customer_name: customerName.trim(),
         phone:         '966' + phoneDigits,
         items:         items.map(r => ({
-          item_type: r.item_type,
+          item_name: r.item_type,
           quantity:  Number(r.quantity) || 1,
           notes:     r.notes.trim(),
           workshop_comment: r.workshop_comment.trim()
