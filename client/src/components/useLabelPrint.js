@@ -46,7 +46,10 @@ export default function useLabelPrint() {
     setError('');
 
     try {
-      const printTask = client.abstraction.newPrintTask('B21', {
+      // Auto-detect the correct print task for the connected printer model.
+      // B21S uses 'D110', B21 uses 'B21_V1' — getPrintTaskType() resolves this.
+      const taskType = client.getPrintTaskType() ?? 'D110';
+      const printTask = client.abstraction.newPrintTask(taskType, {
         totalPages: canvases.length,
         density: 3,
       });
