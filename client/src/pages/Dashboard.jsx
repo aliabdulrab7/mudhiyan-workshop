@@ -155,7 +155,7 @@ export default function Dashboard() {
               onClick={() => applyFilter(filterStatus === key ? 'all' : key)}
               style={{
                 background: filterStatus === key ? `${gradient}, rgba(212,168,67,0.04)` : gradient,
-                border: `1px solid ${filterStatus === key ? 'rgba(212,168,67,0.25)' : 'rgba(255,255,255,0.04)'}`,
+                border: `1px solid ${filterStatus === key ? 'rgba(196,152,48,0.30)' : 'rgba(196,152,48,0.10)'}`,
                 borderRadius: '14px',
                 padding: '16px 18px',
                 display: 'flex', flexDirection: 'column', gap: '8px',

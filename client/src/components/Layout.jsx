@@ -26,11 +26,11 @@ export default function Layout({ children }) {
       <aside className="sidebar" style={{
         width: "240px",
         minWidth: "240px",
-        background: "linear-gradient(180deg, #0D1225 0%, #0A0E1B 100%)",
+        background: "linear-gradient(180deg, #EEF0F8 0%, #E8EBF5 100%)",
         display: "flex",
         flexDirection: "column",
         padding: "0",
-        borderLeft: "1px solid rgba(212,168,67,0.08)",
+        borderLeft: "1px solid rgba(196,152,48,0.15)",
         position: "relative",
         overflow: "hidden",
       }}>
@@ -42,7 +42,7 @@ export default function Layout({ children }) {
           width: "180px",
           height: "180px",
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(212,168,67,0.08) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(196,152,48,0.07) 0%, transparent 70%)",
           pointerEvents: "none",
         }} />
 
@@ -59,7 +59,7 @@ export default function Layout({ children }) {
           }}>
             مصنع المضيان
           </div>
-          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.72rem", marginTop: "4px", letterSpacing: "0.02em" }}>
+          <div style={{ color: "rgba(26,32,53,0.4)", fontSize: "0.72rem", marginTop: "4px", letterSpacing: "0.02em" }}>
             إدارة صيانة المجوهرات
           </div>
         </div>
@@ -79,14 +79,14 @@ export default function Layout({ children }) {
                 padding: "12px 14px",
                 borderRadius: "12px",
                 marginBottom: "4px",
-                color: isActive ? "var(--gold)" : "rgba(255,255,255,0.5)",
-                background: isActive ? "rgba(212,168,67,0.08)" : "transparent",
+                color: isActive ? "var(--gold)" : "rgba(26,32,53,0.55)",
+                background: isActive ? "rgba(196,152,48,0.10)" : "transparent",
                 borderRight: isActive ? "2px solid var(--gold)" : "2px solid transparent",
                 textDecoration: "none",
                 fontSize: "0.9rem",
                 fontWeight: isActive ? 700 : 400,
                 transition: "all 0.2s ease",
-                ...(isActive ? { boxShadow: "0 0 20px rgba(212,168,67,0.05)" } : {}),
+                ...(isActive ? { boxShadow: "0 0 20px rgba(196,152,48,0.06)" } : {}),
               })}
             >
               <span style={{ fontSize: "1.05rem", opacity: 0.85 }}>{icon}</span>
@@ -95,14 +95,14 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        <div style={{ padding: "20px 24px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+        <div style={{ padding: "20px 24px", borderTop: "1px solid rgba(26,32,53,0.06)" }}>
           <button
             onClick={handleLogout}
             style={{
               width: "100%",
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "rgba(255,255,255,0.4)",
+              background: "rgba(26,32,53,0.04)",
+              border: "1px solid rgba(26,32,53,0.10)",
+              color: "rgba(26,32,53,0.45)",
               borderRadius: "10px",
               padding: "9px 14px",
               fontSize: "0.78rem",
@@ -111,12 +111,12 @@ export default function Layout({ children }) {
               textAlign: "right",
               transition: "all 0.2s",
             }}
-            onMouseEnter={e => { e.target.style.color = "var(--gold)"; e.target.style.borderColor = "rgba(212,168,67,0.2)"; e.target.style.background = "rgba(212,168,67,0.04)"; }}
-            onMouseLeave={e => { e.target.style.color = "rgba(255,255,255,0.4)"; e.target.style.borderColor = "rgba(255,255,255,0.08)"; e.target.style.background = "rgba(255,255,255,0.03)"; }}
+            onMouseEnter={e => { e.target.style.color = "var(--gold)"; e.target.style.borderColor = "rgba(196,152,48,0.25)"; e.target.style.background = "rgba(196,152,48,0.06)"; }}
+            onMouseLeave={e => { e.target.style.color = "rgba(26,32,53,0.45)"; e.target.style.borderColor = "rgba(26,32,53,0.10)"; e.target.style.background = "rgba(26,32,53,0.04)"; }}
           >
             تسجيل الخروج ←
           </button>
-          <div style={{ color: "rgba(255,255,255,0.15)", fontSize: "0.62rem", marginTop: "10px", textAlign: "center" }}>
+          <div style={{ color: "rgba(26,32,53,0.25)", fontSize: "0.62rem", marginTop: "10px", textAlign: "center" }}>
             يتطلب Chrome أو Edge للطباعة
           </div>
         </div>

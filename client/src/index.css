@@ -3,36 +3,36 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary:    #0B0F1A;
-  --bg-surface:    rgba(17, 24, 42, 0.85);
-  --bg-elevated:   rgba(26, 35, 58, 0.9);
-  --bg-sidebar:    #0D1225;
-  --bg-glass:      rgba(17, 24, 42, 0.65);
+  --bg-primary:    #F5F7FF;
+  --bg-surface:    rgba(255, 255, 255, 0.92);
+  --bg-elevated:   rgba(255, 255, 255, 0.98);
+  --bg-sidebar:    #EEF0F8;
+  --bg-glass:      rgba(255, 255, 255, 0.75);
   --primary:       #1B2B5E;
-  --gold:          #D4A843;
-  --gold-bright:   #F0C94E;
+  --gold:          #C49830;
+  --gold-bright:   #D4A843;
   --gold-muted:    #9A7730;
-  --gold-glow:     rgba(212, 168, 67, 0.15);
-  --gold-border:   rgba(212, 168, 67, 0.18);
-  --text-primary:  #E8ECF4;
-  --text-secondary:#A0AAC0;
-  --text-muted:    #5A6580;
-  --status-received-bg:    rgba(99, 102, 241, 0.12);
-  --status-received-fg:    #818CF8;
-  --status-pending-bg:     rgba(245, 158, 11, 0.12);
-  --status-pending-fg:     #FBBF24;
-  --status-progress-bg:    rgba(59, 130, 246, 0.12);
-  --status-progress-fg:    #60A5FA;
-  --status-ready-bg:       rgba(52, 211, 153, 0.12);
-  --status-ready-fg:       #34D399;
-  --status-delivered-bg:   rgba(167, 139, 250, 0.12);
-  --status-delivered-fg:   #A78BFA;
+  --gold-glow:     rgba(196, 152, 48, 0.12);
+  --gold-border:   rgba(196, 152, 48, 0.28);
+  --text-primary:  #1A2035;
+  --text-secondary:#4A5570;
+  --text-muted:    #8A95AA;
+  --status-received-bg:    rgba(99, 102, 241, 0.10);
+  --status-received-fg:    #4338CA;
+  --status-pending-bg:     rgba(245, 158, 11, 0.10);
+  --status-pending-fg:     #D97706;
+  --status-progress-bg:    rgba(59, 130, 246, 0.10);
+  --status-progress-fg:    #2563EB;
+  --status-ready-bg:       rgba(16, 185, 129, 0.10);
+  --status-ready-fg:       #059669;
+  --status-delivered-bg:   rgba(124, 58, 237, 0.10);
+  --status-delivered-fg:   #7C3AED;
   --radius:    10px;
   --radius-lg: 16px;
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
-  --shadow-md: 0 4px 24px rgba(0,0,0,0.3);
-  --shadow-lg: 0 8px 48px rgba(0,0,0,0.4);
-  --shadow-gold: 0 0 24px rgba(212,168,67,0.08);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.10);
+  --shadow-gold: 0 0 24px rgba(196,152,48,0.08);
   --blur: blur(20px);
 }
 
@@ -47,7 +47,7 @@ html, body, #root {
 body {
   background-color: var(--bg-primary);
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(212,168,67,0.06), transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(196,152,48,0.05), transparent 70%),
     radial-gradient(ellipse 60% 40% at 80% 100%, rgba(99,102,241,0.04), transparent 60%);
   color: var(--text-primary);
   font-family: 'Almarai', sans-serif;
@@ -134,7 +134,7 @@ body {
   100% { background-position: 400px 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, rgba(26,35,58,0.6) 25%, rgba(42,52,80,0.8) 50%, rgba(26,35,58,0.6) 75%);
+  background: linear-gradient(90deg, rgba(218,222,238,0.8) 25%, rgba(235,238,250,1) 50%, rgba(218,222,238,0.8) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.6s ease-in-out infinite;
   border-radius: 6px;
@@ -151,8 +151,8 @@ body {
 
 /* ── Inputs ── */
 .input-base {
-  background: rgba(17,24,42,0.6);
-  border: 1px solid rgba(212,168,67,0.15);
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(196,152,48,0.22);
   border-radius: var(--radius);
   color: var(--text-primary);
   padding: 12px 16px;
@@ -164,8 +164,8 @@ body {
 }
 .input-base:focus {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(212,168,67,0.1), 0 0 20px rgba(212,168,67,0.05);
-  background: rgba(17,24,42,0.8);
+  box-shadow: 0 0 0 3px rgba(196,152,48,0.10), 0 0 20px rgba(196,152,48,0.04);
+  background: rgba(255,255,255,1);
 }
 .input-base::placeholder { color: var(--text-muted); }
 
@@ -177,12 +177,12 @@ select.input-base {
   background-position: left 12px center;
   padding-left: 32px;
 }
-select.input-base option { background: #111829; color: var(--text-primary); }
+select.input-base option { background: #F5F7FF; color: var(--text-primary); }
 
 /* ── Buttons ── */
 .btn-gold {
   background: linear-gradient(135deg, var(--gold), var(--gold-muted));
-  color: #0B0F1A;
+  color: #1A2035;
   font-family: 'Almarai', sans-serif;
   font-weight: 700;
   font-size: 0.95rem;
@@ -275,10 +275,10 @@ select.input-base option { background: #111829; color: var(--text-primary); }
     bottom: 0; right: 0; left: 0;
     height: calc(68px + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
-    background: rgba(13,18,37,0.92);
+    background: rgba(240,242,250,0.96);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border-top: 1px solid rgba(212,168,67,0.1);
+    border-top: 1px solid rgba(196,152,48,0.15);
     z-index: 200;
   }
 
@@ -314,7 +314,7 @@ select.input-base option { background: #111829; color: var(--text-primary); }
     height: 58px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--gold), var(--gold-muted));
-    color: #0B0F1A;
+    color: #1A2035;
     border: none;
     font-size: 1.5rem;
     cursor: pointer;

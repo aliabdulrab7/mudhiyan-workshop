@@ -28,7 +28,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#0B0F1A',
+      background: 'var(--bg-primary)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -44,7 +44,7 @@ export default function LoginPage() {
         width: '500px',
         height: '500px',
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(212,168,67,0.06) 0%, transparent 60%)',
+        background: 'radial-gradient(circle, rgba(196,152,48,0.07) 0%, transparent 60%)',
         pointerEvents: 'none',
         filter: 'blur(40px)',
       }} />
@@ -65,15 +65,15 @@ export default function LoginPage() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         style={{
-          background: 'rgba(17,24,42,0.7)',
+          background: 'rgba(255,255,255,0.92)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(212,168,67,0.12)',
+          border: '1px solid rgba(196,152,48,0.20)',
           borderRadius: '20px',
           padding: '48px 36px 40px',
           width: '100%',
           maxWidth: '380px',
-          boxShadow: '0 8px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset, 0 0 80px rgba(212,168,67,0.04)',
+          boxShadow: '0 8px 48px rgba(0,0,0,0.08), 0 0 0 1px rgba(196,152,48,0.04) inset, 0 0 80px rgba(196,152,48,0.04)',
           position: 'relative',
         }}
       >
@@ -182,7 +182,7 @@ export default function LoginPage() {
                 border: '1px solid rgba(239,68,68,0.2)',
                 borderRadius: '10px',
                 padding: '12px 16px',
-                color: '#FCA5A5',
+                color: '#DC2626',
                 fontSize: '0.85rem',
               }}
             >
@@ -206,7 +206,7 @@ export default function LoginPage() {
           >
             {loading ? (
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ animation: 'pulse-gold 1s infinite', display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#0B0F1A' }} />
+                <span style={{ animation: 'pulse-gold 1s infinite', display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#1A2035' }} />
                 جاري الدخول
               </span>
             ) : 'تسجيل الدخول'}
