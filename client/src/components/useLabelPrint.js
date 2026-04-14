@@ -56,7 +56,7 @@ export default function useLabelPrint() {
       await printTask.printInit();
 
       for (const canvas of canvases) {
-        const encoded = ImageEncoder.encodeCanvas(canvas, 'left');
+        const encoded = ImageEncoder.encodeCanvas(canvas, 'top');
         await printTask.printPage(encoded, 1);
         await printTask.waitForPageFinished();
       }
