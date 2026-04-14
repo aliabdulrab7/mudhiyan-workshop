@@ -58,6 +58,11 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   }, [order.id]);
   useEffect(() => { commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [comments]);
 
+  async function loadComments() {
+    try { setComments(await getComments(order.id)); }
+    catch { /* non-critical */ }
+  }
+
   async function loadHistory() {
     try { setHistory(await getOrderHistory(order.id)); }
     catch { /* non-critical */ }
