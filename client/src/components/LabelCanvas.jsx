@@ -4,9 +4,9 @@ import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 import { getConfig } from "../api/orders";
 
-// Back to 40mm x 20mm landscape
-const W = 320;
-const H = 160;
+// 50mm x 30mm landscape @ 203 DPI = 400 x 240 px
+const W = 400;
+const H = 240;
 
 // Draw a simplified horizontal label (Serial, Name, Barcode)
 async function drawMiniLabel(canvas, order, title) {
@@ -18,36 +18,36 @@ async function drawMiniLabel(canvas, order, title) {
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
 
-  // Serial Number (Left)
+  // Serial Number (Top Left)
   ctx.fillStyle = "#111111";
-  ctx.font = 'bold 24px "JetBrains Mono", monospace';
+  ctx.font = 'bold 30px "JetBrains Mono", monospace';
   ctx.textAlign = "left";
   ctx.direction = "ltr";
-  ctx.fillText(order.order_number, 15, 45);
+  ctx.fillText(order.order_number, 20, 60);
 
-  // Customer Name (Center/Right)
+  // Customer Name (Top Right)
   ctx.fillStyle = "#222222";
-  ctx.font = "bold 20px Almarai, Arial";
+  ctx.font = "bold 26px Almarai, Arial";
   ctx.direction = "rtl";
   ctx.textAlign = "right";
-  ctx.fillText(order.customer_name, W - 15, 45);
+  ctx.fillText(order.customer_name, W - 20, 60);
 
   // Barcode (Bottom)
   try {
     const barcodeCanvas = document.createElement("canvas");
     JsBarcode(barcodeCanvas, order.order_number, {
       format: "CODE128",
-      width: 2.2,
-      height: 70,
+      width: 2.8,
+      height: 110,
       displayValue: false,
       margin: 2,
       background: "#FFFFFF",
       lineColor: "#000000",
     });
     
-    // Draw barcode centered
+    // Draw barcode centered and spaced from text
     const bx = (W - barcodeCanvas.width) / 2;
-    ctx.drawImage(barcodeCanvas, bx, 75);
+    ctx.drawImage(barcodeCanvas, bx, 100);
   } catch (e) {
     console.error("Barcode draw failed", e);
   }

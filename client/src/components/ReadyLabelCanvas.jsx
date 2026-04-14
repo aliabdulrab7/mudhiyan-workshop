@@ -2,8 +2,8 @@ import { useRef, useEffect, useState } from "react";
 import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 
-const W = 320;
-const H = 160;
+const W = 400;
+const H = 240;
 
 function drawReadyLabel(canvas, order) {
   const ctx = canvas.getContext("2d");
@@ -14,41 +14,41 @@ function drawReadyLabel(canvas, order) {
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
 
-  // Status (Left/Center)
+  // Status (Top Left)
   ctx.fillStyle = "#059669";
-  ctx.font = "bold 22px Almarai, Arial";
+  ctx.font = "bold 28px Almarai, Arial";
   ctx.textAlign = "left";
   ctx.direction = "rtl";
-  ctx.fillText("✓ جاهز - READY", 15, 45);
+  ctx.fillText("✓ جاهز - READY", 20, 60);
 
-  // Order Number (Center)
+  // Order Number (Top Center)
   ctx.fillStyle = "#111111";
-  ctx.font = 'bold 24px "JetBrains Mono", monospace';
+  ctx.font = 'bold 30px "JetBrains Mono", monospace';
   ctx.textAlign = "center";
   ctx.direction = "ltr";
-  ctx.fillText(order.order_number, W / 2, 45);
+  ctx.fillText(order.order_number, W / 2, 60);
 
-  // Customer Name (Right)
+  // Customer Name (Top Right)
   ctx.fillStyle = "#333333";
-  ctx.font = "bold 20px Almarai, Arial";
+  ctx.font = "bold 26px Almarai, Arial";
   ctx.direction = "rtl";
   ctx.textAlign = "right";
-  ctx.fillText(order.customer_name, W - 15, 45);
+  ctx.fillText(order.customer_name, W - 20, 60);
 
   // Barcode (Bottom)
   try {
     const barcodeCanvas = document.createElement("canvas");
     JsBarcode(barcodeCanvas, order.order_number, {
       format: "CODE128",
-      width: 2.2,
-      height: 70,
+      width: 2.8,
+      height: 110,
       displayValue: false,
       margin: 2,
       background: "#FFFFFF",
       lineColor: "#000000",
     });
     const bx = (W - barcodeCanvas.width) / 2;
-    ctx.drawImage(barcodeCanvas, bx, 75);
+    ctx.drawImage(barcodeCanvas, bx, 100);
   } catch (e) {
     console.error("Barcode draw failed", e);
   }
