@@ -2,8 +2,8 @@ import { useRef, useEffect, useState } from "react";
 import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 
-const W = 160;
-const H = 320;
+const W = 320;
+const H = 160;
 
 function drawReadyLabel(canvas, order) {
   const ctx = canvas.getContext("2d");
@@ -14,41 +14,41 @@ function drawReadyLabel(canvas, order) {
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
 
-  // Status (Top)
-  ctx.fillStyle = "#065F46";
-  ctx.font = "bold 18px Almarai, Arial";
-  ctx.textAlign = "center";
+  // Status (Left/Center)
+  ctx.fillStyle = "#059669";
+  ctx.font = "bold 22px Almarai, Arial";
+  ctx.textAlign = "left";
   ctx.direction = "rtl";
-  ctx.fillText("جاهز - READY", W / 2, 40);
+  ctx.fillText("✓ جاهز - READY", 15, 45);
 
-  // Order Number
+  // Order Number (Center)
   ctx.fillStyle = "#111111";
-  ctx.font = 'bold 22px "JetBrains Mono", monospace';
+  ctx.font = 'bold 24px "JetBrains Mono", monospace';
   ctx.textAlign = "center";
   ctx.direction = "ltr";
-  ctx.fillText(order.order_number, W / 2, 80);
+  ctx.fillText(order.order_number, W / 2, 45);
 
-  // Customer Name
+  // Customer Name (Right)
   ctx.fillStyle = "#333333";
-  ctx.font = "bold 18px Almarai, Arial";
+  ctx.font = "bold 20px Almarai, Arial";
   ctx.direction = "rtl";
-  ctx.textAlign = "center";
-  ctx.fillText(order.customer_name, W / 2, 115);
+  ctx.textAlign = "right";
+  ctx.fillText(order.customer_name, W - 15, 45);
 
   // Barcode (Bottom)
   try {
     const barcodeCanvas = document.createElement("canvas");
     JsBarcode(barcodeCanvas, order.order_number, {
       format: "CODE128",
-      width: 1.5,
-      height: 100,
+      width: 2.2,
+      height: 70,
       displayValue: false,
-      margin: 4,
+      margin: 2,
       background: "#FFFFFF",
       lineColor: "#000000",
     });
     const bx = (W - barcodeCanvas.width) / 2;
-    ctx.drawImage(barcodeCanvas, bx, 150);
+    ctx.drawImage(barcodeCanvas, bx, 75);
   } catch (e) {
     console.error("Barcode draw failed", e);
   }

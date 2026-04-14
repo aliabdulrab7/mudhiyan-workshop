@@ -4,11 +4,11 @@ import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 import { getConfig } from "../api/orders";
 
-// Portrait orientation for 20mm x 40mm labels
-const W = 160;
-const H = 320;
+// Back to 40mm x 20mm landscape
+const W = 320;
+const H = 160;
 
-// Draw a simplified vertical label (Serial, Name, Barcode)
+// Draw a simplified horizontal label (Serial, Name, Barcode)
 async function drawMiniLabel(canvas, order, title) {
   const ctx = canvas.getContext("2d");
   canvas.width = W;
@@ -18,36 +18,36 @@ async function drawMiniLabel(canvas, order, title) {
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
 
-  // Serial Number (Top)
+  // Serial Number (Left)
   ctx.fillStyle = "#111111";
-  ctx.font = 'bold 22px "JetBrains Mono", monospace';
-  ctx.textAlign = "center";
+  ctx.font = 'bold 24px "JetBrains Mono", monospace';
+  ctx.textAlign = "left";
   ctx.direction = "ltr";
-  ctx.fillText(order.order_number, W / 2, 45);
+  ctx.fillText(order.order_number, 15, 45);
 
-  // Customer Name (Middle)
-  ctx.fillStyle = "#333333";
-  ctx.font = "bold 18px Almarai, Arial";
+  // Customer Name (Center/Right)
+  ctx.fillStyle = "#222222";
+  ctx.font = "bold 20px Almarai, Arial";
   ctx.direction = "rtl";
-  ctx.textAlign = "center";
-  ctx.fillText(order.customer_name, W / 2, 85);
+  ctx.textAlign = "right";
+  ctx.fillText(order.customer_name, W - 15, 45);
 
   // Barcode (Bottom)
   try {
     const barcodeCanvas = document.createElement("canvas");
     JsBarcode(barcodeCanvas, order.order_number, {
       format: "CODE128",
-      width: 1.5,
-      height: 100,
+      width: 2.2,
+      height: 70,
       displayValue: false,
-      margin: 4,
+      margin: 2,
       background: "#FFFFFF",
       lineColor: "#000000",
     });
     
-    // Draw barcode centered and near bottom
+    // Draw barcode centered
     const bx = (W - barcodeCanvas.width) / 2;
-    ctx.drawImage(barcodeCanvas, bx, 120);
+    ctx.drawImage(barcodeCanvas, bx, 75);
   } catch (e) {
     console.error("Barcode draw failed", e);
   }
