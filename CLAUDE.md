@@ -19,6 +19,9 @@ npm run build
 
 # Install all dependencies
 npm install && npm install --prefix server && npm install --prefix client
+
+# Manual AWS Deployment
+# Follow steps in DEPLOYMENT_AWS.md
 ```
 
 No test suite in this codebase.
@@ -36,11 +39,11 @@ Monorepo: `server/` (Express + SQLite) + `client/` (React + Vite). Vite proxies 
 ### Client (`client/src/`)
 
 - `api/orders.js` — all fetch wrappers including `getConfig()` which fetches LAN IP for QR URLs.
-- `components/LabelCanvas.jsx` — renders a 320×240px canvas (40mm×30mm @ 203 DPI for Niimbot B21). Fetches LAN IP from `/api/config`, draws label, generates a QR code via `qrcode` pointing to `http://[LAN-IP]:5173/scan?code=[order_number]`. Shows a red warning if IP resolves to localhost (QR would be unusable on iPhone).
-- `components/useLabelPrint.js` — Web Bluetooth hook using `@mmote/niimbluelib`. Must be triggered by user gesture. Captures `clientRef.current` into a local `client` variable before any `await` — do not use `clientRef.current` inside `finally`. Uses `B21_V1` print task + `ImageEncoder.encodeCanvas`.
+- `components/LabelCanvas.jsx` — renders a 400×240px canvas (50mm×30mm @ 203 DPI for Niimbot B21/B21S). Simplified layout: Serial, Name, Barcode only. Uses 40px safety padding for B21S hardware compatibility.
+- `components/useLabelPrint.js` — Web Bluetooth hook using `@mmote/niimbluelib`. Must be triggered by user gesture. Uses model id `B21` + `ImageEncoder.encodeCanvas` with orientation `left`.
 - `components/BarcodeScanner.jsx` — wraps `html5-qrcode` for desktop camera scanning (CODE128). Uses `useId()` for the container element id to avoid duplicate-mount conflicts. Do NOT wrap in React `StrictMode` — double-mounting crashes the scanner.
-- `pages/ScanPage.jsx` — dual-mode: reads `?code=` URL param (iPhone QR scan flow, no camera needed) OR uses camera scanner (desktop). Does **not** auto-promote order status on scan — user must click the confirm button in `ScanResult`.
-- `components/Layout.jsx` — sidebar on desktop (hidden via CSS), bottom tab bar on mobile (shown via CSS). No JS toggle needed — switching is purely CSS using `@media` queries and `.sidebar` / `.bottom-tab-bar` classes defined in `index.css`.
+- `pages/ScanPage.jsx` — dual-mode: reads `?code=` URL param (iPhone QR scan flow, no camera needed) OR uses camera scanner (desktop).
+- `components/Layout.jsx` — sidebar on desktop (hidden via CSS), bottom tab bar on mobile (shown via CSS). No JS toggle needed.
 - `components/OrderList.jsx` — contains an inline `useMobile()` hook (`window.innerWidth < 768`). Renders a card layout on mobile and a 6-column grid table on desktop.
 
 ### Key flows
@@ -51,7 +54,7 @@ Monorepo: `server/` (Express + SQLite) + `client/` (React + Vite). Vite proxies 
 
 ### Design system
 
-"Luxury Artisan Dark" — CSS variables in `src/index.css`. Key classes: `.order-stamp` (JetBrains Mono gold badge for order numbers), `.order-row` (gold right-border hover), `.btn-gold`, `.btn-ghost`, `.btn-ghost-sm`, `.input-base`. Fonts: Almarai (Arabic UI) + JetBrains Mono (order numbers/phone). All UI is Arabic RTL (`dir="rtl"` on `<html>`).
+"Premium Artisan Light" — CSS variables in `src/index.css`. Key attributes: White backgrounds, subtle shadows, and gold accents (`#D4A843`). Key classes: `.order-stamp` (JetBrains Mono badge), `.order-row`, `.btn-gold`, `.btn-ghost`. Fonts: Almarai (Arabic UI) + JetBrains Mono. UI is Arabic RTL (`dir="rtl"` on `<html>`).
 
 ### Database
 
