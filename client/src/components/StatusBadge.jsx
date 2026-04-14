@@ -1,9 +1,9 @@
 const STATUS = {
-  received:         { label: 'مستلمة',          bg: 'rgba(56, 139, 253, 0.10)',  fg: '#58a6ff'  },
-  pending_approval: { label: 'بانتظار الموافقة', bg: 'rgba(187, 128, 9, 0.12)',  fg: '#d29922'  },
-  in_progress:      { label: 'قيد العمل',        bg: 'rgba(31, 111, 235, 0.10)',  fg: '#388bfd'  },
-  ready:            { label: 'جاهزة',            bg: 'rgba(46, 160, 67, 0.12)',   fg: '#3fb950'  },
-  delivered:        { label: 'تم التسليم',       bg: 'rgba(163, 113, 247, 0.12)', fg: '#a371f7'  },
+  received:         { label: 'مستلمة',          bg: 'rgba(41, 128, 185, 0.10)',  fg: '#2980B9'  },
+  pending_approval: { label: 'بانتظار الموافقة', bg: 'rgba(217, 119, 6, 0.10)',  fg: '#D97706'  },
+  in_progress:      { label: 'قيد العمل',        bg: 'rgba(26, 110, 160, 0.10)',  fg: '#1A6EA0'  },
+  ready:            { label: 'جاهزة',            bg: 'rgba(22, 163, 74, 0.10)',   fg: '#16A34A'  },
+  delivered:        { label: 'تم التسليم',       bg: 'rgba(124, 58, 237, 0.10)', fg: '#7C3AED'  },
 };
 
 export default function StatusBadge({ status }) {
@@ -17,7 +17,7 @@ export default function StatusBadge({ status }) {
       fontSize: '0.75rem',
       fontWeight: 700,
       whiteSpace: 'nowrap',
-      border: `1px solid ${s.fg}18`,
+      border: `1px solid ${s.fg}22`,
       letterSpacing: '0.01em',
     }}>
       {s.label}

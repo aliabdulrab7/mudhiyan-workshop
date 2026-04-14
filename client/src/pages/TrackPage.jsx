@@ -16,11 +16,11 @@ const STEP_LABELS = {
 };
 
 const STEP_COLORS = {
-  received: '#818CF8',
-  pending_approval: '#FBBF24',
-  in_progress: '#60A5FA',
-  ready: '#34D399',
-  delivered: '#A78BFA',
+  received:         '#2980B9',
+  pending_approval: '#D97706',
+  in_progress:      '#1A6EA0',
+  ready:            '#16A34A',
+  delivered:        '#7C3AED',
 };
 
 const STATUS_MESSAGES = {
@@ -72,16 +72,16 @@ export default function TrackPage() {
   if (loading) return <SkeletonLoader type="track" />;
 
   if (notFound) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0B0F1A', padding: '20px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F3F4F6', padding: '20px' }}>
       <div style={{ textAlign: 'center', fontFamily: 'Almarai, sans-serif' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '16px', opacity: 0.2, color: 'var(--gold)' }}>◈</div>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '8px' }}>الطلب غير موجود</div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>تأكد من الرابط أو المسح مجدداً</div>
+        <div style={{ fontSize: '3rem', marginBottom: '16px', opacity: 0.2, color: '#2980B9' }}>◈</div>
+        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#222222', marginBottom: '8px' }}>الطلب غير موجود</div>
+        <div style={{ color: '#9CA3AF', fontSize: '0.9rem' }}>تأكد من الرابط أو المسح مجدداً</div>
       </div>
     </div>
   );
 
-  const activeColor = STEP_COLORS[order.status] || '#D4A843';
+  const activeColor = STEP_COLORS[order.status] || '#2980B9';
   const usePendingStep = order.status === 'pending_approval' ||
     STEPS_ALL.indexOf(order.status) > STEPS_ALL.indexOf('pending_approval');
   const steps = usePendingStep ? STEPS_ALL : STEPS_NO_APPROVAL;
@@ -95,7 +95,7 @@ export default function TrackPage() {
       transition={{ duration: 0.4, ease: 'easeOut' }}
       style={{
         minHeight: '100vh',
-        background: '#0B0F1A',
+        background: '#F3F4F6',
         fontFamily: 'Almarai, sans-serif',
         direction: 'rtl',
         padding: '24px 16px',
@@ -106,7 +106,7 @@ export default function TrackPage() {
         overflow: 'hidden',
       }}
     >
-      {/* Background glow tied to current status */}
+      {/* Subtle background glow */}
       <div style={{
         position: 'absolute',
         top: '-100px',
@@ -132,14 +132,14 @@ export default function TrackPage() {
               width: '48px',
               height: '48px',
               borderRadius: '14px',
-              background: 'rgba(212,168,67,0.08)',
-              border: '1px solid rgba(212,168,67,0.12)',
+              background: 'rgba(41,128,185,0.08)',
+              border: '1px solid rgba(41,128,185,0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 12px',
               fontSize: '1.2rem',
-              color: 'var(--gold)',
+              color: '#2980B9',
             }}
           >
             ◈
@@ -147,14 +147,14 @@ export default function TrackPage() {
           <div style={{
             fontSize: '1.3rem',
             fontWeight: 800,
-            background: 'linear-gradient(135deg, var(--gold), var(--gold-bright))',
+            background: 'linear-gradient(135deg, #2980B9, #1A6EA0)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             marginBottom: '4px',
           }}>
             مصنع المضيان
           </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>إدارة صيانة المجوهرات</div>
+          <div style={{ color: '#9CA3AF', fontSize: '0.75rem' }}>إدارة صيانة المجوهرات</div>
         </div>
 
         <motion.div
@@ -162,35 +162,34 @@ export default function TrackPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.4 }}
           style={{
-            background: 'rgba(17,24,42,0.7)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.05)',
+            background: '#FFFFFF',
+            border: '1px solid #E5E7EB',
             borderRadius: '18px',
             padding: '28px',
-            boxShadow: '0 4px 32px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
           }}
         >
           {/* Order number + piece type */}
           <div style={{ marginBottom: '22px' }}>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '6px' }}>رقم الطلب</div>
+            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '6px' }}>رقم الطلب</div>
             <span className="order-stamp" style={{ fontSize: '0.88rem', padding: '5px 14px' }}>
               {order.order_number}
             </span>
           </div>
 
           <div style={{ marginBottom: '28px' }}>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>نوع القطعة</div>
-            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{order.piece_type}</div>
+            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '4px' }}>نوع القطعة</div>
+            <div style={{ fontWeight: 600, color: '#222222' }}>{order.piece_type}</div>
           </div>
 
           {/* Progress tracker */}
           <div style={{ marginBottom: '28px' }}>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '14px' }}>مراحل الطلب</div>
+            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '14px' }}>مراحل الطلب</div>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               {steps.map((step, i) => {
                 const completed = i < currentIdx;
                 const active    = i === currentIdx;
-                const stepColor = STEP_COLORS[step] || '#D4A843';
+                const stepColor = STEP_COLORS[step] || '#2980B9';
                 return (
                   <React.Fragment key={step}>
                     {i > 0 && (
@@ -201,7 +200,7 @@ export default function TrackPage() {
                         style={{
                           flex: 1,
                           height: '2px',
-                          background: completed ? stepColor : 'rgba(255,255,255,0.06)',
+                          background: completed ? stepColor : '#E5E7EB',
                           transformOrigin: 'right',
                         }}
                       />
@@ -215,15 +214,15 @@ export default function TrackPage() {
                         height: '32px',
                         borderRadius: '50%',
                         flexShrink: 0,
-                        background: completed ? stepColor : active ? `${stepColor}20` : 'rgba(255,255,255,0.04)',
-                        border: active ? `2px solid ${stepColor}` : completed ? 'none' : '1px solid rgba(255,255,255,0.06)',
-                        color: (completed || active) ? (completed ? '#0B0F1A' : stepColor) : 'var(--text-muted)',
+                        background: completed ? stepColor : active ? `${stepColor}15` : '#F3F4F6',
+                        border: active ? `2px solid ${stepColor}` : completed ? 'none' : '1px solid #E5E7EB',
+                        color: completed ? '#FFFFFF' : active ? stepColor : '#9CA3AF',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '0.7rem',
                         fontWeight: 700,
-                        ...(active ? { boxShadow: `0 0 16px ${stepColor}20` } : {}),
+                        ...(active ? { boxShadow: `0 0 12px ${stepColor}30` } : {}),
                       }}
                     >
                       {completed ? '✓' : i + 1}
@@ -237,7 +236,7 @@ export default function TrackPage() {
                 <div key={step} style={{
                   flex: i === 0 ? '0 0 32px' : 1,
                   fontSize: '0.55rem',
-                  color: step === order.status ? (STEP_COLORS[step] || 'var(--text-primary)') : 'var(--text-muted)',
+                  color: step === order.status ? (STEP_COLORS[step] || '#222222') : '#9CA3AF',
                   fontWeight: step === order.status ? 700 : 400,
                   textAlign: i === 0 ? 'right' : i === steps.length - 1 ? 'left' : 'center',
                   marginLeft: i > 0 ? '-14px' : 0,
@@ -257,12 +256,12 @@ export default function TrackPage() {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             style={{
-              background: order.status === 'ready' ? 'rgba(52,211,153,0.08)' : `${activeColor}08`,
-              border: `1px solid ${order.status === 'ready' ? 'rgba(52,211,153,0.15)' : `${activeColor}15`}`,
+              background: order.status === 'ready' ? 'rgba(22,163,74,0.06)' : `${activeColor}08`,
+              border: `1px solid ${order.status === 'ready' ? 'rgba(22,163,74,0.20)' : `${activeColor}20`}`,
               borderRadius: '12px',
               padding: '14px 18px',
               marginBottom: order.status === 'pending_approval' ? '18px' : '0',
-              color: order.status === 'ready' ? '#34D399' : activeColor,
+              color: order.status === 'ready' ? '#16A34A' : activeColor,
               fontSize: '0.9rem',
               fontWeight: 500,
             }}
@@ -276,17 +275,17 @@ export default function TrackPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               style={{
-                background: 'rgba(245,158,11,0.06)',
-                border: '1px solid rgba(245,158,11,0.15)',
+                background: 'rgba(217,119,6,0.05)',
+                border: '1px solid rgba(217,119,6,0.20)',
                 borderRadius: '14px',
                 padding: '20px',
               }}
             >
-              <div style={{ fontSize: '0.82rem', color: '#FBBF24', marginBottom: '6px' }}>رسوم الإصلاح</div>
+              <div style={{ fontSize: '0.82rem', color: '#D97706', marginBottom: '6px' }}>رسوم الإصلاح</div>
               <div style={{
                 fontSize: '1.8rem',
                 fontWeight: 800,
-                background: 'linear-gradient(135deg, #FBBF24, #F59E0B)',
+                background: 'linear-gradient(135deg, #D97706, #B45309)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 marginBottom: '18px',
@@ -301,8 +300,8 @@ export default function TrackPage() {
                 style={{
                   width: '100%',
                   padding: '14px 0',
-                  background: 'linear-gradient(135deg, #FBBF24, #D97706)',
-                  color: '#0B0F1A',
+                  background: 'linear-gradient(135deg, #D97706, #B45309)',
+                  color: '#FFFFFF',
                   border: 'none',
                   borderRadius: '12px',
                   fontSize: '1rem',
@@ -310,7 +309,7 @@ export default function TrackPage() {
                   fontFamily: 'Almarai, sans-serif',
                   cursor: approving ? 'not-allowed' : 'pointer',
                   opacity: approving ? 0.6 : 1,
-                  boxShadow: '0 4px 20px rgba(245,158,11,0.2)',
+                  boxShadow: '0 4px 16px rgba(217,119,6,0.25)',
                 }}
               >
                 {approving ? '...' : 'أوافق على السعر'}
@@ -323,11 +322,11 @@ export default function TrackPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               style={{
-                background: 'rgba(52,211,153,0.08)',
-                border: '1px solid rgba(52,211,153,0.15)',
+                background: 'rgba(22,163,74,0.06)',
+                border: '1px solid rgba(22,163,74,0.20)',
                 borderRadius: '12px',
                 padding: '16px',
-                color: '#34D399',
+                color: '#16A34A',
                 textAlign: 'center',
                 fontWeight: 600,
               }}
@@ -338,7 +337,7 @@ export default function TrackPage() {
         </motion.div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '28px', color: 'var(--text-muted)', fontSize: '0.68rem', opacity: 0.6 }}>
+        <div style={{ textAlign: 'center', marginTop: '28px', color: '#9CA3AF', fontSize: '0.68rem', opacity: 0.7 }}>
           هذه الصفحة للاستخدام الشخصي فقط
         </div>
       </div>

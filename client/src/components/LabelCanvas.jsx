@@ -1,67 +1,86 @@
 import { useRef, useEffect, useState } from "react";
-import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
-import { getConfig } from "../api/orders";
 
-// 50mm x 30mm landscape @ 203 DPI = 400 x 240 px
+// NIIMBOT B21S — 5cm × 3cm label @ 203 DPI
+// Physical pixels: 5/2.54 × 203 ≈ 400px wide, 3/2.54 × 203 ≈ 240px tall
 const W = 400;
 const H = 240;
 
-// Draw a simplified horizontal label (Serial, Name, Barcode) 
-// Added internal padding (40px) to ensure compatibility with B21S printable area
-async function drawMiniLabel(canvas, order, title) {
+// B21S hardware safe zone: 40px padding on all sides
+// Safe area: x[40..360] y[40..200] → 320×160 usable pixels
+const PAD = 40;
+
+function drawLabel(canvas, order, labelType) {
   const ctx = canvas.getContext("2d");
   canvas.width = W;
   canvas.height = H;
 
-  // Background
+  // White background
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
 
-  // Serial Number (Top Left, padded)
+  // ── Row 1: Serial (left) + Customer name (right) ──
+  // y=40 (top of safe area) + font-size 26 = baseline at y=66
   ctx.fillStyle = "#111111";
-  ctx.font = 'bold 30px "JetBrains Mono", monospace';
+  ctx.font = 'bold 26px "JetBrains Mono", monospace';
   ctx.textAlign = "left";
   ctx.direction = "ltr";
-  ctx.fillText(order.order_number, 45, 80);
+  ctx.fillText(order.order_number, PAD, PAD + 26);
 
-  // Customer Name (Top Right, padded)
-  ctx.fillStyle = "#222222";
-  ctx.font = "bold 26px Almarai, Arial";
+  // Customer name — truncate if too long
+  ctx.fillStyle = "#333333";
+  ctx.font = "bold 22px Almarai, Arial";
   ctx.direction = "rtl";
   ctx.textAlign = "right";
-  ctx.fillText(order.customer_name, W - 45, 80);
+  const maxNameWidth = W - PAD * 2 - 160; // leave room for order number
+  let name = order.customer_name;
+  while (ctx.measureText(name).width > maxNameWidth && name.length > 2) {
+    name = name.slice(0, -1);
+  }
+  if (name !== order.customer_name) name += '…';
+  ctx.fillText(name, W - PAD, PAD + 26);
 
-  // Barcode (Bottom, padded)
+  // ── Label type badge (below row 1, small) ──
+  if (labelType) {
+    ctx.fillStyle = "#888888";
+    ctx.font = "14px Almarai, Arial";
+    ctx.direction = "rtl";
+    ctx.textAlign = "right";
+    ctx.fillText(labelType, W - PAD, PAD + 46);
+  }
+
+  // ── Barcode — centered, safely within bottom safe zone ──
+  // Available vertical space: PAD+56 to 200 = ~104px for barcode
   try {
     const barcodeCanvas = document.createElement("canvas");
     JsBarcode(barcodeCanvas, order.order_number, {
       format: "CODE128",
-      width: 2.2,
-      height: 90,
+      width: 2,
+      height: 75,
       displayValue: false,
-      margin: 2,
+      margin: 0,
       background: "#FFFFFF",
       lineColor: "#000000",
     });
-    
-    // Draw barcode centered and spaced from text
-    const bx = (W - barcodeCanvas.width) / 2;
-    ctx.drawImage(barcodeCanvas, bx, 115);
+
+    // Center horizontally within safe area, top of barcode at y=108
+    const bx = Math.max(PAD, (W - barcodeCanvas.width) / 2);
+    const by = 108;
+
+    // Verify it fits: by + 75 = 183 < 200 ✓
+    ctx.drawImage(barcodeCanvas, bx, by);
   } catch (e) {
     console.error("Barcode draw failed", e);
   }
 }
 
 async function drawCustomerLabel(canvas, order) {
-  return drawMiniLabel(canvas, order, "عميل");
+  drawLabel(canvas, order, "عميل");
 }
 
 function drawShopLabel(canvas, order) {
-  // Sync wrapper for drawMiniLabel
-  const ctx = canvas.getContext("2d");
-  drawMiniLabel(canvas, order, "ورشة");
+  drawLabel(canvas, order, "ورشة");
 }
 
 export default function LabelCanvas({ order, autoPrint = false }) {
@@ -82,7 +101,7 @@ export default function LabelCanvas({ order, autoPrint = false }) {
     if (!order || !customerRef.current || !shopRef.current) return;
     setReady(false);
     Promise.all([
-      drawCustomerLabel(customerRef.current, order),
+      Promise.resolve(drawCustomerLabel(customerRef.current, order)),
       Promise.resolve(drawShopLabel(shopRef.current, order)),
     ])
       .then(() => setReady(true))
@@ -104,12 +123,12 @@ export default function LabelCanvas({ order, autoPrint = false }) {
               {title}
             </div>
             <div style={{
-              border: "1px solid var(--gold-border)",
+              border: "1px solid #E5E7EB",
               borderRadius: "var(--radius)",
               overflow: "hidden",
               display: "inline-block",
               background: "#fff",
-              boxShadow: "0 2px 12px rgba(27,43,94,0.1)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
               opacity: ready ? 1 : 0.5,
               transition: "opacity 0.3s",
             }}>
@@ -128,8 +147,8 @@ export default function LabelCanvas({ order, autoPrint = false }) {
       {/* Print controls */}
       {!bluetoothAvailable ? (
         <div style={{
-          background: "rgba(239,68,68,0.08)",
-          border: "1px solid rgba(239,68,68,0.2)",
+          background: "rgba(220,38,38,0.06)",
+          border: "1px solid rgba(220,38,38,0.20)",
           borderRadius: "var(--radius)",
           padding: "10px 14px",
           color: "#DC2626",
@@ -143,8 +162,8 @@ export default function LabelCanvas({ order, autoPrint = false }) {
             <button className="btn-ghost" onClick={connect}>⌘ اتصال بالطابعة</button>
           ) : (
             <>
-              <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--status-ready-fg)", fontSize: "0.83rem" }}>
-                <span className="pulse-gold" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--status-ready-fg)", display: "inline-block" }} />
+              <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16A34A", fontSize: "0.83rem" }}>
+                <span className="pulse-gold" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#16A34A", display: "inline-block" }} />
                 متصل
               </span>
               <button
@@ -161,7 +180,7 @@ export default function LabelCanvas({ order, autoPrint = false }) {
       )}
 
       {btError && (
-        <div style={{ marginTop: "10px", color: "#DC2626", fontSize: "0.82rem", padding: "8px 12px", background: "rgba(239,68,68,0.08)", borderRadius: "var(--radius)" }}>
+        <div style={{ marginTop: "10px", color: "#DC2626", fontSize: "0.82rem", padding: "8px 12px", background: "rgba(220,38,38,0.06)", borderRadius: "var(--radius)", border: "1px solid rgba(220,38,38,0.15)" }}>
           {btError}
         </div>
       )}

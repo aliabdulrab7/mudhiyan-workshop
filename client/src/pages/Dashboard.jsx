@@ -19,19 +19,19 @@ function useMobile() {
 }
 
 const STAT_CARDS = [
-  { key: 'received',         label: 'مستلمة',          icon: '◈', gradient: 'linear-gradient(135deg, rgba(56,139,253,0.08), rgba(56,139,253,0.02))' },
-  { key: 'pending_approval', label: 'بانتظار الموافقة', icon: '⏳', gradient: 'linear-gradient(135deg, rgba(187,128,9,0.08), rgba(187,128,9,0.02))' },
-  { key: 'in_progress',      label: 'قيد العمل',        icon: '⟳', gradient: 'linear-gradient(135deg, rgba(31,111,235,0.08), rgba(31,111,235,0.02))' },
-  { key: 'ready',            label: 'جاهزة',            icon: '✓', gradient: 'linear-gradient(135deg, rgba(46,160,67,0.08), rgba(46,160,67,0.02))' },
-  { key: 'delivered',        label: 'مُسلَّمة',         icon: '✦', gradient: 'linear-gradient(135deg, rgba(163,113,247,0.08), rgba(163,113,247,0.02))' },
+  { key: 'received',         label: 'مستلمة',          icon: '◈', gradient: 'linear-gradient(135deg, rgba(41,128,185,0.06), rgba(41,128,185,0.01))' },
+  { key: 'pending_approval', label: 'بانتظار الموافقة', icon: '⏳', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.06), rgba(217,119,6,0.01))' },
+  { key: 'in_progress',      label: 'قيد العمل',        icon: '⟳', gradient: 'linear-gradient(135deg, rgba(26,110,160,0.06), rgba(26,110,160,0.01))' },
+  { key: 'ready',            label: 'جاهزة',            icon: '✓', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01))' },
+  { key: 'delivered',        label: 'مُسلَّمة',         icon: '✦', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.01))' },
 ];
 
 const STATUS_COLORS = {
-  received:         '#58a6ff',
-  pending_approval: '#d29922',
-  in_progress:      '#388bfd',
-  ready:            '#3fb950',
-  delivered:        '#a371f7',
+  received:         '#2980B9',
+  pending_approval: '#D97706',
+  in_progress:      '#1A6EA0',
+  ready:            '#16A34A',
+  delivered:        '#7C3AED',
 };
 
 export default function Dashboard() {
@@ -118,7 +118,7 @@ export default function Dashboard() {
           <ActionPanel
             icon="◈" title="تنتظر التقييم"
             count={actionOrders.received.length}
-            accent="#58a6ff"
+            accent="#2980B9"
             emptyText="لا توجد طلبات جديدة"
             orders={actionOrders.received}
             active={filterStatus === 'received'}
@@ -158,8 +158,8 @@ export default function Dashboard() {
               transition={{ delay: i * 0.06, duration: 0.3 }}
               onClick={() => applyFilter(filterStatus === key ? 'all' : key)}
               style={{
-                background: filterStatus === key ? `${gradient}, rgba(88,166,255,0.03)` : gradient,
-                border: `1px solid ${filterStatus === key ? 'rgba(88,166,255,0.30)' : '#30363d'}`,
+                background: filterStatus === key ? gradient : '#FFFFFF',
+                border: `1px solid ${filterStatus === key ? 'rgba(41,128,185,0.30)' : '#E5E7EB'}`,
                 borderRadius: '8px',
                 padding: '14px 16px',
                 display: 'flex', flexDirection: 'column', gap: '8px',
@@ -167,7 +167,7 @@ export default function Dashboard() {
                 textAlign: 'right',
                 transition: 'all 0.15s ease',
                 ...(isMobile ? { minWidth: '120px', flexShrink: 0 } : {}),
-                boxShadow: filterStatus === key ? '0 0 0 3px rgba(88,166,255,0.12)' : 'none',
+                boxShadow: filterStatus === key ? '0 0 0 3px rgba(41,128,185,0.10)' : 'var(--shadow-sm)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -202,7 +202,7 @@ export default function Dashboard() {
             {selectedBranch && (
               <button
                 onClick={() => setSelectedBranch(null)}
-                style={{ background: 'transparent', border: 'none', color: '#58a6ff', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Almarai, sans-serif' }}
+                style={{ background: 'transparent', border: 'none', color: '#2980B9', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Almarai, sans-serif' }}
               >
                 ← عرض الكل
               </button>
@@ -252,36 +252,37 @@ function BranchCard({ branch, active, onClick }) {
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       style={{
-        background: active ? 'rgba(88,166,255,0.08)' : '#161b22',
-        border: `1px solid ${active ? 'rgba(88,166,255,0.40)' : '#30363d'}`,
+        background: active ? 'rgba(41,128,185,0.06)' : '#FFFFFF',
+        border: `1px solid ${active ? 'rgba(41,128,185,0.35)' : '#E5E7EB'}`,
         borderRadius: '8px',
         padding: '12px 14px',
         cursor: 'pointer',
         textAlign: 'right',
         transition: 'all 0.15s',
-        outline: active ? '2px solid rgba(88,166,255,0.5)' : 'none',
+        outline: active ? '2px solid rgba(41,128,185,0.4)' : 'none',
         outlineOffset: '2px',
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#e6edf3' }}>{branch.shop_name}</span>
+        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#222222' }}>{branch.shop_name}</span>
         {branch.ready > 0 && (
           <span style={{
-            background: 'rgba(63,185,80,0.15)', color: '#3fb950',
+            background: 'rgba(22,163,74,0.10)', color: '#16A34A',
             borderRadius: '12px', padding: '2px 8px',
             fontSize: '0.68rem', fontWeight: 700,
-            border: '1px solid rgba(63,185,80,0.25)',
+            border: '1px solid rgba(22,163,74,0.25)',
           }}>
             {branch.ready} جاهز
           </span>
         )}
       </div>
       <div style={{ display: 'flex', gap: '10px', fontSize: '0.75rem' }}>
-        <span style={{ color: '#58a6ff' }}>◈ {branch.received}</span>
-        <span style={{ color: '#388bfd' }}>⟳ {branch.in_progress}</span>
-        <span style={{ color: '#3fb950' }}>✓ {branch.ready}</span>
+        <span style={{ color: '#2980B9' }}>◈ {branch.received}</span>
+        <span style={{ color: '#1A6EA0' }}>⟳ {branch.in_progress}</span>
+        <span style={{ color: '#16A34A' }}>✓ {branch.ready}</span>
         {branch.pending_approval > 0 && (
-          <span style={{ color: '#d29922' }}>⏳ {branch.pending_approval}</span>
+          <span style={{ color: '#D97706' }}>⏳ {branch.pending_approval}</span>
         )}
       </div>
       {activeCount === 0 && (
@@ -298,15 +299,15 @@ function ActionPanel({ icon, title, count, accent, emptyText, orders, active, on
       whileTap={{ scale: 0.99 }}
       onClick={onFilterClick}
       style={{
-        background: '#161b22',
-        border: `1px solid ${highlight && count > 0 ? `${accent}44` : '#30363d'}`,
+        background: '#FFFFFF',
+        border: `1px solid ${highlight && count > 0 ? `${accent}55` : '#E5E7EB'}`,
         borderRadius: '8px',
         padding: '16px 18px',
         cursor: 'pointer',
         transition: 'all 0.15s',
         outline: active ? `2px solid ${accent}` : 'none',
         outlineOffset: '2px',
-        boxShadow: count > 0 ? `0 0 0 3px ${accent}18` : 'none',
+        boxShadow: count > 0 ? `0 2px 12px ${accent}18` : 'var(--shadow-sm)',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -315,14 +316,14 @@ function ActionPanel({ icon, title, count, accent, emptyText, orders, active, on
           <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{title}</span>
         </div>
         <span style={{
-          background: count > 0 ? `${accent}18` : '#21262d',
+          background: count > 0 ? `${accent}12` : '#F3F4F6',
           color: count > 0 ? accent : 'var(--text-muted)',
           fontFamily: 'JetBrains Mono, monospace',
           fontWeight: 800,
           fontSize: '0.95rem',
           padding: '3px 12px',
           borderRadius: '20px',
-          border: `1px solid ${count > 0 ? `${accent}30` : 'transparent'}`,
+          border: `1px solid ${count > 0 ? `${accent}30` : '#E5E7EB'}`,
         }}>
           {count}
         </span>
@@ -336,7 +337,7 @@ function ActionPanel({ icon, title, count, accent, emptyText, orders, active, on
             <div key={o.id} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '7px 10px',
-              background: '#21262d',
+              background: '#F3F4F6',
               borderRadius: '6px',
               fontSize: '0.8rem',
             }}>

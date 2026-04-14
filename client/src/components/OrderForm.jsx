@@ -77,11 +77,11 @@ export default function OrderForm({ onSuccess }) {
         </label>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
           <span style={{
-            background: '#21262d',
-            border: '1px solid #30363d',
+            background: '#F3F4F6',
+            border: '1px solid #E5E7EB',
             borderRadius: 'var(--radius)',
             padding: '8px 14px',
-            color: '#58a6ff',
+            color: '#2980B9',
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: '0.9rem',
             whiteSpace: 'nowrap',
@@ -110,14 +110,14 @@ export default function OrderForm({ onSuccess }) {
           الأصناف
         </label>
 
-        <div style={{ border: '1px solid #30363d', borderRadius: '8px', overflow: 'hidden', marginBottom: '8px' }}>
+        <div style={{ border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden', marginBottom: '8px' }}>
           {/* Table header */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '2fr 72px 1fr 32px',
             padding: '8px 10px',
-            background: '#0d1117',
-            borderBottom: '1px solid #30363d',
+            background: '#F9FAFB',
+            borderBottom: '1px solid #E5E7EB',
             fontSize: '0.70rem',
             color: 'var(--text-muted)',
             fontWeight: 700,
@@ -138,10 +138,10 @@ export default function OrderForm({ onSuccess }) {
                 display: 'grid',
                 gridTemplateColumns: '2fr 72px 1fr 32px',
                 padding: '6px 8px',
-                borderBottom: i < items.length - 1 ? '1px solid #21262d' : 'none',
+                borderBottom: i < items.length - 1 ? '1px solid #F3F4F6' : 'none',
                 alignItems: 'center',
                 gap: '6px',
-                background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)',
               }}
             >
               {/* Type */}
@@ -183,7 +183,7 @@ export default function OrderForm({ onSuccess }) {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: items.length === 1 ? '#21262d' : '#6e7681',
+                  color: items.length === 1 ? '#E5E7EB' : '#9CA3AF',
                   cursor: items.length === 1 ? 'default' : 'pointer',
                   fontSize: '1.1rem',
                   lineHeight: 1,
@@ -194,8 +194,8 @@ export default function OrderForm({ onSuccess }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
-                onMouseEnter={e => { if (items.length > 1) e.currentTarget.style.color = '#f85149'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = items.length === 1 ? '#21262d' : '#6e7681'; }}
+                onMouseEnter={e => { if (items.length > 1) e.currentTarget.style.color = '#DC2626'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = items.length === 1 ? '#E5E7EB' : '#9CA3AF'; }}
               >
                 ×
               </button>
@@ -210,17 +210,17 @@ export default function OrderForm({ onSuccess }) {
           style={{
             width: '100%',
             background: 'transparent',
-            border: '1px dashed #30363d',
+            border: '1px dashed #D1D5DB',
             borderRadius: '6px',
             padding: '8px',
-            color: '#58a6ff',
+            color: '#2980B9',
             fontSize: '0.85rem',
             fontFamily: 'Almarai, sans-serif',
             cursor: 'pointer',
             transition: 'all 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#58a6ff'; e.currentTarget.style.background = 'rgba(88,166,255,0.04)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = '#30363d'; e.currentTarget.style.background = 'transparent'; }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#2980B9'; e.currentTarget.style.background = 'rgba(41,128,185,0.04)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = '#D1D5DB'; e.currentTarget.style.background = 'transparent'; }}
         >
           + إضافة صنف
         </button>
@@ -228,11 +228,11 @@ export default function OrderForm({ onSuccess }) {
 
       {error && (
         <div style={{
-          background: 'rgba(248,81,73,0.10)',
-          border: '1px solid rgba(248,81,73,0.25)',
+          background: 'rgba(220,38,38,0.06)',
+          border: '1px solid rgba(220,38,38,0.20)',
           borderRadius: 'var(--radius)',
           padding: '10px 14px',
-          color: '#f85149',
+          color: '#DC2626',
           fontSize: '0.88rem',
         }}>
           {error}

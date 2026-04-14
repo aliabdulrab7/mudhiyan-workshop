@@ -9,7 +9,7 @@ export default function SkeletonLoader({ type = 'list', count = 3, isMobile = tr
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         style={{
-          minHeight: '100vh', background: '#0B0F1A', padding: '24px 16px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start'
+          minHeight: '100vh', background: '#F3F4F6', padding: '24px 16px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start'
         }}
       >
         <div style={{ width: '100%', maxWidth: '480px' }}>
@@ -19,7 +19,7 @@ export default function SkeletonLoader({ type = 'list', count = 3, isMobile = tr
             <div className="skeleton" style={{ width: '100px', height: '14px' }}></div>
           </div>
           <div style={{
-            background: 'rgba(17,24,42,0.7)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '18px', padding: '28px',
+            background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '18px', padding: '28px',
           }}>
             <div style={{ marginBottom: '24px' }}>
               <div className="skeleton" style={{ width: '60px', height: '12px', marginBottom: '8px' }}></div>
@@ -59,7 +59,7 @@ export default function SkeletonLoader({ type = 'list', count = 3, isMobile = tr
       >
         {[1, 2, 3, 4, 5].map(i => (
           <div key={i} style={{
-            background: 'rgba(17,24,42,0.5)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '14px', padding: '16px 18px',
+            background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '14px', padding: '16px 18px',
             display: 'flex', flexDirection: 'column', gap: '10px', ...(isMobile ? { minWidth: '120px', flexShrink: 0 } : {})
           }}>
             <div className="skeleton" style={{ width: '60px', height: '14px' }}></div>
@@ -73,10 +73,10 @@ export default function SkeletonLoader({ type = 'list', count = 3, isMobile = tr
   // default type = 'list'
   return (
     <div style={{
-      background: 'rgba(17,24,42,0.5)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+      background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
     }}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} style={{ padding: '14px 18px', borderBottom: i < count - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+        <div key={i} style={{ padding: '14px 18px', borderBottom: i < count - 1 ? '1px solid #F3F4F6' : 'none' }}>
           {isMobile ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>

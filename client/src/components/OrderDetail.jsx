@@ -102,7 +102,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
         exit={{ opacity: 0 }}
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)',
           zIndex: 300, backdropFilter: 'blur(4px)',
         }}
       />
@@ -116,30 +116,26 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
         style={{
           position: 'fixed', top: 0, left: 0, bottom: 0,
           width: 'min(480px, 100vw)',
-          background: 'rgba(13,18,37,0.95)',
-          backdropFilter: 'blur(24px)',
-          boxShadow: '4px 0 48px rgba(0,0,0,0.5)',
+          background: '#FFFFFF',
+          boxShadow: '4px 0 32px rgba(0,0,0,0.12)',
           zIndex: 301,
           display: 'flex', flexDirection: 'column',
           overflowY: 'auto',
-          borderLeft: '1px solid rgba(255,255,255,0.04)',
+          borderLeft: '1px solid #E5E7EB',
         }}
       >
         {/* Header */}
         <div style={{
-          background: 'linear-gradient(180deg, rgba(27,43,94,0.8), rgba(13,18,37,0.95))',
+          background: 'linear-gradient(135deg, #2980B9, #1A6EA0)',
           color: '#fff',
           padding: '24px 28px', flexShrink: 0,
-          borderBottom: '1px solid rgba(255,255,255,0.04)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: '6px' }}>تفاصيل الطلب</div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)', marginBottom: '6px' }}>تفاصيل الطلب</div>
               <div style={{
                 fontFamily: 'JetBrains Mono, monospace', fontSize: '1.05rem', fontWeight: 700,
-                background: 'linear-gradient(135deg, var(--gold), var(--gold-bright))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: '#FFFFFF',
                 letterSpacing: '0.04em',
               }}>
                 {order.order_number}
@@ -148,18 +144,18 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             <button
               onClick={onClose}
               style={{
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
+                color: 'rgba(255,255,255,0.8)', fontSize: '1.1rem', cursor: 'pointer',
                 lineHeight: 1, padding: '6px 10px', borderRadius: '8px',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; e.target.style.color = '#fff'; }}
-              onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.05)'; e.target.style.color = 'rgba(255,255,255,0.5)'; }}
+              onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.25)'; e.target.style.color = '#fff'; }}
+              onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.15)'; e.target.style.color = 'rgba(255,255,255,0.8)'; }}
             >×</button>
           </div>
           <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <StatusBadge status={order.status} />
-            <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)' }}>{dateStr}</span>
+            <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)' }}>{dateStr}</span>
           </div>
         </div>
 
@@ -176,13 +172,13 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
                   الأصناف
                 </div>
-                <div style={{ border: '1px solid #30363d', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden' }}>
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 48px 1fr',
                     padding: '6px 10px',
-                    background: '#0d1117',
-                    borderBottom: '1px solid #30363d',
+                    background: '#F9FAFB',
+                    borderBottom: '1px solid #E5E7EB',
                     fontSize: '0.68rem',
                     color: 'var(--text-muted)',
                     fontWeight: 700,
@@ -198,13 +194,13 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                       display: 'grid',
                       gridTemplateColumns: '1fr 48px 1fr',
                       padding: '8px 10px',
-                      borderBottom: i < order.items.length - 1 ? '1px solid #21262d' : 'none',
+                      borderBottom: i < order.items.length - 1 ? '1px solid #F3F4F6' : 'none',
                       alignItems: 'center',
                       gap: '6px',
                       fontSize: '0.875rem',
                     }}>
                       <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.item_type}</span>
-                      <span style={{ textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', color: '#58a6ff', fontWeight: 700 }}>{item.quantity}</span>
+                      <span style={{ textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', color: '#2980B9', fontWeight: 700 }}>{item.quantity}</span>
                       <span style={{ color: item.notes ? 'var(--text-secondary)' : 'var(--text-muted)', fontStyle: item.notes ? 'normal' : 'italic', fontSize: '0.82rem' }}>
                         {item.notes || '—'}
                       </span>
@@ -232,7 +228,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                 <div style={{ marginBottom: '12px' }}>
                   <button
                     className="btn-gold"
-                    style={{ width: '100%', justifyContent: 'center', background: '#238636', borderColor: 'rgba(63,185,80,0.3)' }}
+                    style={{ width: '100%', justifyContent: 'center', background: '#16A34A', borderColor: 'rgba(22,163,74,0.4)' }}
                     disabled={savingStatus}
                     onClick={handleStatusAdvance}
                   >
@@ -286,7 +282,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   </div>
 
                   {error && (
-                    <div style={{ marginTop: '12px', color: '#FCA5A5', fontSize: '0.83rem', padding: '10px 14px', background: 'rgba(239,68,68,0.08)', borderRadius: 'var(--radius)', border: '1px solid rgba(239,68,68,0.15)' }}>
+                    <div style={{ marginTop: '12px', color: '#DC2626', fontSize: '0.83rem', padding: '10px 14px', background: 'rgba(220,38,38,0.06)', borderRadius: 'var(--radius)', border: '1px solid rgba(220,38,38,0.15)' }}>
                       {error}
                     </div>
                   )}
@@ -316,14 +312,14 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
               ) : (
                 comments.map(c => (
                   <div key={c.id} style={{
-                    background: 'rgba(255,255,255,0.02)',
+                    background: '#F9FAFB',
                     borderRadius: '10px',
                     padding: '12px 14px',
-                    borderRight: '3px solid rgba(212,168,67,0.15)',
-                    border: '1px solid rgba(255,255,255,0.03)',
+                    borderRight: '3px solid rgba(41,128,185,0.20)',
+                    border: '1px solid #E5E7EB',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#818CF8', fontFamily: 'JetBrains Mono, monospace' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#2980B9', fontFamily: 'JetBrains Mono, monospace' }}>
                         {c.author}
                       </span>
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
@@ -363,7 +359,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 
 function InfoRow({ label, value, bold, mono }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #F3F4F6' }}>
       <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{label}</span>
       <span style={{
         fontWeight: bold ? 700 : 400,

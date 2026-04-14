@@ -92,9 +92,9 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
               onClick={() => setStatus(f.value)}
               className="filter-chip"
               style={{
-                background: status === f.value ? 'rgba(88,166,255,0.12)' : 'transparent',
-                border: `1px solid ${status === f.value ? 'rgba(88,166,255,0.35)' : '#30363d'}`,
-                color: status === f.value ? '#58a6ff' : 'var(--text-muted)',
+                background: status === f.value ? 'rgba(41,128,185,0.10)' : '#FFFFFF',
+                border: `1px solid ${status === f.value ? 'rgba(41,128,185,0.35)' : '#E5E7EB'}`,
+                color: status === f.value ? '#2980B9' : 'var(--text-muted)',
                 borderRadius: '20px',
                 padding: '6px 16px',
                 fontSize: '0.82rem',
@@ -126,9 +126,9 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
           color: 'var(--text-muted)',
           padding: '60px 20px',
           textAlign: 'center',
-          border: '1px dashed #30363d',
+          border: '1px dashed #D1D5DB',
           borderRadius: 'var(--radius-lg)',
-          background: '#161b22',
+          background: '#FFFFFF',
         }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '12px', opacity: 0.25 }}>◈</div>
           لا توجد طلبات
@@ -136,8 +136,8 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
       ) : isMobile ? (
         /* ── Mobile card view ── */
         <div style={{
-          background: '#161b22',
-          border: '1px solid #30363d',
+          background: '#FFFFFF',
+          border: '1px solid #E5E7EB',
           borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
         }}>
@@ -153,7 +153,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
               className="order-row"
               style={{
                 padding: '14px 16px',
-                borderBottom: '1px solid #21262d',
+                borderBottom: '1px solid #F3F4F6',
                 cursor: 'pointer',
               }}
               onClick={() => setSelected(order)}
@@ -178,7 +178,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                 {!isWorkshop && order.status === 'ready' && (
                   <button
                     className={isMobile ? 'btn-gold mobile-status-btn' : 'btn-ghost-sm'}
-                    style={isMobile ? {} : { borderColor: 'rgba(63,185,80,0.4)', color: '#3fb950' }}
+                    style={isMobile ? {} : { borderColor: 'rgba(22,163,74,0.4)', color: '#16A34A' }}
                     onClick={() => changeStatus(order, 'delivered')}
                   >
                     ✓ تسليم للعميل
@@ -192,8 +192,8 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
       ) : (
         /* ── Desktop table view ── */
         <div style={{
-          background: '#161b22',
-          border: '1px solid #30363d',
+          background: '#FFFFFF',
+          border: '1px solid #E5E7EB',
           borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
         }}>
@@ -202,8 +202,8 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
             display: 'grid',
             gridTemplateColumns: '180px 1fr 110px 120px 130px 140px',
             padding: '10px 18px',
-            borderBottom: '1px solid #30363d',
-            background: '#0d1117',
+            borderBottom: '1px solid #E5E7EB',
+            background: '#F9FAFB',
             fontSize: '0.72rem',
             color: 'var(--text-muted)',
             fontWeight: 700,
@@ -233,7 +233,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                 display: 'grid',
                 gridTemplateColumns: '180px 1fr 110px 120px 130px 140px',
                 padding: '14px 18px',
-                borderBottom: i < orders.length - 1 ? '1px solid #21262d' : 'none',
+                borderBottom: i < orders.length - 1 ? '1px solid #F3F4F6' : 'none',
                 alignItems: 'center',
                 cursor: 'pointer',
               }}
@@ -276,14 +276,14 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                 {!isWorkshop && order.status === 'ready' && (
                   <button
                     className="btn-ghost-sm"
-                    style={{ borderColor: 'rgba(63,185,80,0.4)', color: '#3fb950' }}
+                    style={{ borderColor: 'rgba(22,163,74,0.4)', color: '#16A34A' }}
                     onClick={() => changeStatus(order, 'delivered')}
                   >
                     ✓ تسليم
                   </button>
                 )}
                 {order.status === 'delivered' && (
-                  <span style={{ color: '#3fb950', fontSize: '0.78rem' }}>✓</span>
+                  <span style={{ color: '#16A34A', fontSize: '0.78rem' }}>✓</span>
                 )}
               </div>
             </motion.div>

@@ -28,7 +28,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#0d1117',
+      background: '#F3F4F6',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -39,13 +39,13 @@ export default function LoginPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         style={{
-          background: '#161b22',
-          border: '1px solid #30363d',
-          borderRadius: '12px',
+          background: '#FFFFFF',
+          border: '1px solid #E5E7EB',
+          borderRadius: '14px',
           padding: '40px 32px 32px',
           width: '100%',
           maxWidth: '360px',
-          boxShadow: '0 8px 32px rgba(1,4,9,0.6)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
           position: 'relative',
         }}
       >
@@ -55,7 +55,7 @@ export default function LoginPage() {
             width: '48px',
             height: '48px',
             borderRadius: '10px',
-            background: '#238636',
+            background: 'linear-gradient(135deg, #2980B9, #1A6EA0)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -68,12 +68,12 @@ export default function LoginPage() {
           <div style={{
             fontSize: '1.25rem',
             fontWeight: 700,
-            color: '#e6edf3',
+            color: '#222222',
             marginBottom: '4px',
           }}>
             مصنع المضيان
           </div>
-          <div style={{ color: '#8b949e', fontSize: '0.82rem' }}>
+          <div style={{ color: '#9CA3AF', fontSize: '0.82rem' }}>
             تسجيل الدخول إلى حسابك
           </div>
         </div>
@@ -82,7 +82,7 @@ export default function LoginPage() {
           <div>
             <label style={{
               fontSize: '0.82rem',
-              color: focused === 'user' ? 'var(--gold)' : 'var(--text-secondary)',
+              color: focused === 'user' ? '#2980B9' : 'var(--text-secondary)',
               display: 'block',
               marginBottom: '8px',
               transition: 'color 0.2s',
@@ -104,7 +104,7 @@ export default function LoginPage() {
           <div>
             <label style={{
               fontSize: '0.82rem',
-              color: focused === 'pass' ? 'var(--gold)' : 'var(--text-secondary)',
+              color: focused === 'pass' ? '#2980B9' : 'var(--text-secondary)',
               display: 'block',
               marginBottom: '8px',
               transition: 'color 0.2s',
@@ -129,11 +129,11 @@ export default function LoginPage() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               style={{
-                background: 'rgba(248,81,73,0.10)',
-                border: '1px solid rgba(248,81,73,0.25)',
+                background: 'rgba(220,38,38,0.06)',
+                border: '1px solid rgba(220,38,38,0.20)',
                 borderRadius: '10px',
                 padding: '12px 16px',
-                color: '#f85149',
+                color: '#DC2626',
                 fontSize: '0.85rem',
               }}
             >

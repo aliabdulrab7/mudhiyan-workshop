@@ -26,15 +26,15 @@ export default function Layout({ children }) {
       <aside className="sidebar" style={{
         width: "240px",
         minWidth: "240px",
-        background: "#161b22",
+        background: "#FFFFFF",
         display: "flex",
         flexDirection: "column",
         padding: "0",
-        borderLeft: "1px solid #30363d",
+        borderLeft: "1px solid #E5E7EB",
         position: "relative",
         overflow: "hidden",
       }}>
-        <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid #21262d" }}>
+        <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid #E5E7EB" }}>
           <div style={{
             display: "flex",
             alignItems: "center",
@@ -45,7 +45,7 @@ export default function Layout({ children }) {
               width: "32px",
               height: "32px",
               borderRadius: "6px",
-              background: "#238636",
+              background: "linear-gradient(135deg, #2980B9, #1A6EA0)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -57,13 +57,13 @@ export default function Layout({ children }) {
               fontFamily: "Almarai, sans-serif",
               fontWeight: 700,
               fontSize: "0.95rem",
-              color: "#e6edf3",
+              color: "#222222",
               lineHeight: 1.3,
             }}>
               مصنع المضيان
             </div>
           </div>
-          <div style={{ color: "#6e7681", fontSize: "0.70rem", marginTop: "6px", paddingRight: "42px" }}>
+          <div style={{ color: "#9CA3AF", fontSize: "0.70rem", marginTop: "6px", paddingRight: "42px" }}>
             إدارة صيانة المجوهرات
           </div>
         </div>
@@ -81,8 +81,8 @@ export default function Layout({ children }) {
                 padding: "8px 12px",
                 borderRadius: "6px",
                 marginBottom: "2px",
-                color: isActive ? "#e6edf3" : "#8b949e",
-                background: isActive ? "rgba(88,166,255,0.10)" : "transparent",
+                color: isActive ? "#2980B9" : "#2D3436",
+                background: isActive ? "rgba(41,128,185,0.08)" : "transparent",
                 textDecoration: "none",
                 fontSize: "0.875rem",
                 fontWeight: isActive ? 600 : 400,
@@ -95,14 +95,14 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        <div style={{ padding: "16px 8px", borderTop: "1px solid #21262d" }}>
+        <div style={{ padding: "16px 8px", borderTop: "1px solid #E5E7EB" }}>
           <button
             onClick={handleLogout}
             style={{
               width: "100%",
               background: "transparent",
-              border: "1px solid #30363d",
-              color: "#8b949e",
+              border: "1px solid #E5E7EB",
+              color: "#9CA3AF",
               borderRadius: "6px",
               padding: "7px 12px",
               fontSize: "0.80rem",
@@ -111,12 +111,12 @@ export default function Layout({ children }) {
               textAlign: "right",
               transition: "all 0.15s",
             }}
-            onMouseEnter={e => { e.target.style.color = "#f85149"; e.target.style.borderColor = "rgba(248,81,73,0.4)"; e.target.style.background = "rgba(248,81,73,0.06)"; }}
-            onMouseLeave={e => { e.target.style.color = "#8b949e"; e.target.style.borderColor = "#30363d"; e.target.style.background = "transparent"; }}
+            onMouseEnter={e => { e.target.style.color = "#DC2626"; e.target.style.borderColor = "rgba(220,38,38,0.3)"; e.target.style.background = "rgba(220,38,38,0.04)"; }}
+            onMouseLeave={e => { e.target.style.color = "#9CA3AF"; e.target.style.borderColor = "#E5E7EB"; e.target.style.background = "transparent"; }}
           >
             تسجيل الخروج ←
           </button>
-          <div style={{ color: "#6e7681", fontSize: "0.62rem", marginTop: "8px", textAlign: "center" }}>
+          <div style={{ color: "#9CA3AF", fontSize: "0.62rem", marginTop: "8px", textAlign: "center" }}>
             يتطلب Chrome أو Edge للطباعة
           </div>
         </div>

@@ -9,24 +9,26 @@ export default {
       },
       colors: {
         bg: {
-          primary: '#16120D',
-          surface: '#1F1A13',
-          elevated: '#2A2218',
+          primary: '#F3F4F6',
+          surface: '#FFFFFF',
+          elevated: '#FFFFFF',
         },
-        gold: {
-          DEFAULT: '#C9A84C',
-          bright: '#E8C96A',
-          muted: '#8B7335',
-          subtle: 'rgba(201,168,76,0.15)',
+        primary: {
+          DEFAULT: '#2980B9',
+          hover: '#1A6EA0',
+          soft: 'rgba(41,128,185,0.08)',
+        },
+        accent: {
+          DEFAULT: '#86D7F7',
         },
         ink: {
-          primary: '#F5EFE0',
-          secondary: '#A89880',
-          muted: '#6B5D4F',
+          primary: '#222222',
+          secondary: '#2D3436',
+          muted: '#9CA3AF',
         },
       },
       borderColor: {
-        gold: 'rgba(201,168,76,0.25)',
+        DEFAULT: '#E5E7EB',
       },
     },
   },
