@@ -40,6 +40,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [savingComment, setSavingComment]   = useState(false);
   const [justMarkedReady, setJustMarkedReady] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [savingCancel, setSavingCancel]         = useState(false);
   const [error, setError]         = useState('');
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
@@ -115,6 +116,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 
   async function handleCancel() {
     setError('');
+    setSavingCancel(true);
     try {
       const updated = await updateOrderStatus(order.id, 'cancelled');
       onUpdated?.(updated);
@@ -122,6 +124,8 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     } catch (e) {
       setError(e.message);
       setConfirmingCancel(false);
+    } finally {
+      setSavingCancel(false);
     }
   }
 
@@ -444,6 +448,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button
                               onClick={handleCancel}
+                              disabled={savingCancel}
                               style={{
                                 flex: 1,
                                 padding: '9px 12px',
@@ -457,7 +462,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                                 fontFamily: 'Almarai, sans-serif',
                               }}
                             >
-                              نعم، إلغاء
+                              {savingCancel ? 'جاري الإلغاء...' : 'نعم، إلغاء'}
                             </button>
                             <button
                               onClick={() => setConfirmingCancel(false)}
