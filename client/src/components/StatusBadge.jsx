@@ -1,19 +1,21 @@
 const STATUS = {
   received:         { label: 'مستلمة',          bg: 'rgba(41, 128, 185, 0.10)',  fg: '#2980B9'  },
-  diagnosing:       { label: 'تشخيص',          bg: 'rgba(124, 58, 237, 0.10)', fg: '#7C3AED'  },
+  diagnosing:       { label: 'تشخيص',           bg: 'rgba(124, 58, 237, 0.10)', fg: '#7C3AED'  },
   waiting_approval: { label: 'بانتظار الموافقة', bg: 'rgba(217, 119, 6, 0.10)',  fg: '#D97706'  },
-  in_repair:        { label: 'قيد الإصلاح',      bg: 'rgba(26, 110, 160, 0.10)',  fg: '#1A6EA0'  },
-  quality_check:    { label: 'فحص الجودة',      bg: 'rgba(107, 114, 128, 0.10)', fg: '#6B7280'  },
-  ready_for_pickup: { label: 'جاهزة للاستلام',   bg: 'rgba(22, 163, 74, 0.10)',   fg: '#16A34A'  },
-  invoiced:         { label: 'بانتظار التسليم',  bg: 'rgba(5, 150, 105, 0.10)',   fg: '#059669'  },
-  delivered:        { label: 'تم التسليم',       bg: 'rgba(30, 41, 59, 0.10)',    fg: '#1E293B'  },
-  closed:           { label: 'مغلقة',           bg: 'rgba(100, 116, 139, 0.10)', fg: '#64748B'  },
+  approved:         { label: 'تمت الموافقة',     bg: 'rgba(22, 163, 74, 0.10)',  fg: '#16A34A'  },
+  rejected:         { label: 'مرفوضة',          bg: 'rgba(220, 38, 38, 0.10)',  fg: '#DC2626'  },
+  in_repair:        { label: 'قيد الإصلاح',      bg: 'rgba(26, 110, 160, 0.10)', fg: '#1A6EA0'  },
+  quality_check:    { label: 'فحص الجودة',       bg: 'rgba(107, 114, 128, 0.10)', fg: '#6B7280' },
+  ready_for_pickup: { label: 'جاهزة للاستلام',   bg: 'rgba(22, 163, 74, 0.10)',  fg: '#16A34A'  },
+  delivered:        { label: 'تم التسليم',       bg: 'rgba(30, 41, 59, 0.10)',   fg: '#1E293B'  },
+  closed:           { label: 'مغلقة',            bg: 'rgba(100, 116, 139, 0.10)', fg: '#64748B' },
+  cancelled:        { label: 'ملغاة',            bg: 'rgba(220, 38, 38, 0.10)',  fg: '#DC2626'  },
 
-  // legacy mapping
+  // legacy aliases kept for backwards compatibility
   pending_approval: { label: 'بانتظار الموافقة', bg: 'rgba(217, 119, 6, 0.10)',  fg: '#D97706'  },
-  in_progress:      { label: 'قيد العمل',        bg: 'rgba(26, 110, 160, 0.10)',  fg: '#1A6EA0'  },
-  ready:            { label: 'جاهزة',            bg: 'rgba(22, 163, 74, 0.10)',   fg: '#16A34A'  },
-  returned:         { label: 'مرتجعة',          bg: 'rgba(220, 38, 38, 0.10)',   fg: '#DC2626'  },
+  in_progress:      { label: 'قيد العمل',        bg: 'rgba(26, 110, 160, 0.10)', fg: '#1A6EA0'  },
+  ready:            { label: 'جاهزة',            bg: 'rgba(22, 163, 74, 0.10)',  fg: '#16A34A'  },
+  invoiced:         { label: 'بانتظار التسليم',  bg: 'rgba(5, 150, 105, 0.10)',  fg: '#059669'  },
 };
 
 export default function StatusBadge({ status }) {

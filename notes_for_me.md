@@ -319,3 +319,115 @@ pm2 status
 "inventory_deducted_when_parts_used": true
 }
 }
+
+we have a lot of adjustments to do in the code
+
+first
+
+# users
+
+- workshop admin
+  - can view the orders
+  - can update the orders
+  - can delete the orders
+  - can add new orders
+  - can assign technicians to orders
+  - can update the status of the orders
+    - RECEIVED
+    - DIAGNOSING
+    - WAITING_APPROVAL
+    - IN_REPAIR
+    - QUALITY_CHECK
+    - READY_FOR_PICKUP
+    - INVOICED
+    - DELIVERED
+    - CLOSED
+  - can view the reports
+  - can manage the technicians
+  - can manage the inventory
+  - can manage the customers
+  - can manage the invoices
+  - can manage the job services
+  - can manage the job parts
+  - can manage the status history
+  - can manage the item location tracking
+  - can manage the business logic
+  - can manage the user roles
+  - can manage the ui structure
+  - can manage the productivity features
+  - can manage the reporting
+  - can manage the constraints
+  - can manage the job services
+
+- branch admin
+  - can create new order
+  - can update the orders
+  - can delete the orders
+  - can assign technicians to orders
+  - can update the status of the orders
+    - RECEIVED
+    - DELIVERED
+    - CLOSED
+  - can assingn staff to orders
+  - can view the reports
+
+# order
+
+- name
+- phone
+- item list
+  - item type
+    - ring
+    - necklace
+    - bracelet
+    - earrings
+    - set
+    - other
+  - item description
+- item quantity
+- item repair request
+  - color
+    - gold
+    - white gold
+    - rose gold
+  - size
+    - ring
+      - 40
+      - 41
+      - 42
+      - 43
+      - 44
+      - 45
+      - 46
+      - 47
+      - 48
+      - 49
+      - 50
+      - 51
+      - 52
+      - 53
+      - 54
+      - 55
+      - 56
+      - 57
+      - 58
+      - 59
+      - 60
+      - 61
+      - 62
+      - 63
+      - 64
+      - 65
+      - 66
+      - 67
+      - 68
+      - 69
+      - 70
+    -
+    - bracelet
+      - no. of pieces to reduce
+    - necklace
+      - no. of pieces to reduce
+  - stone
+
+okay here's the workflow i need to do, the customer bring the jewllery it need to be repaired, the employee will create a new order, filling the detials, the workshop diagnose the jewllery and update the status of the order to WAITING_APPROVAL, then the customer will approve the repair if and only if it have cost, if not the technician will update the status of the order to READY_FOR_PICKUP, then the customer will pick up the jewllery and the technician will update the status of the order to DELIVERED, then the technician will update the status of the order to CLOSED, if the customer reject the repair the technician will update the status of the order to READY_FOR_PICKUP, then the customer will pick up the jewllery and the technician will update the status of the order to DELIVERED, then the technician will update the status of the order to CLOSED thoughout this proess the customer will be notified with the status of the order through a qr code printed on the order, the qr code will have a link to a page that will show the status of the order, the customer can also scan the qr code to approve or reject the repair, the qr code will have a link to a page that will show the status of the order, the customer can also scan the qr code to approve or reject the repair, the qr code will have a link to a page that will show the status of the order, the customer can also scan the qr code to approve or reject the repair

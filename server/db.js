@@ -68,6 +68,23 @@ if (!columnExists('orders', 'is_urgent')) {
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_cust_tok ON orders(customer_token) WHERE customer_token IS NOT NULL`);
 
+// locked_at: set when order reaches DELIVERED — blocks all subsequent writes
+if (!columnExists('orders', 'locked_at')) {
+  db.exec(`ALTER TABLE orders ADD COLUMN locked_at TEXT DEFAULT NULL`);
+}
+
+// ── Phase 2 migrations ────────────────────────────────────────────────────────
+
+// orders: payment_confirmed — boolean gate before DELIVERED (set by staff at pickup)
+if (!columnExists('orders', 'payment_confirmed')) {
+  db.exec(`ALTER TABLE orders ADD COLUMN payment_confirmed INTEGER NOT NULL DEFAULT 0`);
+}
+
+// orders: cost_status — summary of approval state (NO_COST | PENDING_APPROVAL | APPROVED | REJECTED)
+if (!columnExists('orders', 'cost_status')) {
+  db.exec(`ALTER TABLE orders ADD COLUMN cost_status TEXT NOT NULL DEFAULT 'NO_COST'`);
+}
+
 // ── Comments table ────────────────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS order_comments (
@@ -112,6 +129,17 @@ if (!columnExists('order_items', 'workshop_comment')) {
   db.exec(`UPDATE order_items SET workshop_comment = notes WHERE workshop_comment = ''`);
 }
 
+// Phase 2: per-item cost and approval tracking
+if (!columnExists('order_items', 'estimated_cost')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN estimated_cost REAL DEFAULT NULL`);
+}
+if (!columnExists('order_items', 'approval_required')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN approval_required INTEGER NOT NULL DEFAULT 0`);
+}
+if (!columnExists('order_items', 'approval_status')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN approval_status TEXT NOT NULL DEFAULT 'pending'`);
+}
+
 // ── Status history table ──────────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS order_status_history (
@@ -120,9 +148,146 @@ db.exec(`
     from_status TEXT,
     to_status   TEXT NOT NULL,
     changed_by  TEXT,
+    notes       TEXT DEFAULT NULL,
     created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );
   CREATE INDEX IF NOT EXISTS idx_status_hist ON order_status_history(order_id);
+`);
+
+// notes column: added in Phase 1 — existing rows default to NULL
+if (!columnExists('order_status_history', 'notes')) {
+  db.exec(`ALTER TABLE order_status_history ADD COLUMN notes TEXT DEFAULT NULL`);
+}
+
+// ── Phase 3 migrations: order_items new columns ───────────────────────────────
+if (!columnExists('order_items', 'repair_description')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN repair_description TEXT DEFAULT NULL`);
+}
+if (!columnExists('order_items', 'final_cost')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN final_cost REAL DEFAULT NULL`);
+}
+if (!columnExists('order_items', 'ring_size_before')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN ring_size_before TEXT DEFAULT NULL`);
+}
+if (!columnExists('order_items', 'ring_size_after')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN ring_size_after TEXT DEFAULT NULL`);
+}
+if (!columnExists('order_items', 'bracelet_adjustment')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN bracelet_adjustment TEXT DEFAULT NULL`);
+}
+if (!columnExists('order_items', 'necklace_adjustment')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN necklace_adjustment TEXT DEFAULT NULL`);
+}
+if (!columnExists('order_items', 'updated_at')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN updated_at TEXT DEFAULT NULL`);
+}
+
+// ── Phase 3 new tables ────────────────────────────────────────────────────────
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS customers (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    phone      TEXT NOT NULL,
+    email      TEXT DEFAULT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
+`);
+
+// customer_id on orders: optional FK to customers table
+if (!columnExists('orders', 'customer_id')) {
+  db.exec(`ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)`);
+}
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS technicians (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id        INTEGER REFERENCES users(id),
+    specialization TEXT DEFAULT NULL,
+    created_at     TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS order_item_technicians (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_item_id INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+    technician_id INTEGER NOT NULL REFERENCES technicians(id),
+    assigned_at   TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    completed_at  TEXT DEFAULT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_oit_item ON order_item_technicians(order_item_id);
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS item_photos (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_item_id INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+    photo_url     TEXT NOT NULL,
+    photo_type    TEXT NOT NULL DEFAULT 'before_repair',
+    uploaded_by   TEXT DEFAULT NULL,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_photos_item ON item_photos(order_item_id);
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS services (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    description   TEXT DEFAULT NULL,
+    default_price REAL NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS order_item_services (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_item_id INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+    service_id    INTEGER NOT NULL REFERENCES services(id),
+    price         REAL NOT NULL,
+    notes         TEXT DEFAULT NULL,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_ois_item ON order_item_services(order_item_id);
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS inventory_items (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    category      TEXT DEFAULT NULL,
+    stock_qty     REAL NOT NULL DEFAULT 0,
+    unit          TEXT NOT NULL DEFAULT 'piece',
+    cost_per_unit REAL NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at    TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS repair_parts_used (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_item_id     INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+    inventory_item_id INTEGER NOT NULL REFERENCES inventory_items(id),
+    quantity          REAL NOT NULL,
+    created_at        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_parts_item ON repair_parts_used(order_item_id);
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS item_locations (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_item_id INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+    location      TEXT NOT NULL,
+    updated_by    TEXT DEFAULT NULL,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_loc_item ON item_locations(order_item_id);
 `);
 
 // Backfill: Ensure all orders have at least one record in order_items
@@ -153,16 +318,19 @@ db.exec(`
 // ── createOrder transaction ───────────────────────────────────────────────────
 
 const createOrder = db.transaction((data) => {
-  const today = new Date();
-  const ymd   = today.getFullYear().toString()
+  const today   = new Date();
+  const ymd     = today.getFullYear().toString()
     + String(today.getMonth() + 1).padStart(2, '0')
     + String(today.getDate()).padStart(2, '0');
+  const branchId = data.shop_id ?? 0;
+  const prefix   = `BR${branchId}-${ymd}-`;
 
+  // Per-branch per-day sequence — atomic inside transaction (race-condition safe)
   const { next } = db.prepare(
     `SELECT COUNT(*) + 1 AS next FROM orders WHERE order_number LIKE ?`
-  ).get(`WRK-${ymd}-%`);
+  ).get(`${prefix}%`);
 
-  const order_number   = `WRK-${ymd}-${String(next).padStart(4, '0')}`;
+  const order_number   = `${prefix}${String(next).padStart(4, '0')}`;
   const customer_token = require('crypto').randomUUID();
 
   const items = Array.isArray(data.items) && data.items.length > 0 ? data.items : null;

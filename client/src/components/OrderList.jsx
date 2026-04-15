@@ -21,9 +21,11 @@ function useMobile() {
 const FILTERS = [
   { value: 'all',              label: 'الكل' },
   { value: 'received',         label: 'مستلمة' },
-  { value: 'pending_approval', label: 'بانتظار الموافقة' },
-  { value: 'in_progress',      label: 'قيد العمل' },
-  { value: 'ready',            label: 'جاهزة' },
+  { value: 'diagnosing',       label: 'تشخيص' },
+  { value: 'waiting_approval', label: 'بانتظار الموافقة' },
+  { value: 'in_repair',        label: 'قيد الإصلاح' },
+  { value: 'quality_check',    label: 'فحص الجودة' },
+  { value: 'ready_for_pickup', label: 'جاهزة للاستلام' },
   { value: 'delivered',        label: 'تم التسليم' },
 ];
 
@@ -68,17 +70,17 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   }
 
   const nextStatus = {
-    received:         'in_progress',
-    pending_approval: 'in_progress',
-    in_progress:      'ready',
-    ready:            'delivered',
+    received:         'diagnosing',
+    diagnosing:       'in_repair',
+    in_repair:        'quality_check',
+    quality_check:    'ready_for_pickup',
   };
 
   const nextLabel = {
-    received:         'بدء الإصلاح',
-    pending_approval: 'موافقة يدوية',
-    in_progress:      'تعيين جاهزة',
-    ready:            'تسليم',
+    received:         'بدء التشخيص',
+    diagnosing:       'بدء الإصلاح',
+    in_repair:        'فحص الجودة',
+    quality_check:    'جاهز للاستلام',
   };
 
   return (
@@ -175,7 +177,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                     {nextLabel[order.status]}
                   </button>
                 )}
-                {!isWorkshop && order.status === 'ready' && (
+                {!isWorkshop && order.status === 'ready_for_pickup' && (
                   <button
                     className={isMobile ? 'btn-gold mobile-status-btn' : 'btn-ghost-sm'}
                     style={isMobile ? {} : { borderColor: 'rgba(22,163,74,0.4)', color: '#16A34A' }}
@@ -273,7 +275,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                     {nextLabel[order.status]}
                   </button>
                 )}
-                {!isWorkshop && order.status === 'ready' && (
+                {!isWorkshop && order.status === 'ready_for_pickup' && (
                   <button
                     className="btn-ghost-sm"
                     style={{ borderColor: 'rgba(22,163,74,0.4)', color: '#16A34A' }}

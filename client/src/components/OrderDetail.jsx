@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { updateOrderStatus, updateCost, getComments, addComment, getOrderHistory } from '../api/orders';
+import { updateOrderStatus, updateCost, getComments, addComment, getOrderHistory, confirmPayment } from '../api/orders';
 import { getRole } from '../api/auth';
 import StatusBadge, { STATUS } from './StatusBadge';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
@@ -10,32 +10,21 @@ const NEXT_STATUS = {
   received:         'diagnosing',
   diagnosing:       'waiting_approval',
   waiting_approval: 'in_repair',
+  approved:         'in_repair',
   in_repair:        'quality_check',
   quality_check:    'ready_for_pickup',
-  ready_for_pickup: 'invoiced',
-  invoiced:         'delivered',
+  // ready_for_pickup → delivered requires payment confirmation (handled separately)
   delivered:        'closed',
-
-  // legacy mapping
-  pending_approval: 'in_repair',
-  in_progress:      'ready',
-  ready:            'delivered',
 };
 
 const NEXT_LABEL = {
   received:         'بدء التشخيص',
-  diagnosing:       'طلب موافقة',
+  diagnosing:       'طلب موافقة العميل',
   waiting_approval: 'بدء الإصلاح',
+  approved:         'بدء الإصلاح',
   in_repair:        'فحص الجودة',
   quality_check:    'جاهز للاستلام',
-  ready_for_pickup: 'إصدار فاتورة',
-  invoiced:         'تسليم',
-  delivered:        'إغلاق',
-
-  // legacy mapping
-  pending_approval: 'بدء الإصلاح',
-  in_progress:      'جاهز للاستلام',
-  ready:            'تسليم',
+  delivered:        'إغلاق الطلب',
 };
 
 export default function OrderDetail({ order: initial, onClose, onUpdated }) {
@@ -44,9 +33,10 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [history, setHistory]     = useState([]);
   const [newComment, setNewComment] = useState('');
   const [cost, setCost]           = useState(String(initial.cost ?? 0));
-  const [savingCost, setSavingCost]     = useState(false);
-  const [savingStatus, setSavingStatus] = useState(false);
-  const [savingComment, setSavingComment] = useState(false);
+  const [savingCost, setSavingCost]         = useState(false);
+  const [savingStatus, setSavingStatus]     = useState(false);
+  const [savingDelivery, setSavingDelivery] = useState(false);
+  const [savingComment, setSavingComment]   = useState(false);
   const [justMarkedReady, setJustMarkedReady] = useState(false);
   const [error, setError]         = useState('');
   const commentsEndRef = useRef(null);

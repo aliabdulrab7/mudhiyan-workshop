@@ -71,7 +71,7 @@ export default function LoginPage() {
             color: '#222222',
             marginBottom: '4px',
           }}>
-            مصنع المضيان
+            مجوهرات سليمان المضيان
           </div>
           <div style={{ color: '#9CA3AF', fontSize: '0.82rem' }}>
             تسجيل الدخول إلى حسابك

@@ -152,7 +152,7 @@ export default function TrackPage() {
             WebkitTextFillColor: 'transparent',
             marginBottom: '4px',
           }}>
-            مصنع المضيان
+            مجوهرات سليمان المضيان
           </div>
           <div style={{ color: '#9CA3AF', fontSize: '0.75rem' }}>إدارة صيانة المجوهرات</div>
         </div>

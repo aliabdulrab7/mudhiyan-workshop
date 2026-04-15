@@ -11,7 +11,7 @@ Allow the shop owner to install the app on their iPhone home screen so it opens 
 
 1. Open `http://192.168.100.177:5173` in Safari on iPhone
 2. Tap Share → "Add to Home Screen"
-3. App appears as an icon named "مصنع المضيان"
+3. App appears as an icon named "مجوهرات سليمان المضيان"
 4. Tapping the icon opens the app full-screen (no address bar, no Safari chrome)
 
 ## What Changes
@@ -20,7 +20,7 @@ Allow the shop owner to install the app on their iPhone home screen so it opens 
 
 Web App Manifest telling browsers/iOS how to treat the app when installed:
 
-- `name`: "مصنع المضيان"
+- `name`: "مجوهرات سليمان المضيان"
 - `short_name`: "المضيان"
 - `display`: "standalone" — removes browser UI
 - `background_color`: "#16120D" — matches `--bg-primary`

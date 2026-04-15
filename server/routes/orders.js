@@ -1,6 +1,9 @@
 const express = require('express');
 const { db, createOrder } = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const OrderService = require('../services/OrderService');
+const { errorToHttpStatus } = require('../errors');
+const { syncAllItemCosts, refreshOrderCost } = require('../helpers/costHelpers');
 
 const router = express.Router();
 
@@ -209,111 +212,280 @@ router.post('/', requireRole('shop_employee'), (req, res) => {
 });
 
 // PATCH /api/orders/:id/status
+// All transitions go through OrderService.transition() — no direct DB updates.
 router.patch('/:id/status', requireAuth, (req, res) => {
-  const { status } = req.body;
-  const isWorkshop = req.user.role === 'workshop';
+  const { status, notes } = req.body;
 
-  if (!ALLOWED_STATUSES.includes(status)) {
-    return res.status(400).json({ error: 'حالة غير صالحة' });
+  if (!status) {
+    return res.status(400).json({ error: 'الحالة مطلوبة' });
   }
 
-  if (!isWorkshop) {
-    // Branch employees: specific allowed transitions only
-    const currentOrder = db.prepare(
-      'SELECT status FROM orders WHERE id = ? AND shop_id = ?'
+  // Scope check: shop_employee can only act on their own shop's orders
+  if (req.user.role === 'shop_employee') {
+    const order = db.prepare(
+      'SELECT id FROM orders WHERE id = ? AND shop_id = ?'
     ).get(req.params.id, req.user.shop_id);
-    if (!currentOrder) return res.status(404).json({ error: 'الطلب غير موجود' });
-
-    const allowed = [
-      ['ready_for_pickup', 'invoiced'],
-      ['invoiced', 'delivered'],
-      ['ready', 'delivered'],    // legacy
-      ['ready', 'returned'],     // legacy
-    ];
-    const ok = allowed.some(([f, t]) => f === currentOrder.status && t === status);
-    if (!ok) return res.status(403).json({ error: 'غير مصرح' });
-  } else {
-    // Workshop: enforce sequential progression for new status values
-    const currentOrder = db.prepare('SELECT status FROM orders WHERE id = ?').get(req.params.id);
-    if (!currentOrder) return res.status(404).json({ error: 'الطلب غير موجود' });
-
-    const fromIdx = STATUS_SEQUENCE.indexOf(currentOrder.status);
-    const toIdx   = STATUS_SEQUENCE.indexOf(status);
-
-    if (fromIdx !== -1 && toIdx !== -1 && toIdx !== fromIdx + 1) {
-      return res.status(400).json({ error: 'لا يمكن تخطي مراحل الطلب' });
-    }
-
-    // Record status history
-    db.prepare(`
-      INSERT INTO order_status_history (order_id, from_status, to_status, changed_by)
-      VALUES (?, ?, ?, ?)
-    `).run(req.params.id, currentOrder.status, status, req.user.username);
+    if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   }
 
-  const result = isWorkshop
-    ? db.prepare(
-        `UPDATE orders SET status = ?, updated_at = datetime('now','localtime') WHERE id = ?`
-      ).run(status, req.params.id)
-    : db.prepare(
-        `UPDATE orders SET status = ?, updated_at = datetime('now','localtime') WHERE id = ? AND shop_id = ?`
-      ).run(status, req.params.id, req.user.shop_id);
-
-  if (result.changes === 0) return res.status(404).json({ error: 'الطلب غير موجود' });
-
-  const updated = db.prepare(`
-    SELECT o.*, COALESCE(s.name, '') AS shop_name
-    FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
-    WHERE o.id = ?
-  `).get(req.params.id);
-  const items = db.prepare(
-    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
-  ).all(updated.id);
-  res.json({ ...updated, items });
+  try {
+    const updated = OrderService.transition(
+      parseInt(req.params.id, 10),
+      status,
+      req.user,
+      { notes: notes ?? null }
+    );
+    const items = db.prepare(
+      'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+    ).all(updated.id);
+    res.json({ ...updated, items });
+  } catch (err) {
+    res.status(errorToHttpStatus(err)).json({ error: err.message });
+  }
 });
 
-// PATCH /api/orders/:id/cost — workshop only
+// PATCH /api/orders/:id/cost — workshop only (order-level, backward compat)
+// Sets the same cost on all items, then transitions through OrderService.
 router.patch('/:id/cost', requireRole('workshop'), (req, res) => {
   const cost = parseInt(req.body.cost, 10);
   if (isNaN(cost) || cost < 0) return res.status(400).json({ error: 'تكلفة غير صالحة' });
 
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  if (order.locked_at) return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
 
-  // Auto-transition to waiting_approval if cost set
-  let newStatus = order.status;
-  if (['received', 'diagnosing'].includes(order.status) && cost > 0) {
-    newStatus = 'waiting_approval';
-  } else if (order.status === 'received' && cost === 0) {
-    newStatus = 'diagnosing';
+  // Sync all items and recalculate order cost
+  syncAllItemCosts(order.id, cost);
+  const total = refreshOrderCost(order.id);
+
+  let updated;
+  let sendApproval = false;
+
+  if (order.status === 'diagnosing') {
+    const targetStatus = total > 0 ? 'waiting_approval' : 'in_repair';
+    try {
+      updated = OrderService.transition(
+        order.id,
+        targetStatus,
+        req.user,
+        { notes: `تكلفة الإصلاح: ${total} ريال` }
+      );
+      sendApproval = targetStatus === 'waiting_approval';
+    } catch (err) {
+      return res.status(errorToHttpStatus(err)).json({ error: err.message });
+    }
+  } else {
+    updated = db.prepare(`
+      SELECT o.*, COALESCE(s.name, '') AS shop_name
+      FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+      WHERE o.id = ?
+    `).get(order.id);
   }
 
-  if (newStatus !== order.status) {
-    db.prepare(`
-      INSERT INTO order_status_history (order_id, from_status, to_status, changed_by)
-      VALUES (?, ?, ?, ?)
-    `).run(order.id, order.status, newStatus, req.user.username);
+  const items = db.prepare(
+    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+  ).all(updated.id);
+
+  const notification = sendApproval ? updated._notification : null;
+  res.json({
+    ...updated,
+    items,
+    ...(sendApproval && { _sendApproval: true }),
+    ...(notification && { _notification: notification }),
+  });
+});
+
+// POST /api/orders/:orderId/items/:itemId/cost — workshop only
+// Sets cost on a single item, recalculates order total, triggers transition.
+router.post('/:orderId/items/:itemId/cost', requireRole('workshop'), (req, res) => {
+  const { estimated_cost } = req.body;
+  const cost = parseFloat(estimated_cost);
+  if (isNaN(cost) || cost < 0) return res.status(400).json({ error: 'تكلفة غير صالحة' });
+
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.orderId);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  if (order.locked_at) return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+
+  if (order.status !== 'diagnosing') {
+    return res.status(400).json({ error: 'لا يمكن تحديد التكلفة إلا في مرحلة الفحص' });
   }
 
-  db.prepare(
-    `UPDATE orders SET cost = ?, status = ?, updated_at = datetime('now','localtime') WHERE id = ?`
-  ).run(cost, newStatus, req.params.id);
+  const item = db.prepare(
+    'SELECT * FROM order_items WHERE id = ? AND order_id = ?'
+  ).get(req.params.itemId, req.params.orderId);
+  if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
+
+  // Update this specific item
+  db.prepare(`
+    UPDATE order_items
+    SET estimated_cost    = ?,
+        approval_required = ?,
+        approval_status   = ?,
+        updated_at        = COALESCE(updated_at, datetime('now','localtime'))
+    WHERE id = ?
+  `).run(
+    cost > 0 ? cost : null,
+    cost > 0 ? 1 : 0,
+    cost > 0 ? 'pending' : 'skipped',
+    item.id
+  );
+
+  // Recalculate order total from all items
+  const total = refreshOrderCost(order.id);
+
+  // Re-read order to get fresh cost/cost_status before deciding transition
+  const freshOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+
+  const targetStatus = total > 0 ? 'waiting_approval' : 'in_repair';
+  let updated;
+  let sendApproval = false;
+
+  try {
+    updated = OrderService.transition(
+      order.id,
+      targetStatus,
+      req.user,
+      { notes: `تكلفة الصنف #${item.id}: ${cost} ريال، الإجمالي: ${total} ريال` }
+    );
+    sendApproval = targetStatus === 'waiting_approval';
+  } catch (err) {
+    return res.status(errorToHttpStatus(err)).json({ error: err.message });
+  }
+
+  const items = db.prepare(
+    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+  ).all(updated.id);
+
+  const notification = updated._notification ?? null;
+  res.json({
+    ...updated,
+    items,
+    ...(sendApproval && { _sendApproval: true }),
+    ...(notification && { _notification: notification }),
+  });
+});
+
+// POST /api/orders/:id/confirm-payment — branch staff or workshop only
+// Staff confirms physical payment was collected at the counter.
+// Must be called before PATCH /status { delivered } will succeed.
+router.post('/:id/confirm-payment', requireAuth, (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+
+  if (order.locked_at) {
+    return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+  }
+
+  if (order.status !== 'ready_for_pickup') {
+    return res.status(400).json({
+      error: 'تأكيد الدفع متاح فقط عندما يكون الطلب جاهزاً للاستلام',
+    });
+  }
+
+  // Scope check: shop_employee can only confirm for their own shop
+  if (req.user.role === 'shop_employee') {
+    if (order.shop_id !== req.user.shop_id) {
+      return res.status(403).json({ error: 'غير مصرح' });
+    }
+  }
+
+  db.prepare(`
+    UPDATE orders
+    SET payment_confirmed = 1, updated_at = datetime('now','localtime')
+    WHERE id = ?
+  `).run(order.id);
 
   const updated = db.prepare(`
     SELECT o.*, COALESCE(s.name, '') AS shop_name
     FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
     WHERE o.id = ?
-  `).get(req.params.id);
+  `).get(order.id);
+
   const items = db.prepare(
     'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
   ).all(updated.id);
 
-  if (newStatus === 'waiting_approval') {
-    // Signal frontend to open WhatsApp approval link
-    res.json({ ...updated, items, _sendApproval: true });
-  } else {
-    res.json({ ...updated, items });
+  res.json({ ...updated, items });
+});
+
+// PUT /api/orders/:id — update order-level fields (blocked after DELIVERED)
+router.put('/:id', requireAuth, (req, res) => {
+  const isWorkshop = req.user.role === 'workshop';
+  const order = isWorkshop
+    ? db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id)
+    : db.prepare('SELECT * FROM orders WHERE id = ? AND shop_id = ?').get(req.params.id, req.user.shop_id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  if (order.locked_at) return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+
+  const allowed = ['customer_name', 'phone', 'notes', 'is_urgent'];
+  const updates = []; const values = [];
+  for (const field of allowed) {
+    if (req.body[field] !== undefined) {
+      updates.push(`${field} = ?`);
+      values.push(req.body[field]);
+    }
   }
+  if (updates.length === 0) return res.status(400).json({ error: 'لا توجد حقول للتحديث' });
+
+  updates.push(`updated_at = datetime('now','localtime')`);
+  values.push(order.id);
+  db.prepare(`UPDATE orders SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+
+  const updated = db.prepare(`
+    SELECT o.*, COALESCE(s.name, '') AS shop_name
+    FROM orders o LEFT JOIN shops s ON s.id = o.shop_id WHERE o.id = ?
+  `).get(order.id);
+  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order').all(order.id);
+  res.json({ ...updated, items });
+});
+
+// DELETE /api/orders/:id — workshop admin only, only if status = received (no work started)
+router.delete('/:id', requireRole('workshop'), (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+
+  if (order.status !== 'received') {
+    return res.status(400).json({ error: 'لا يمكن حذف الطلب بعد بدء العمل عليه' });
+  }
+
+  db.prepare('DELETE FROM orders WHERE id = ?').run(order.id);
+  res.json({ ok: true, deleted_id: order.id });
+});
+
+// POST /api/orders/:orderId/items/:itemId/assign-technician — workshop only
+router.post('/:orderId/items/:itemId/assign-technician', requireRole('workshop'), (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.orderId);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  if (order.locked_at) return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+
+  const item = db.prepare('SELECT * FROM order_items WHERE id = ? AND order_id = ?')
+    .get(req.params.itemId, req.params.orderId);
+  if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
+
+  const { technician_id } = req.body;
+  if (!technician_id) return res.status(400).json({ error: 'technician_id مطلوب' });
+
+  const tech = db.prepare('SELECT * FROM technicians WHERE id = ?').get(technician_id);
+  if (!tech) return res.status(404).json({ error: 'الفني غير موجود' });
+
+  const existing = db.prepare(
+    'SELECT id FROM order_item_technicians WHERE order_item_id = ? AND technician_id = ?'
+  ).get(item.id, tech.id);
+  if (existing) return res.status(409).json({ error: 'الفني مُعيَّن بالفعل لهذا الصنف' });
+
+  const result = db.prepare(
+    'INSERT INTO order_item_technicians (order_item_id, technician_id) VALUES (?, ?)'
+  ).run(item.id, tech.id);
+
+  res.status(201).json(
+    db.prepare(`
+      SELECT oit.*, t.specialization, u.username
+      FROM order_item_technicians oit
+      JOIN technicians t ON t.id = oit.technician_id
+      LEFT JOIN users u ON u.id = t.user_id
+      WHERE oit.id = ?
+    `).get(result.lastInsertRowid)
+  );
 });
 
 // GET /api/orders/:id/comments

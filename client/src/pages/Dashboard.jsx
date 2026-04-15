@@ -55,7 +55,7 @@ export default function Dashboard() {
     const [s, received, pending, branches] = await Promise.all([
       getStats().catch(() => null),
       isWorkshop ? getOrders({ status: 'received' })         : Promise.resolve([]),
-      isWorkshop ? getOrders({ status: 'pending_approval' }) : Promise.resolve([]),
+      isWorkshop ? getOrders({ status: 'waiting_approval' }) : Promise.resolve([]),
       isWorkshop ? getBranchStats().catch(() => [])          : Promise.resolve([]),
     ]);
     if (s) setStats(s);
@@ -135,8 +135,8 @@ export default function Dashboard() {
             accent="#d29922"
             emptyText="لا توجد طلبات بانتظار الموافقة"
             orders={actionOrders.pending}
-            active={filterStatus === 'pending_approval'}
-            onFilterClick={() => applyFilter(filterStatus === 'pending_approval' ? 'all' : 'pending_approval')}
+            active={filterStatus === 'waiting_approval'}
+            onFilterClick={() => applyFilter(filterStatus === 'waiting_approval' ? 'all' : 'waiting_approval')}
             highlight={actionOrders.pending.length > 0}
           />
         </div>

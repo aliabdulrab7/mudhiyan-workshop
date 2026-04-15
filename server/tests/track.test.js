@@ -19,9 +19,9 @@ describe('GET /api/track/:token', () => {
   it('returns public order fields', async () => {
     const res = await request(app).get(`/api/track/${TEST_TOKEN}`);
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('order_number', 'WRK-TRK-0001');
+    expect(res.body).toHaveProperty('tracking_number', 'WRK-TRK-0001');
     expect(res.body).toHaveProperty('status', 'received');
-    expect(res.body).toHaveProperty('cost', 0);
+    expect(res.body).toHaveProperty('estimated_cost', 0);
   });
 
   it('does NOT expose phone or notes', async () => {

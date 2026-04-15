@@ -94,6 +94,27 @@ export async function approveOrder(token) {
   return res.json();
 }
 
+export async function rejectOrder(token) {
+  const res = await fetch(`/api/track/${token}/reject`, { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل الرفض');
+  }
+  return res.json();
+}
+
+export async function confirmPayment(id) {
+  const res = await fetch(`${BASE}/${id}/confirm-payment`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل تأكيد الدفع');
+  }
+  return res.json();
+}
+
 export async function getComments(orderId) {
   const res = await fetch(`${BASE}/${orderId}/comments`, { headers: authHeaders() });
   if (!res.ok) throw new Error('فشل تحميل التعليقات');

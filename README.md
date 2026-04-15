@@ -1,4 +1,4 @@
-# مصنع المضيان — Workshop Management App
+# مجوهرات سليمان المضيان — Workshop Management App
 
 Jewelry repair shop management system. Handles order intake, status tracking, cost approval, customer notifications, and label printing via Niimbot B21 Bluetooth printer.
 
@@ -22,27 +22,27 @@ Jewelry repair shop management system. Handles order intake, status tracking, co
 received → pending_approval → in_progress → ready → delivered
 ```
 
-| Status | Meaning |
-|--------|---------|
-| `received` | Order created, awaiting cost assessment |
+| Status             | Meaning                                   |
+| ------------------ | ----------------------------------------- |
+| `received`         | Order created, awaiting cost assessment   |
 | `pending_approval` | Cost set, waiting for customer to approve |
-| `in_progress` | Customer approved, repair underway |
-| `ready` | Repair complete, ready for pickup |
-| `delivered` | Customer collected the item |
+| `in_progress`      | Customer approved, repair underway        |
+| `ready`            | Repair complete, ready for pickup         |
+| `delivered`        | Customer collected the item               |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19 + Vite + Tailwind CSS v3 |
-| Backend | Express.js + SQLite (better-sqlite3) |
-| Auth | JWT (jsonwebtoken + bcryptjs) |
-| Printing | Niimbot B21 via Web Bluetooth (@mmote/niimbluelib) |
-| QR / Barcode | qrcode + jsbarcode |
-| Camera scan | html5-qrcode |
-| Tests | Jest 29 + Supertest |
+| Layer        | Technology                                         |
+| ------------ | -------------------------------------------------- |
+| Frontend     | React 19 + Vite + Tailwind CSS v3                  |
+| Backend      | Express.js + SQLite (better-sqlite3)               |
+| Auth         | JWT (jsonwebtoken + bcryptjs)                      |
+| Printing     | Niimbot B21 via Web Bluetooth (@mmote/niimbluelib) |
+| QR / Barcode | qrcode + jsbarcode                                 |
+| Camera scan  | html5-qrcode                                       |
+| Tests        | Jest 29 + Supertest                                |
 
 ---
 
@@ -124,10 +124,10 @@ npm run dev
 
 ### Default credentials
 
-| Role | Username | Password |
-|------|----------|----------|
-| Workshop manager | `workshop` | `workshop123` |
-| Shop employee | `employee1` | `shop123` |
+| Role             | Username    | Password      |
+| ---------------- | ----------- | ------------- |
+| Workshop manager | `workshop`  | `workshop123` |
+| Shop employee    | `employee1` | `shop123`     |
 
 ### Run tests
 
@@ -143,12 +143,12 @@ cd server && npm test
 
 Set these on the production server (in `ecosystem.config.cjs`):
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Express listen port | `3737` |
-| `JWT_SECRET` | Secret for signing tokens | `dev-secret-change-in-production` |
-| `PUBLIC_HOST` | Your domain — used for QR code URLs and CORS | *(unset = LAN mode)* |
-| `NODE_ENV` | Set to `production` in prod | `development` |
+| Variable      | Description                                  | Default                           |
+| ------------- | -------------------------------------------- | --------------------------------- |
+| `PORT`        | Express listen port                          | `3737`                            |
+| `JWT_SECRET`  | Secret for signing tokens                    | `dev-secret-change-in-production` |
+| `PUBLIC_HOST` | Your domain — used for QR code URLs and CORS | _(unset = LAN mode)_              |
+| `NODE_ENV`    | Set to `production` in prod                  | `development`                     |
 
 ---
 

@@ -60,7 +60,7 @@ export default function Layout({ children }) {
               color: "#222222",
               lineHeight: 1.3,
             }}>
-              مصنع المضيان
+              مجوهرات سليمان المضيان
             </div>
           </div>
           <div style={{ color: "#9CA3AF", fontSize: "0.70rem", marginTop: "6px", paddingRight: "42px" }}>

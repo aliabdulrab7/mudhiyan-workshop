@@ -2,10 +2,30 @@ const express = require('express');
 const cors = require('cors');
 const os = require('os');
 
-const ordersRouter = require('./routes/orders');
-const authRouter   = require('./routes/auth');
-const trackRouter  = require('./routes/track');
-const adminRouter  = require('./routes/admin');
+const ordersRouter     = require('./routes/orders');
+const authRouter       = require('./routes/auth');
+const trackRouter      = require('./routes/track');
+const adminRouter      = require('./routes/admin');
+const customersRouter  = require('./routes/customers');
+const orderItemsRouter = require('./routes/orderItems');
+const servicesRouter   = require('./routes/services');
+const techRouter       = require('./routes/technicians');
+const inventoryRouter  = require('./routes/inventory');
+
+// ── Phase 2: wire payment validator + notification hook ───────────────────────
+const OrderService       = require('./services/OrderService');
+const NotificationService = require('./services/NotificationService');
+const { PaymentRequiredError } = require('./errors');
+
+OrderService.registerPaymentValidator((order) => {
+  if (!order.payment_confirmed) {
+    throw new PaymentRequiredError();
+  }
+});
+
+OrderService.registerNotificationHook((status, order) => {
+  return NotificationService.notify(status, order);
+});
 
 const app = express();
 
@@ -41,9 +61,14 @@ app.get('/api/config', (_req, res) => {
 });
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-app.use('/api/auth',   authRouter);
-app.use('/api/orders', ordersRouter);
-app.use('/api/track',  trackRouter);
-app.use('/api/admin',  adminRouter);
+app.use('/api/auth',        authRouter);
+app.use('/api/orders',      ordersRouter);
+app.use('/api/track',       trackRouter);
+app.use('/api/admin',       adminRouter);
+app.use('/api/customers',   customersRouter);
+app.use('/api/order-items', orderItemsRouter);
+app.use('/api/services',    servicesRouter);
+app.use('/api/technicians', techRouter);
+app.use('/api/inventory',   inventoryRouter);
 
 module.exports = app;

@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import QRCode from "qrcode";
 import useLabelPrint from "./useLabelPrint";
-import { getConfig } from "../api/orders";
 
 // NIIMBOT B21S — 5cm × 3cm label @ 203 DPI
 // Canvas: 400 × 240 px
@@ -9,10 +8,6 @@ import { getConfig } from "../api/orders";
 const W = 400;
 const H = 240;
 const PAD = 40;
-
-// QR column: x[258..358], 100×100px — right side of label
-const QR_X = 258;
-const QR_SIZE = 100;
 
 /**
  * ── Customer label ──
@@ -31,7 +26,7 @@ async function drawCustomerLabel(canvas, order) {
   ctx.font = 'bold 20px Almarai, Arial';
   ctx.textAlign = "right";
   ctx.direction = "rtl";
-  ctx.fillText("مصنع المضيان", W - PAD, PAD + 25);
+  ctx.fillText("مجوهرات سليمان المضيان", W - PAD, PAD + 25);
 
   // ── Order number ──
   ctx.fillStyle = "#374151";
@@ -50,24 +45,24 @@ async function drawCustomerLabel(canvas, order) {
 
   // ── Tracking QR code (Left) ──
   try {
-    const config = await getConfig();
-    const proto = config.protocol || "http";
-    const portPart = (proto === "https" && config.port === 443) || (proto === "http" && config.port === 80) ? "" : `:${config.port}`;
-    const trackUrl = `${proto}://${config.ip}${portPart}/track/${order.customer_token}`;
+    const trackUrl = `${window.location.origin}/track/${order.customer_token}`;
 
     const qrCanvas = document.createElement("canvas");
     await QRCode.toCanvas(qrCanvas, trackUrl, {
-      width: 140,
-      margin: 1,
+      width: 160,
+      margin: 2,
+      errorCorrectionLevel: "L",
       color: { dark: "#000000", light: "#FFFFFF" },
     });
-    ctx.drawImage(qrCanvas, PAD, PAD + 65, 120, 120);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(qrCanvas, PAD, PAD + 62, 132, 132);
+    ctx.imageSmoothingEnabled = true;
 
     ctx.fillStyle = "#6B7280";
-    ctx.font = "8px Almarai, Arial";
+    ctx.font = "9px Almarai, Arial";
     ctx.textAlign = "left";
     ctx.direction = "rtl";
-    ctx.fillText("امسح لمتابعة الطلب", PAD, PAD + 195);
+    ctx.fillText("امسح لمتابعة الطلب", PAD, PAD + 206);
   } catch (e) {
     console.error("Customer QR failed", e);
   }
@@ -159,13 +154,29 @@ async function drawWorkshopLabel(canvas, order) {
 export default function LabelCanvas({ order, autoPrint = false }) {
   const customerRef = useRef(null);
   const shopRef = useRef(null);
+  const autoPrintedOrderRef = useRef(null);
   const [ready, setReady] = useState(false);
-  const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
-  const { connect, printAll, disconnect, isConnected, isPrinting, error: btError } = useLabelPrint();
+  const {
+    connect,
+    printAll,
+    disconnect,
+    isConnected,
+    isPrinting,
+    error: btError,
+    printerMeta,
+    lastPrintMeta,
+    supportsSerial,
+  } = useLabelPrint();
+
+  const getPrintableCanvases = useCallback(
+    () => [customerRef.current, shopRef.current].filter(Boolean).slice(0, 2),
+    []
+  );
 
   useEffect(() => {
     if (!order) return;
     setReady(false);
+    autoPrintedOrderRef.current = null;
 
     const draw = async () => {
       try {
@@ -187,16 +198,18 @@ export default function LabelCanvas({ order, autoPrint = false }) {
 
   // Auto-print Once
   useEffect(() => {
-    if (!autoPrint || !ready || !isConnected || isPrinting || hasAutoPrinted) return;
-    setHasAutoPrinted(true);
-    printAll([customerRef.current, shopRef.current]);
-  }, [autoPrint, ready, isConnected, isPrinting, hasAutoPrinted, printAll]);
+    if (!autoPrint || !order?.id || !ready || !isConnected || isPrinting) return;
+    if (autoPrintedOrderRef.current === order.id) return;
+
+    autoPrintedOrderRef.current = order.id;
+    printAll(getPrintableCanvases(), { copiesPerCanvas: 1, maxLabels: 2 });
+  }, [autoPrint, order?.id, ready, isConnected, isPrinting, printAll, getPrintableCanvases]);
 
   const handlePrint = useCallback(() => {
     if (ready && isConnected) {
-      printAll([customerRef.current, shopRef.current]);
+      printAll(getPrintableCanvases(), { copiesPerCanvas: 1, maxLabels: 2 });
     }
-  }, [ready, isConnected, printAll]);
+  }, [ready, isConnected, printAll, getPrintableCanvases]);
 
   const bluetoothAvailable = typeof navigator !== "undefined" && !!navigator.bluetooth;
 
@@ -252,12 +265,17 @@ export default function LabelCanvas({ order, autoPrint = false }) {
       ) : (
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           {!isConnected ? (
-            <button className="btn-ghost" onClick={connect}>⌘ اتصال بالطابعة</button>
+            <>
+              <button className="btn-ghost" onClick={() => connect('bluetooth')}>⌘ اتصال بلوتوث</button>
+              {supportsSerial && (
+                <button className="btn-ghost" onClick={() => connect('serial')}>USB-C / Serial</button>
+              )}
+            </>
           ) : (
             <>
               <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16A34A", fontSize: "0.83rem" }}>
                 <span className="pulse-gold" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#16A34A", display: "inline-block" }} />
-                متصل
+                متصل {printerMeta?.transport === 'serial' ? 'USB' : 'Bluetooth'}
               </span>
               <button
                 className="btn-gold"
@@ -284,6 +302,21 @@ export default function LabelCanvas({ order, autoPrint = false }) {
       {btError && (
         <div style={{ marginTop: "10px", color: "#DC2626", fontSize: "0.82rem", padding: "8px 12px", background: "rgba(220,38,38,0.06)", borderRadius: "var(--radius)", border: "1px solid rgba(220,38,38,0.15)" }}>
           {btError}
+        </div>
+      )}
+
+      {(printerMeta || lastPrintMeta) && (
+        <div style={{ marginTop: "10px", padding: "10px 12px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "var(--radius)", fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>
+          {printerMeta && (
+            <div>
+              {`النقل: ${printerMeta.transport || '-'} | الجهاز: ${printerMeta.deviceName || '-'} | الموديل: ${printerMeta.model || printerMeta.modelId || '-'} | البروتوكول: ${printerMeta.protocolVersion ?? '-'} | المهمة: ${printerMeta.taskType || '-'} | interval: ${printerMeta.packetIntervalMs}ms`}
+            </div>
+          )}
+          {lastPrintMeta && (
+            <div>
+              {`آخر طباعة: ${lastPrintMeta.ok ? 'نجحت' : 'فشلت'} | الزمن: ${lastPrintMeta.durationMs}ms | الصفحات: ${lastPrintMeta.totalPages} | المهمة: ${lastPrintMeta.taskType || '-'}${lastPrintMeta.error ? ` | الخطأ: ${lastPrintMeta.error}` : ''}`}
+            </div>
+          )}
         </div>
       )}
     </div>
