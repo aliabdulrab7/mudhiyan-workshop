@@ -167,7 +167,21 @@ UI must match the design system: Arabic RTL, Almarai font, gold accents (#D4A843
 
 ## Completed Tasks
 
-_Nothing completed yet._
+### Completed (2026-04-16)
+
+- [x] Customer TrackPage: added reject button alongside approve button (WAITING_APPROVAL)
+- [x] API client wrappers: `client/src/api/technicians.js`, `inventory.js`, `services.js`, `orderItems.js`
+- [x] TechniciansPage (`/technicians`) — workshop admin: list + add technicians
+- [x] InventoryPage (`/inventory`) — workshop admin: list + add + stock adjust
+- [x] ServicesPage (`/services`) — workshop admin: list + add + inline edit
+- [x] ReportsPage (`/reports`) — workshop admin: status totals + branch breakdown + pending approvals alert
+- [x] App.jsx + Layout.jsx: all new routes and workshop-only nav items wired
+
+### Known Gap — Technician Role Views
+
+The DB schema enforces `role IN ('workshop', 'shop_employee')` — there is no `technician` login role.
+The `/api/order-items/:id/diagnosis` endpoint also requires `workshop` role.
+Standalone technician login views (assigned orders list, diagnosis form, quality check screen) **cannot be built** without a backend change to add a `technician` role. This must be addressed in a future backend phase before resuming technician UI.
 
 ---
 
