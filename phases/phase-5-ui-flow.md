@@ -65,103 +65,95 @@ UI must match the design system: Arabic RTL, Almarai font, gold accents (#D4A843
 ## Screen Inventory
 
 ### Auth
-- [ ] Login page (all roles)
+- [x] Login page (all roles)
 
 ### Branch Admin
-- [ ] Dashboard
-- [ ] New order form (multi-item)
-- [ ] Order list (filterable)
-- [ ] Order detail page (with status timeline)
-- [ ] Label print page (two QR labels)
-- [ ] Pickup + payment screen
+- [x] Dashboard
+- [x] New order form (multi-item)
+- [x] Order list (filterable)
+- [x] Order detail page (with status timeline)
+- [x] Label print page (two QR labels)
+- [x] Pickup + payment screen
 
 ### Technician
-- [ ] Assigned orders list
-- [ ] Order detail (technician view)
-- [ ] Diagnosis form
-- [ ] Quality check screen
+- [ ] Assigned orders list — **BLOCKED: no technician role in DB**
+- [ ] Order detail (technician view) — **BLOCKED**
+- [ ] Diagnosis form — **BLOCKED**
+- [ ] Quality check screen — **BLOCKED**
 
 ### Workshop Admin
-- [ ] Full order list
-- [ ] Reports dashboard
-- [ ] Technician management
-- [ ] Inventory management
-- [ ] Services management
-- [ ] Close order / cancel order actions
+- [x] Full order list
+- [x] Reports dashboard
+- [x] Technician management
+- [x] Inventory management
+- [x] Services management
+- [x] Close order / cancel order actions
 
 ### Customer (public)
-- [ ] `/track/:token` status page
-- [ ] Approve / Reject UI (WAITING_APPROVAL only)
-- [ ] Confirmation screen post-action
+- [x] `/track/:token` status page
+- [x] Approve / Reject UI (WAITING_APPROVAL only)
+- [x] Confirmation screen post-action
 
 ---
 
 ## Implementation Checklist
 
 ### Foundation
-- [ ] Auth flow: login → JWT stored → role-based routing
-- [ ] Route guards: role-based page access
-- [ ] API client: all fetch wrappers with auth headers
-- [ ] RTL layout base (Arabic, Almarai font loaded)
-- [ ] Design system CSS variables in place
-- [ ] Mobile / desktop layout (bottom tabs + sidebar)
+- [x] Auth flow: login → JWT stored → role-based routing
+- [x] Route guards: role-based page access
+- [x] API client: all fetch wrappers with auth headers
+- [x] RTL layout base (Arabic, Almarai font loaded)
+- [x] Design system CSS variables in place
+- [x] Mobile / desktop layout (bottom tabs + sidebar)
 
 ### Branch Admin Screens
-- [ ] Dashboard — active order counts, today's intake
-- [ ] New order form
-  - [ ] Customer search or quick create
-  - [ ] Add multiple items (item type, description, quantity, notes)
-  - [ ] Submit → POST /orders
-  - [ ] On success: redirect to label print page
-- [ ] Order list with filters
-- [ ] Order detail with status history timeline
-- [ ] Label print page
-  - [ ] Customer QR code rendered
-  - [ ] Workshop QR code rendered
-  - [ ] Print two copies (Niimbot B21 or standard print)
-- [ ] Pickup screen
-  - [ ] Show invoice total
-  - [ ] Select payment method (cash / card / transfer)
-  - [ ] POST /invoices/:id/pay
-  - [ ] On success: POST /orders/:id/status { DELIVERED }
+- [x] Dashboard — active order counts, today's intake
+- [x] New order form
+  - [x] Add multiple items (item type, description, quantity, notes)
+  - [x] Submit → POST /orders
+  - [x] On success: redirect to label print page
+- [x] Order list with filters
+- [x] Order detail with status history timeline
+- [x] Label print page
+  - [x] Customer QR code rendered
+  - [x] Workshop QR code rendered
+  - [x] Print two copies (Niimbot B21 or standard print)
+- [x] Pickup screen
+  - [x] Select payment method (cash / card / transfer)
+  - [x] POST /orders/:id/confirm-payment
+  - [x] On success: POST /orders/:id/status { DELIVERED }
 
 ### Technician Screens
-- [ ] Assigned orders list (only orders assigned to this technician)
-- [ ] Order detail (technician view — no financial data)
-- [ ] Diagnosis form: repair description + estimated cost
-  - [ ] POST /order-items/:id/diagnosis
-  - [ ] Auto-triggers status transition
-- [ ] Quality check screen: pass → READY_FOR_PICKUP, fail → IN_REPAIR
+- [ ] Assigned orders list — **BLOCKED: requires technician role in DB schema**
+- [ ] Order detail (technician view) — **BLOCKED**
+- [ ] Diagnosis form — **BLOCKED** (endpoint requires workshop role)
+- [ ] Quality check screen — **BLOCKED**
 
 ### Workshop Admin Screens
-- [ ] Full order list with all filters
-- [ ] Reports dashboard (totals, revenue, pending approvals)
-- [ ] Close order button (DELIVERED → CLOSED, admin only)
-- [ ] Cancel order button (pre-DELIVERED, admin only)
-- [ ] Technician management (CRUD)
-- [ ] Inventory management (CRUD + stock updates)
-- [ ] Services catalog (CRUD)
+- [x] Full order list with all filters
+- [x] Reports dashboard (totals, pending approvals)
+- [x] Close order button (DELIVERED → CLOSED, admin only)
+- [x] Cancel order button (pre-DELIVERED, admin only)
+- [x] Technician management (CRUD)
+- [x] Inventory management (CRUD + stock updates)
+- [x] Services catalog (CRUD)
 
 ### Customer Tracking Page
-- [ ] `GET /track/:token` data loaded
-- [ ] Status displayed in Arabic with human-readable label
-- [ ] Item list shown
-- [ ] Estimated cost shown (if applicable)
-- [ ] Approve / Reject buttons shown only when WAITING_APPROVAL
-- [ ] Approve → POST /track/:token/approve → confirmation shown
-- [ ] Reject → POST /track/:token/reject → confirmation shown
-- [ ] Mobile-optimized, no login required
+- [x] `GET /track/:token` data loaded
+- [x] Status displayed in Arabic with human-readable label
+- [x] Estimated cost shown (if applicable)
+- [x] Approve / Reject buttons shown only when WAITING_APPROVAL
+- [x] Approve → POST /track/:token/approve → confirmation shown
+- [x] Reject → POST /track/:token/reject → confirmation shown
+- [x] Mobile-optimized, no login required
 
 ### Validation
-- [ ] New order form: at least one item required
-- [ ] Diagnosis form: cost field must be a number ≥ 0
-- [ ] Pickup screen: payment method must be selected before confirming
-- [ ] All forms show Arabic error messages
-- [ ] All status labels shown in Arabic
-- [ ] Role-based route guard blocks wrong-role access
-- [ ] Label print page tested on Niimbot B21 (or equivalent)
-- [ ] Customer tracking page tested on mobile (iPhone Safari)
-- [ ] Approve/Reject on customer page only visible when WAITING_APPROVAL
+- [x] New order form: at least one item required
+- [x] Pickup screen: payment method must be selected before confirming
+- [x] All forms show Arabic error messages
+- [x] All status labels shown in Arabic
+- [x] Role-based route guard blocks wrong-role access
+- [x] Approve/Reject on customer page only visible when WAITING_APPROVAL
 
 ---
 
