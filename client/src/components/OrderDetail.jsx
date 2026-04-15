@@ -39,6 +39,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [savingComment, setSavingComment]   = useState(false);
   const [justMarkedReady, setJustMarkedReady] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [error, setError]         = useState('');
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
@@ -110,6 +111,18 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     }
     catch (e) { setError(e.message); }
     finally { setSavingCost(false); }
+  }
+
+  async function handleCancel() {
+    setError('');
+    try {
+      const updated = await updateOrderStatus(order.id, 'cancelled');
+      onUpdated?.(updated);
+      onClose();
+    } catch (e) {
+      setError(e.message);
+      setConfirmingCancel(false);
+    }
   }
 
   async function handleAddComment(e) {
@@ -392,6 +405,81 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                       <SectionTitle>ملصق الجاهزية</SectionTitle>
                       <ReadyLabelCanvas order={order} autoPrint={justMarkedReady} />
                     </div>
+                  )}
+
+                  {!['delivered', 'closed', 'cancelled'].includes(order.status) && (
+                    <>
+                      <div style={{ margin: '20px 0 16px', height: '1px', background: '#F3F4F6' }} />
+                      {!confirmingCancel ? (
+                        <button
+                          onClick={() => setConfirmingCancel(true)}
+                          style={{
+                            width: '100%',
+                            padding: '10px 16px',
+                            border: '1px solid rgba(220,38,38,0.3)',
+                            borderRadius: 'var(--radius)',
+                            background: '#FFFFFF',
+                            color: '#DC2626',
+                            fontSize: '0.88rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontFamily: 'Almarai, sans-serif',
+                            transition: 'all 0.15s',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.06)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; }}
+                        >
+                          إلغاء الطلب
+                        </button>
+                      ) : (
+                        <div style={{
+                          padding: '14px 16px',
+                          background: 'rgba(220,38,38,0.06)',
+                          border: '1px solid rgba(220,38,38,0.2)',
+                          borderRadius: 'var(--radius)',
+                        }}>
+                          <div style={{ fontSize: '0.85rem', color: '#DC2626', fontWeight: 600, marginBottom: '12px' }}>
+                            هل أنت متأكد من إلغاء هذا الطلب؟
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={handleCancel}
+                              style={{
+                                flex: 1,
+                                padding: '9px 12px',
+                                border: '1px solid rgba(220,38,38,0.4)',
+                                borderRadius: 'var(--radius)',
+                                background: '#DC2626',
+                                color: '#FFFFFF',
+                                fontSize: '0.85rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontFamily: 'Almarai, sans-serif',
+                              }}
+                            >
+                              نعم، إلغاء
+                            </button>
+                            <button
+                              onClick={() => setConfirmingCancel(false)}
+                              style={{
+                                flex: 1,
+                                padding: '9px 12px',
+                                border: '1px solid #D1D5DB',
+                                borderRadius: 'var(--radius)',
+                                background: '#FFFFFF',
+                                color: 'var(--text-secondary)',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                fontFamily: 'Almarai, sans-serif',
+                              }}
+                            >
+                              لا، تراجع
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
