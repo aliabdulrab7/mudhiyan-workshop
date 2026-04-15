@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout       from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
+import RoleRoute    from './components/RoleRoute';
 import Dashboard    from './pages/Dashboard';
 import NewOrder     from './pages/NewOrder';
 import ScanPage     from './pages/ScanPage';
@@ -28,11 +29,11 @@ export default function App() {
                 <Route path="/"     element={<Dashboard />} />
                 <Route path="/new"  element={<NewOrder />} />
                 <Route path="/scan"     element={<ScanPage />} />
-                <Route path="/branches"    element={<BranchesPage />} />
-                <Route path="/reports"     element={<ReportsPage />} />
-                <Route path="/technicians" element={<TechniciansPage />} />
-                <Route path="/inventory"   element={<InventoryPage />} />
-                <Route path="/services"    element={<ServicesPage />} />
+                <Route path="/branches"    element={<RoleRoute roles={["workshop"]}><BranchesPage /></RoleRoute>} />
+                <Route path="/reports"     element={<RoleRoute roles={["workshop"]}><ReportsPage /></RoleRoute>} />
+                <Route path="/technicians" element={<RoleRoute roles={["workshop"]}><TechniciansPage /></RoleRoute>} />
+                <Route path="/inventory"   element={<RoleRoute roles={["workshop"]}><InventoryPage /></RoleRoute>} />
+                <Route path="/services"    element={<RoleRoute roles={["workshop"]}><ServicesPage /></RoleRoute>} />
                 <Route path="*"         element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>
