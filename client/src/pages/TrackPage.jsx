@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getTrackOrder, approveOrder } from '../api/orders';
+import { getTrackOrder, approveOrder, rejectOrder } from '../api/orders';
 import SkeletonLoader from '../components/SkeletonLoader';
 
 const STEPS_ALL = ['received', 'pending_approval', 'in_progress', 'ready', 'delivered'];
@@ -36,8 +36,11 @@ export default function TrackPage() {
   const [order,    setOrder]    = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [approving, setApproving] = useState(false);
-  const [approved,  setApproved]  = useState(false);
+  const [approving,  setApproving]  = useState(false);
+  const [approved,   setApproved]   = useState(false);
+  const [rejecting,  setRejecting]  = useState(false);
+  const [rejected,   setRejected]   = useState(false);
+  const [rejectError, setRejectError] = useState(null);
 
   useEffect(() => {
     let timeoutId;
@@ -66,6 +69,20 @@ export default function TrackPage() {
       console.error(e);
     } finally {
       setApproving(false);
+    }
+  }
+
+  async function handleReject() {
+    setRejecting(true);
+    setRejectError(null);
+    try {
+      await rejectOrder(token);
+      setRejected(true);
+    } catch (e) {
+      console.error(e);
+      setRejectError('حدث خطأ، يرجى المحاولة مجدداً');
+    } finally {
+      setRejecting(false);
     }
   }
 
@@ -270,7 +287,7 @@ export default function TrackPage() {
           </motion.div>
 
           {/* Cost approval */}
-          {order.status === 'pending_approval' && !approved && (
+          {order.status === 'pending_approval' && !approved && !rejected && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -293,27 +310,60 @@ export default function TrackPage() {
               }}>
                 {order.cost} <span style={{ fontSize: '0.9rem' }}>ريال</span>
               </div>
-              <motion.button
-                onClick={handleApprove}
-                disabled={approving}
-                whileTap={{ scale: 0.97 }}
-                style={{
-                  width: '100%',
-                  padding: '14px 0',
-                  background: 'linear-gradient(135deg, #D97706, #B45309)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  fontFamily: 'Almarai, sans-serif',
-                  cursor: approving ? 'not-allowed' : 'pointer',
-                  opacity: approving ? 0.6 : 1,
-                  boxShadow: '0 4px 16px rgba(217,119,6,0.25)',
-                }}
-              >
-                {approving ? '...' : 'أوافق على السعر'}
-              </motion.button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <motion.button
+                  onClick={handleApprove}
+                  disabled={approving || rejecting}
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    flex: 1,
+                    padding: '14px 0',
+                    background: 'linear-gradient(135deg, #D97706, #B45309)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    fontFamily: 'Almarai, sans-serif',
+                    cursor: (approving || rejecting) ? 'not-allowed' : 'pointer',
+                    opacity: (approving || rejecting) ? 0.6 : 1,
+                    boxShadow: '0 4px 16px rgba(217,119,6,0.25)',
+                  }}
+                >
+                  {approving ? '...' : 'أوافق على السعر'}
+                </motion.button>
+                <motion.button
+                  onClick={handleReject}
+                  disabled={approving || rejecting}
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    flex: 1,
+                    padding: '14px 0',
+                    background: 'linear-gradient(135deg, #DC2626, #B91C1C)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    fontFamily: 'Almarai, sans-serif',
+                    cursor: (approving || rejecting) ? 'not-allowed' : 'pointer',
+                    opacity: (approving || rejecting) ? 0.6 : 1,
+                    boxShadow: '0 4px 16px rgba(220,38,38,0.25)',
+                  }}
+                >
+                  {rejecting ? '...' : 'أرفض'}
+                </motion.button>
+              </div>
+              {rejectError && (
+                <div style={{
+                  marginTop: '10px',
+                  fontSize: '0.82rem',
+                  color: '#DC2626',
+                  textAlign: 'center',
+                }}>
+                  {rejectError}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -332,6 +382,41 @@ export default function TrackPage() {
               }}
             >
               ✓ تمت الموافقة، جارٍ التنفيذ
+            </motion.div>
+          )}
+
+          {rejected && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{
+                background: 'rgba(220,38,38,0.05)',
+                border: '1px solid rgba(220,38,38,0.20)',
+                borderRadius: '12px',
+                padding: '20px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{
+                fontSize: '1.5rem',
+                marginBottom: '8px',
+                color: '#DC2626',
+              }}>✕</div>
+              <div style={{
+                fontWeight: 700,
+                fontSize: '1rem',
+                color: '#DC2626',
+                marginBottom: '6px',
+              }}>
+                تم رفض الطلب
+              </div>
+              <div style={{
+                fontSize: '0.85rem',
+                color: '#EF4444',
+                opacity: 0.8,
+              }}>
+                سيتواصل معك الفريق قريباً
+              </div>
             </motion.div>
           )}
         </motion.div>
