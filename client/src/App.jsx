@@ -7,6 +7,7 @@ import ScanPage     from './pages/ScanPage';
 import LoginPage    from './pages/LoginPage';
 import TrackPage    from './pages/TrackPage';
 import BranchesPage from './pages/BranchesPage';
+import ReportsPage  from './pages/ReportsPage';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
                 <Route path="/new"  element={<NewOrder />} />
                 <Route path="/scan"     element={<ScanPage />} />
                 <Route path="/branches" element={<BranchesPage />} />
+                <Route path="/reports"  element={<ReportsPage />} />
                 <Route path="*"         element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>

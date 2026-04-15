@@ -5,7 +5,8 @@ const nav = [
   { to: "/",        icon: "◈", label: "الطلبات" },
   { to: "/new",     icon: "✦", label: "صيانة جديدة", roles: ["shop_employee"] },
   { to: "/scan",    icon: "⌖", label: "مسح" },
-  { to: "/branches",icon: "⊛", label: "الفروع", roles: ["workshop"] },
+  { to: "/branches",icon: "⊛", label: "الفروع",   roles: ["workshop"] },
+  { to: "/reports", icon: "◉", label: "التقارير", roles: ["workshop"] },
 ];
 
 export default function Layout({ children }) {
