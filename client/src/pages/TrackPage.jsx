@@ -78,6 +78,7 @@ export default function TrackPage() {
     try {
       await rejectOrder(token);
       setRejected(true);
+      setOrder(prev => ({ ...prev, status: 'rejected' }));
     } catch (e) {
       console.error(e);
       setRejectError('حدث خطأ، يرجى المحاولة مجدداً');
