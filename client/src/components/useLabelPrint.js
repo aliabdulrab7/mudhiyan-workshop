@@ -1,20 +1,60 @@
 import { useState, useRef } from 'react';
-import { NiimbotBluetoothClient, ImageEncoder } from '@mmote/niimbluelib';
+import { NiimbotBluetoothClient, NiimbotSerialClient, ImageEncoder } from '@mmote/niimbluelib';
+
+function resolvePrintTask(client) {
+  const detectedTask = client.getPrintTaskType();
+  if (detectedTask) return detectedTask;
+
+  const model = client.getModelMetadata()?.model;
+  if (model === 'B21' || model === 'B21_L2B') return 'B21_V1';
+  if (model === 'B21S' || model === 'B21S_C2B' || model === 'D110') return 'D110';
+  if (model === 'B21_PRO' || model === 'B1_PRO') return 'D110M_V4';
+  if (model === 'B21_C2B' || model === 'B1' || model === 'D110_M') return 'B1';
+  return null;
+}
 
 export default function useLabelPrint() {
   const [isConnected, setIsConnected] = useState(false);
   const [isPrinting,  setIsPrinting]  = useState(false);
   const [error,       setError]       = useState('');
+  const [printerMeta, setPrinterMeta] = useState(null);
+  const [lastPrintMeta, setLastPrintMeta] = useState(null);
   const clientRef = useRef(null);
+  const transportRef = useRef(null);
 
-  async function connect() {
+  async function connect(transport = 'bluetooth') {
     setError('');
+    setLastPrintMeta(null);
     try {
-      const client = new NiimbotBluetoothClient();
-      await client.connect();
-      client.on('disconnect', () => { setIsConnected(false); clientRef.current = null; });
-      await client.fetchPrinterInfo();
+      const client = transport === 'serial'
+        ? new NiimbotSerialClient()
+        : new NiimbotBluetoothClient();
+
+      client.setPacketInterval(transport === 'serial' ? 4 : 10);
+      client.setDebug(false);
+
+      const connectionInfo = await client.connect();
+      const info = client.getPrinterInfo();
+      const model = client.getModelMetadata();
+
+      client.on('disconnect', () => {
+        setIsConnected(false);
+        setPrinterMeta(null);
+        clientRef.current = null;
+        transportRef.current = null;
+      });
+
       clientRef.current = client;
+      transportRef.current = transport;
+      setPrinterMeta({
+        transport,
+        deviceName: connectionInfo.deviceName || null,
+        model: model?.model || null,
+        modelId: info.modelId ?? null,
+        protocolVersion: info.protocolVersion ?? null,
+        taskType: resolvePrintTask(client),
+        packetIntervalMs: transport === 'serial' ? 4 : 10,
+      });
       setIsConnected(true);
     } catch (e) {
       setError(e.message || 'فشل الاتصال بالطابعة');
@@ -28,6 +68,8 @@ export default function useLabelPrint() {
       console.error('Disconnect error', e);
     } finally {
       clientRef.current = null;
+      transportRef.current = null;
+      setPrinterMeta(null);
       setIsConnected(false);
     }
   }
@@ -54,6 +96,7 @@ export default function useLabelPrint() {
 
     setIsPrinting(true);
     setError('');
+    const startedAt = performance.now();
 
     const PRINT_TIMEOUT = 20000; // 20 seconds
     const timeoutPromise = new Promise((_, reject) =>
@@ -63,10 +106,15 @@ export default function useLabelPrint() {
     try {
       await Promise.race([
         (async () => {
-          const taskType = client.getPrintTaskType() ?? 'D110';
+          const taskType = resolvePrintTask(client);
+          if (!taskType) {
+            throw new Error('تعذر تحديد نوع الطابعة أو بروتوكول الطباعة');
+          }
+
           const printTask = client.abstraction.newPrintTask(taskType, {
             totalPages,
             density: 3,
+            speed: 1,
           });
           await printTask.printInit();
 
@@ -80,14 +128,42 @@ export default function useLabelPrint() {
         })(),
         timeoutPromise
       ]);
+      setLastPrintMeta({
+        ok: true,
+        transport: transportRef.current,
+        durationMs: Math.round(performance.now() - startedAt),
+        totalPages,
+        copiesPerCanvas,
+        taskType: resolvePrintTask(client),
+      });
     } catch (e) {
       setError(e.message || 'فشل الطباعة');
-      // If error or timeout, we should probably suggest a reset
+      setLastPrintMeta({
+        ok: false,
+        transport: transportRef.current,
+        durationMs: Math.round(performance.now() - startedAt),
+        totalPages,
+        copiesPerCanvas,
+        taskType: resolvePrintTask(client),
+        error: e.message || 'فشل الطباعة',
+      });
     } finally {
       try { await client.abstraction?.printEnd(); } catch (_) {}
       setIsPrinting(false);
     }
   }
 
-  return { connect, disconnect, print, printAll, isConnected, isPrinting, error };
+  return {
+    connect,
+    disconnect,
+    print,
+    printAll,
+    isConnected,
+    isPrinting,
+    error,
+    printerMeta,
+    lastPrintMeta,
+    transport: transportRef.current,
+    supportsSerial: typeof navigator !== 'undefined' && 'serial' in navigator,
+  };
 }

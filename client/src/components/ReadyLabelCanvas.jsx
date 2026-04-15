@@ -81,7 +81,17 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
   const labelRef = useRef(null);
   const autoPrintedOrderRef = useRef(null);
   const [ready, setReady] = useState(false);
-  const { connect, printAll, disconnect, isConnected, isPrinting, error: btError } = useLabelPrint();
+  const {
+    connect,
+    printAll,
+    disconnect,
+    isConnected,
+    isPrinting,
+    error: btError,
+    printerMeta,
+    lastPrintMeta,
+    supportsSerial,
+  } = useLabelPrint();
 
   useEffect(() => {
     if (!autoPrint || !order?.id || !ready || !isConnected || isPrinting || !labelRef.current) return;
@@ -125,14 +135,26 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
       </div>
 
       {!isConnected ? (
-        <button
-          className="btn-ghost"
-          onClick={connect}
-          disabled={isPrinting}
-          style={{ width: "100%", maxWidth: "320px", justifyContent: "center" }}
-        >
-          {btError ? "إعادة المحاولة" : "اقتران بطابعة ملصقات (Niimbot B21S)"}
-        </button>
+        <div style={{ display: "flex", gap: "10px", width: "100%", maxWidth: "320px" }}>
+          <button
+            className="btn-ghost"
+            onClick={() => connect('bluetooth')}
+            disabled={isPrinting}
+            style={{ flex: 1, justifyContent: "center" }}
+          >
+            Bluetooth
+          </button>
+          {supportsSerial && (
+            <button
+              className="btn-ghost"
+              onClick={() => connect('serial')}
+              disabled={isPrinting}
+              style={{ flex: 1, justifyContent: "center" }}
+            >
+              USB-C
+            </button>
+          )}
+        </div>
       ) : (
         <div style={{ display: "flex", gap: "10px", width: "100%", maxWidth: "320px" }}>
           <button
@@ -156,6 +178,20 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
       )}
       {btError && (
         <div style={{ fontSize: "0.8rem", color: "#DC2626", maxWidth: "320px" }}>{btError}</div>
+      )}
+      {(printerMeta || lastPrintMeta) && (
+        <div style={{ fontSize: "0.76rem", color: "var(--text-secondary)", maxWidth: "320px", lineHeight: 1.7, background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "var(--radius)", padding: "10px 12px" }}>
+          {printerMeta && (
+            <div>
+              {`النقل: ${printerMeta.transport || '-'} | الجهاز: ${printerMeta.deviceName || '-'} | الموديل: ${printerMeta.model || printerMeta.modelId || '-'} | البروتوكول: ${printerMeta.protocolVersion ?? '-'} | المهمة: ${printerMeta.taskType || '-'}`}
+            </div>
+          )}
+          {lastPrintMeta && (
+            <div>
+              {`آخر طباعة: ${lastPrintMeta.ok ? 'نجحت' : 'فشلت'} | الزمن: ${lastPrintMeta.durationMs}ms${lastPrintMeta.error ? ` | الخطأ: ${lastPrintMeta.error}` : ''}`}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

@@ -156,7 +156,17 @@ export default function LabelCanvas({ order, autoPrint = false }) {
   const shopRef = useRef(null);
   const autoPrintedOrderRef = useRef(null);
   const [ready, setReady] = useState(false);
-  const { connect, printAll, disconnect, isConnected, isPrinting, error: btError } = useLabelPrint();
+  const {
+    connect,
+    printAll,
+    disconnect,
+    isConnected,
+    isPrinting,
+    error: btError,
+    printerMeta,
+    lastPrintMeta,
+    supportsSerial,
+  } = useLabelPrint();
 
   const getPrintableCanvases = useCallback(
     () => [customerRef.current, shopRef.current].filter(Boolean).slice(0, 2),
@@ -255,12 +265,17 @@ export default function LabelCanvas({ order, autoPrint = false }) {
       ) : (
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           {!isConnected ? (
-            <button className="btn-ghost" onClick={connect}>⌘ اتصال بالطابعة</button>
+            <>
+              <button className="btn-ghost" onClick={() => connect('bluetooth')}>⌘ اتصال بلوتوث</button>
+              {supportsSerial && (
+                <button className="btn-ghost" onClick={() => connect('serial')}>USB-C / Serial</button>
+              )}
+            </>
           ) : (
             <>
               <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16A34A", fontSize: "0.83rem" }}>
                 <span className="pulse-gold" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#16A34A", display: "inline-block" }} />
-                متصل
+                متصل {printerMeta?.transport === 'serial' ? 'USB' : 'Bluetooth'}
               </span>
               <button
                 className="btn-gold"
@@ -287,6 +302,21 @@ export default function LabelCanvas({ order, autoPrint = false }) {
       {btError && (
         <div style={{ marginTop: "10px", color: "#DC2626", fontSize: "0.82rem", padding: "8px 12px", background: "rgba(220,38,38,0.06)", borderRadius: "var(--radius)", border: "1px solid rgba(220,38,38,0.15)" }}>
           {btError}
+        </div>
+      )}
+
+      {(printerMeta || lastPrintMeta) && (
+        <div style={{ marginTop: "10px", padding: "10px 12px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "var(--radius)", fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>
+          {printerMeta && (
+            <div>
+              {`النقل: ${printerMeta.transport || '-'} | الجهاز: ${printerMeta.deviceName || '-'} | الموديل: ${printerMeta.model || printerMeta.modelId || '-'} | البروتوكول: ${printerMeta.protocolVersion ?? '-'} | المهمة: ${printerMeta.taskType || '-'} | interval: ${printerMeta.packetIntervalMs}ms`}
+            </div>
+          )}
+          {lastPrintMeta && (
+            <div>
+              {`آخر طباعة: ${lastPrintMeta.ok ? 'نجحت' : 'فشلت'} | الزمن: ${lastPrintMeta.durationMs}ms | الصفحات: ${lastPrintMeta.totalPages} | المهمة: ${lastPrintMeta.taskType || '-'}${lastPrintMeta.error ? ` | الخطأ: ${lastPrintMeta.error}` : ''}`}
+            </div>
+          )}
         </div>
       )}
     </div>
