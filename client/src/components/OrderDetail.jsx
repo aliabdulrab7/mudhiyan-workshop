@@ -292,6 +292,19 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             <section style={{ padding: '0 28px' }}>
               <SectionTitle>الإجراءات</SectionTitle>
 
+              {/* Print labels button — all non-terminal statuses */}
+              {!['cancelled', 'closed', 'delivered'].includes(order.status) && (
+                <div style={{ marginBottom: '12px' }}>
+                  <button
+                    className="btn-ghost"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => window.open('/orders/' + order.id + '/label', '_blank', 'noopener,noreferrer')}
+                  >
+                    🖨 طباعة الملصقات
+                  </button>
+                </div>
+              )}
+
               {/* Branch employee: deliver to customer */}
               {!isWorkshop && order.status === 'ready' && (
                 <div style={{ marginBottom: '12px' }}>
