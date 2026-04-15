@@ -45,6 +45,7 @@ router.get('/:token', (req, res) => {
 
   res.json({
     tracking_number:      order.order_number,
+    piece_type:           order.piece_type,
     status:               order.status,
     status_label:         STATUS_LABELS[order.status] ?? order.status,
     estimated_cost:       order.cost,

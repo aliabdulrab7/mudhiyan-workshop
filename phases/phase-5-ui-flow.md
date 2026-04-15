@@ -35,14 +35,6 @@ UI must match the design system: Arabic RTL, Almarai font, gold accents (#D4A843
 - Print label page: Customer QR + Workshop QR (two copies)
 - Pickup / payment page: collect payment + confirm delivery
 
-#### Technician Views
-- Login page
-- My assigned orders list
-- Order detail: item info, diagnosis form
-- Diagnosis form: repair description + estimated cost
-- Repair progress update
-- Quality check pass/fail action
-
 #### Workshop Admin Views
 - All of the above
 - Full order list with filters (branch, status, date)
@@ -65,7 +57,7 @@ UI must match the design system: Arabic RTL, Almarai font, gold accents (#D4A843
 ## Screen Inventory
 
 ### Auth
-- [x] Login page (all roles)
+- [x] Login page (workshop and shop_employee roles)
 
 ### Branch Admin
 - [x] Dashboard
@@ -74,12 +66,6 @@ UI must match the design system: Arabic RTL, Almarai font, gold accents (#D4A843
 - [x] Order detail page (with status timeline)
 - [x] Label print page (two QR labels)
 - [x] Pickup + payment screen
-
-### Technician
-- [ ] Assigned orders list — **BLOCKED: no technician role in DB**
-- [ ] Order detail (technician view) — **BLOCKED**
-- [ ] Diagnosis form — **BLOCKED**
-- [ ] Quality check screen — **BLOCKED**
 
 ### Workshop Admin
 - [x] Full order list
@@ -123,12 +109,6 @@ UI must match the design system: Arabic RTL, Almarai font, gold accents (#D4A843
   - [x] POST /orders/:id/confirm-payment
   - [x] On success: POST /orders/:id/status { DELIVERED }
 
-### Technician Screens
-- [ ] Assigned orders list — **BLOCKED: requires technician role in DB schema**
-- [ ] Order detail (technician view) — **BLOCKED**
-- [ ] Diagnosis form — **BLOCKED** (endpoint requires workshop role)
-- [ ] Quality check screen — **BLOCKED**
-
 ### Workshop Admin Screens
 - [x] Full order list with all filters
 - [x] Reports dashboard (totals, pending approvals)
@@ -169,16 +149,11 @@ UI must match the design system: Arabic RTL, Almarai font, gold accents (#D4A843
 - [x] ReportsPage (`/reports`) — workshop admin: status totals + branch breakdown + pending approvals alert
 - [x] App.jsx + Layout.jsx: all new routes and workshop-only nav items wired
 
-### Known Gap — Technician Role Views
-
-The DB schema enforces `role IN ('workshop', 'shop_employee')` — there is no `technician` login role.
-The `/api/order-items/:id/diagnosis` endpoint also requires `workshop` role.
-Standalone technician login views (assigned orders list, diagnosis form, quality check screen) **cannot be built** without a backend change to add a `technician` role. This must be addressed in a future backend phase before resuming technician UI.
-
 ---
 
 ## Notes
 
+- **Technicians are data records, not system users.** They exist only in the `technicians` table and are assigned to `order_items`. They have no login role. The `technicians.user_id` column is an optional link to an existing `users` row (workshop or shop_employee), not a separate role. All diagnosis, repair, and quality-check actions are performed by logged-in `workshop` users — not by a "technician" role.
 - This phase consumes all APIs from Phases 1–4. No new backend logic should be added here.
 - If a backend gap is discovered during UI build, stop, fix the backend, then return to UI.
 - Niimbot B21 printing uses Web Bluetooth — only works in Chrome/Edge on HTTPS or localhost.

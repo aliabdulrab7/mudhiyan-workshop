@@ -4,42 +4,69 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getTrackOrder, approveOrder, rejectOrder } from '../api/orders';
 import SkeletonLoader from '../components/SkeletonLoader';
 
-const STEPS_ALL = ['received', 'pending_approval', 'in_progress', 'ready', 'delivered'];
-const STEPS_NO_APPROVAL = ['received', 'in_progress', 'ready', 'delivered'];
+// Customer-facing progress steps (simplified from 9-stage internal workflow)
+const STEPS = ['received', 'diagnosing', 'in_repair', 'ready_for_pickup', 'delivered'];
 
 const STEP_LABELS = {
   received:         'استُلم',
-  pending_approval: 'بانتظار الموافقة',
-  in_progress:      'قيد التنفيذ',
-  ready:            'جاهز',
+  diagnosing:       'قيد الفحص',
+  in_repair:        'قيد التنفيذ',
+  ready_for_pickup: 'جاهز',
   delivered:        'سُلِّم',
 };
 
 const STEP_COLORS = {
   received:         '#2980B9',
-  pending_approval: '#D97706',
-  in_progress:      '#1A6EA0',
-  ready:            '#16A34A',
+  diagnosing:       '#D97706',
+  in_repair:        '#1A6EA0',
+  ready_for_pickup: '#16A34A',
   delivered:        '#7C3AED',
+};
+
+// Map all 9 backend statuses to a progress step position
+const STATUS_TO_STEP = {
+  received:         'received',
+  diagnosing:       'diagnosing',
+  waiting_approval: 'diagnosing',  // diagnosis done, awaiting customer
+  approved:         'in_repair',
+  rejected:         null,          // terminal — shown separately
+  in_repair:        'in_repair',
+  quality_check:    'in_repair',   // internal QC, customer sees "in repair"
+  ready_for_pickup: 'ready_for_pickup',
+  delivered:        'delivered',
+  closed:           'delivered',
+  cancelled:        null,          // terminal — shown separately
 };
 
 const STATUS_MESSAGES = {
   received:         'تم استلام قطعتك، سيتم تقييمها قريباً',
-  pending_approval: 'يرجى الموافقة على تكلفة الإصلاح أدناه',
-  in_progress:      'قطعتك قيد التنفيذ',
-  ready:            '✓ قطعتك جاهزة للاستلام!',
+  diagnosing:       'جارٍ فحص قطعتك وتقييمها',
+  waiting_approval: 'يرجى الموافقة على تكلفة الإصلاح أدناه',
+  approved:         'تمت الموافقة، بدأ التنفيذ',
+  in_repair:        'قطعتك قيد التنفيذ',
+  quality_check:    'قطعتك قيد التنفيذ',
+  ready_for_pickup: '✓ قطعتك جاهزة للاستلام!',
   delivered:        'تم التسليم، شكراً لثقتك',
+  closed:           'تم التسليم، شكراً لثقتك',
+  rejected:         'تم رفض الطلب',
+  cancelled:        'تم إلغاء الطلب',
 };
+
+// Statuses that are still in-progress (keep auto-refreshing)
+const ACTIVE_STATUSES = new Set([
+  'received', 'diagnosing', 'waiting_approval', 'approved',
+  'in_repair', 'quality_check',
+]);
 
 export default function TrackPage() {
   const { token } = useParams();
   const [order,    setOrder]    = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [approving,  setApproving]  = useState(false);
-  const [approved,   setApproved]   = useState(false);
-  const [rejecting,  setRejecting]  = useState(false);
-  const [rejected,   setRejected]   = useState(false);
+  const [approving,   setApproving]   = useState(false);
+  const [approved,    setApproved]    = useState(false);
+  const [rejecting,   setRejecting]   = useState(false);
+  const [rejected,    setRejected]    = useState(false);
   const [rejectError, setRejectError] = useState(null);
 
   useEffect(() => {
@@ -48,7 +75,7 @@ export default function TrackPage() {
       getTrackOrder(token)
         .then(data => {
           setOrder(data);
-          if (data && ['received', 'pending_approval', 'in_progress'].includes(data.status)) {
+          if (data && ACTIVE_STATUSES.has(data.status)) {
             timeoutId = setTimeout(fetchOrder, 10000);
           }
         })
@@ -64,7 +91,7 @@ export default function TrackPage() {
     try {
       await approveOrder(token);
       setApproved(true);
-      setOrder(prev => ({ ...prev, status: 'in_progress' }));
+      setOrder(prev => ({ ...prev, status: 'in_repair' }));
     } catch (e) {
       console.error(e);
     } finally {
@@ -99,11 +126,10 @@ export default function TrackPage() {
     </div>
   );
 
-  const activeColor = STEP_COLORS[order.status] || '#2980B9';
-  const usePendingStep = order.status === 'pending_approval' ||
-    STEPS_ALL.indexOf(order.status) > STEPS_ALL.indexOf('pending_approval');
-  const steps = usePendingStep ? STEPS_ALL : STEPS_NO_APPROVAL;
-  const currentIdx = steps.indexOf(order.status);
+  const stepKey    = STATUS_TO_STEP[order.status] ?? 'received';
+  const activeColor = STEP_COLORS[stepKey] || '#2980B9';
+  const currentIdx  = STEPS.indexOf(stepKey);
+  const isTerminal  = order.status === 'cancelled' || order.status === 'rejected';
 
   return (
     <AnimatePresence>
@@ -191,7 +217,7 @@ export default function TrackPage() {
           <div style={{ marginBottom: '22px' }}>
             <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '6px' }}>رقم الطلب</div>
             <span className="order-stamp" style={{ fontSize: '0.88rem', padding: '5px 14px' }}>
-              {order.order_number}
+              {order.tracking_number}
             </span>
           </div>
 
@@ -200,73 +226,75 @@ export default function TrackPage() {
             <div style={{ fontWeight: 600, color: '#222222' }}>{order.piece_type}</div>
           </div>
 
-          {/* Progress tracker */}
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '14px' }}>مراحل الطلب</div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {steps.map((step, i) => {
-                const completed = i < currentIdx;
-                const active    = i === currentIdx;
-                const stepColor = STEP_COLORS[step] || '#2980B9';
-                return (
-                  <React.Fragment key={step}>
-                    {i > 0 && (
+          {/* Progress tracker — hidden for terminal statuses */}
+          {!isTerminal && (
+            <div style={{ marginBottom: '28px' }}>
+              <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '14px' }}>مراحل الطلب</div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {STEPS.map((step, i) => {
+                  const completed = i < currentIdx;
+                  const active    = i === currentIdx;
+                  const stepColor = STEP_COLORS[step] || '#2980B9';
+                  return (
+                    <React.Fragment key={step}>
+                      {i > 0 && (
+                        <motion.div
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
+                          style={{
+                            flex: 1,
+                            height: '2px',
+                            background: completed ? stepColor : '#E5E7EB',
+                            transformOrigin: 'right',
+                          }}
+                        />
+                      )}
                       <motion.div
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.2 + i * 0.1, type: 'spring', stiffness: 200 }}
                         style={{
-                          flex: 1,
-                          height: '2px',
-                          background: completed ? stepColor : '#E5E7EB',
-                          transformOrigin: 'right',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          background: completed ? stepColor : active ? `${stepColor}15` : '#F3F4F6',
+                          border: active ? `2px solid ${stepColor}` : completed ? 'none' : '1px solid #E5E7EB',
+                          color: completed ? '#FFFFFF' : active ? stepColor : '#9CA3AF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          ...(active ? { boxShadow: `0 0 12px ${stepColor}30` } : {}),
                         }}
-                      />
-                    )}
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2 + i * 0.1, type: 'spring', stiffness: 200 }}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        flexShrink: 0,
-                        background: completed ? stepColor : active ? `${stepColor}15` : '#F3F4F6',
-                        border: active ? `2px solid ${stepColor}` : completed ? 'none' : '1px solid #E5E7EB',
-                        color: completed ? '#FFFFFF' : active ? stepColor : '#9CA3AF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        ...(active ? { boxShadow: `0 0 12px ${stepColor}30` } : {}),
-                      }}
-                    >
-                      {completed ? '✓' : i + 1}
-                    </motion.div>
-                  </React.Fragment>
-                );
-              })}
+                      >
+                        {completed ? '✓' : i + 1}
+                      </motion.div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', marginTop: '10px' }}>
+                {STEPS.map((step, i) => (
+                  <div key={step} style={{
+                    flex: i === 0 ? '0 0 32px' : 1,
+                    fontSize: '0.55rem',
+                    color: step === stepKey ? (STEP_COLORS[step] || '#222222') : '#9CA3AF',
+                    fontWeight: step === stepKey ? 700 : 400,
+                    textAlign: i === 0 ? 'right' : i === STEPS.length - 1 ? 'left' : 'center',
+                    marginLeft: i > 0 ? '-14px' : 0,
+                    marginRight: i > 0 ? '-14px' : 0,
+                    paddingLeft: i > 0 ? '14px' : 0,
+                    paddingRight: i > 0 ? '14px' : 0,
+                  }}>
+                    {STEP_LABELS[step]}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'flex', marginTop: '10px' }}>
-              {steps.map((step, i) => (
-                <div key={step} style={{
-                  flex: i === 0 ? '0 0 32px' : 1,
-                  fontSize: '0.55rem',
-                  color: step === order.status ? (STEP_COLORS[step] || '#222222') : '#9CA3AF',
-                  fontWeight: step === order.status ? 700 : 400,
-                  textAlign: i === 0 ? 'right' : i === steps.length - 1 ? 'left' : 'center',
-                  marginLeft: i > 0 ? '-14px' : 0,
-                  marginRight: i > 0 ? '-14px' : 0,
-                  paddingLeft: i > 0 ? '14px' : 0,
-                  paddingRight: i > 0 ? '14px' : 0,
-                }}>
-                  {STEP_LABELS[step]}
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Status message */}
           <motion.div
@@ -274,21 +302,32 @@ export default function TrackPage() {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             style={{
-              background: order.status === 'ready' ? 'rgba(22,163,74,0.06)' : `${activeColor}08`,
-              border: `1px solid ${order.status === 'ready' ? 'rgba(22,163,74,0.20)' : `${activeColor}20`}`,
+              background: order.status === 'ready_for_pickup' ? 'rgba(22,163,74,0.06)'
+                        : order.status === 'cancelled'       ? 'rgba(107,114,128,0.06)'
+                        : order.status === 'rejected'        ? 'rgba(220,38,38,0.06)'
+                        : `${activeColor}08`,
+              border: `1px solid ${
+                order.status === 'ready_for_pickup' ? 'rgba(22,163,74,0.20)'
+                : order.status === 'cancelled'      ? 'rgba(107,114,128,0.20)'
+                : order.status === 'rejected'       ? 'rgba(220,38,38,0.20)'
+                : `${activeColor}20`
+              }`,
               borderRadius: '12px',
               padding: '14px 18px',
-              marginBottom: order.status === 'pending_approval' ? '18px' : '0',
-              color: order.status === 'ready' ? '#16A34A' : activeColor,
+              marginBottom: order.status === 'waiting_approval' ? '18px' : '0',
+              color: order.status === 'ready_for_pickup' ? '#16A34A'
+                   : order.status === 'cancelled'        ? '#6B7280'
+                   : order.status === 'rejected'         ? '#DC2626'
+                   : activeColor,
               fontSize: '0.9rem',
               fontWeight: 500,
             }}
           >
-            {STATUS_MESSAGES[order.status]}
+            {STATUS_MESSAGES[order.status] ?? order.status_label}
           </motion.div>
 
-          {/* Cost approval */}
-          {order.status === 'pending_approval' && !approved && !rejected && (
+          {/* Cost approval — only when waiting_approval and not yet acted */}
+          {order.status === 'waiting_approval' && !approved && !rejected && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -309,7 +348,7 @@ export default function TrackPage() {
                 marginBottom: '18px',
                 fontFamily: 'JetBrains Mono, monospace',
               }}>
-                {order.cost} <span style={{ fontSize: '0.9rem' }}>ريال</span>
+                {order.estimated_cost} <span style={{ fontSize: '0.9rem' }}>ريال</span>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <motion.button
@@ -356,12 +395,7 @@ export default function TrackPage() {
                 </motion.button>
               </div>
               {rejectError && (
-                <div style={{
-                  marginTop: '10px',
-                  fontSize: '0.82rem',
-                  color: '#DC2626',
-                  textAlign: 'center',
-                }}>
+                <div style={{ marginTop: '10px', fontSize: '0.82rem', color: '#DC2626', textAlign: 'center' }}>
                   {rejectError}
                 </div>
               )}
@@ -398,24 +432,11 @@ export default function TrackPage() {
                 textAlign: 'center',
               }}
             >
-              <div style={{
-                fontSize: '1.5rem',
-                marginBottom: '8px',
-                color: '#DC2626',
-              }}>✕</div>
-              <div style={{
-                fontWeight: 700,
-                fontSize: '1rem',
-                color: '#DC2626',
-                marginBottom: '6px',
-              }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: '8px', color: '#DC2626' }}>✕</div>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#DC2626', marginBottom: '6px' }}>
                 تم رفض الطلب
               </div>
-              <div style={{
-                fontSize: '0.85rem',
-                color: '#EF4444',
-                opacity: 0.8,
-              }}>
+              <div style={{ fontSize: '0.85rem', color: '#EF4444', opacity: 0.8 }}>
                 سيتواصل معك الفريق قريباً
               </div>
             </motion.div>
