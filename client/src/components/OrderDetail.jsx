@@ -33,6 +33,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [history, setHistory]     = useState([]);
   const [newComment, setNewComment] = useState('');
   const [cost, setCost]           = useState(String(initial.cost ?? 0));
+  const [paymentMethod, setPaymentMethod]   = useState(null);
   const [savingCost, setSavingCost]         = useState(false);
   const [savingStatus, setSavingStatus]     = useState(false);
   const [savingDelivery, setSavingDelivery] = useState(false);
@@ -76,6 +77,23 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     }
     catch (e) { setError(e.message); }
     finally { setSavingStatus(false); }
+  }
+
+  async function handleDelivery() {
+    if (!paymentMethod) return;
+    setSavingDelivery(true);
+    setError('');
+    try {
+      await confirmPayment(order.id);
+      const updated = await updateOrderStatus(order.id, 'delivered');
+      update(updated);
+      loadHistory();
+      onClose();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSavingDelivery(false);
+    }
   }
 
   async function handleSaveCost() {
@@ -285,7 +303,55 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 
               {isWorkshop && (
                 <>
-                  {NEXT_STATUS[order.status] && (
+                  {/* Payment confirmation flow for ready_for_pickup */}
+                  {order.status === 'ready_for_pickup' && (
+                    <div style={{ marginBottom: '20px', padding: '16px', background: '#FFFBF0', border: '1px solid rgba(212,168,67,0.3)', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
+                        تأكيد الدفع والتسليم
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                        طريقة الدفع
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                        {[
+                          { value: 'cash', label: 'نقداً' },
+                          { value: 'card', label: 'بطاقة' },
+                          { value: 'transfer', label: 'تحويل' },
+                        ].map(({ value, label }) => (
+                          <button
+                            key={value}
+                            onClick={() => setPaymentMethod(value)}
+                            style={{
+                              flex: 1,
+                              padding: '10px 6px',
+                              border: paymentMethod === value ? '2px solid #D4A843' : '1px solid #D1D5DB',
+                              borderRadius: '8px',
+                              background: paymentMethod === value ? 'rgba(212,168,67,0.1)' : '#FFFFFF',
+                              color: paymentMethod === value ? '#92700A' : 'var(--text-secondary)',
+                              fontWeight: paymentMethod === value ? 700 : 400,
+                              fontSize: '0.88rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                              fontFamily: 'Almarai, sans-serif',
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        className="btn-gold"
+                        style={{ width: '100%', justifyContent: 'center', opacity: paymentMethod ? 1 : 0.5 }}
+                        disabled={!paymentMethod || savingDelivery}
+                        onClick={handleDelivery}
+                      >
+                        {savingDelivery ? 'جاري التأكيد...' : '✓ تأكيد التسليم والدفع'}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Auto-advance button — hidden when ready_for_pickup (payment flow handles it) */}
+                  {NEXT_STATUS[order.status] && order.status !== 'ready_for_pickup' && (
                     <div style={{ marginBottom: '16px' }}>
                       <button
                         className="btn-primary"
