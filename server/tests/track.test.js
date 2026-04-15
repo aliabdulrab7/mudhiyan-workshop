@@ -38,17 +38,17 @@ describe('GET /api/track/:token', () => {
 
 describe('POST /api/track/:token/approve', () => {
   beforeEach(() => {
-    db.prepare(`UPDATE orders SET status = 'pending_approval', cost = 50 WHERE id = ?`).run(orderId);
+    db.prepare(`UPDATE orders SET status = 'waiting_approval', cost = 50 WHERE id = ?`).run(orderId);
   });
 
-  it('moves pending_approval to in_progress', async () => {
+  it('moves waiting_approval to approved', async () => {
     const res = await request(app).post(`/api/track/${TEST_TOKEN}/approve`);
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('in_progress');
+    expect(res.body.status).toBe('approved');
   });
 
-  it('returns 400 if order is not pending_approval', async () => {
-    db.prepare(`UPDATE orders SET status = 'in_progress' WHERE id = ?`).run(orderId);
+  it('returns 400 if order is not waiting_approval', async () => {
+    db.prepare(`UPDATE orders SET status = 'in_repair' WHERE id = ?`).run(orderId);
     const res = await request(app).post(`/api/track/${TEST_TOKEN}/approve`);
     expect(res.status).toBe(400);
   });

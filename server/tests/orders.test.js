@@ -46,28 +46,30 @@ describe('PATCH /api/orders/:id/cost', () => {
   let orderId;
   beforeEach(() => {
     db.prepare(`DELETE FROM orders`).run();
-    const res = db.prepare(`INSERT INTO orders (order_number, customer_name, phone, piece_type, shop_id, customer_token)
-      VALUES ('WRK-COST-0001','Ali','966500000001','خاتم',1,'token-cost')`).run();
+    const res = db.prepare(`INSERT INTO orders (order_number, customer_name, phone, piece_type, shop_id, customer_token, status)
+      VALUES ('WRK-COST-0001','Ali','966500000001','خاتم',1,'token-cost','diagnosing')`).run();
     orderId = res.lastInsertRowid;
+    // Add an item so refreshOrderCost has rows to sum
+    db.prepare(`INSERT INTO order_items (order_id, item_name, item_type, sort_order) VALUES (?, 'خاتم ذهبي', 'ring', 1)`).run(orderId);
   });
 
-  it('cost > 0 sets status to pending_approval', async () => {
+  it('cost > 0 sets status to waiting_approval', async () => {
     const res = await request(app)
       .patch(`/api/orders/${orderId}/cost`)
       .set(auth(workshopToken))
       .send({ cost: 50 });
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('pending_approval');
+    expect(res.body.status).toBe('waiting_approval');
     expect(res.body.cost).toBe(50);
   });
 
-  it('cost = 0 sets status to in_progress', async () => {
+  it('cost = 0 sets status to in_repair', async () => {
     const res = await request(app)
       .patch(`/api/orders/${orderId}/cost`)
       .set(auth(workshopToken))
       .send({ cost: 0 });
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('in_progress');
+    expect(res.body.status).toBe('in_repair');
   });
 
   it('shop_employee cannot set cost', async () => {
