@@ -22,4 +22,3 @@ git push origin master
 
 echo ""
 echo "[ship] Done. Deploy running → $REPO_URL"
-# smoke test Fri Apr 17 00:31:18 +03 2026
