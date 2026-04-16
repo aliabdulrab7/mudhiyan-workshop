@@ -18,7 +18,7 @@ echo "[ship] Committing: deploy: $TIMESTAMP"
 git commit -m "deploy: $TIMESTAMP"
 
 echo "[ship] Pushing to master..."
-git push origin master
+git push origin HEAD:master
 
 echo ""
 echo "[ship] Done. Deploy running → $REPO_URL"
