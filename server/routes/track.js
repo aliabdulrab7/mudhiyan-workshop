@@ -1,9 +1,21 @@
-const express = require('express');
-const { db }  = require('../db');
+const express    = require('express');
+const rateLimit  = require('express-rate-limit');
+const { db }     = require('../db');
 const OrderService   = require('../services/OrderService');
 const { errorToHttpStatus } = require('../errors');
 
 const router = express.Router();
+
+// 8.8 — Rate limit public customer-facing endpoints: 60 req/min per IP
+const trackLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 60,
+  message: { error: 'طلبات كثيرة، حاول بعد لحظة' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.use(trackLimiter);
 
 // ── Status display labels (Arabic) ────────────────────────────────────────────
 const STATUS_LABELS = {

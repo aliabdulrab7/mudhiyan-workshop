@@ -11,6 +11,7 @@ const orderItemsRouter = require('./routes/orderItems');
 const servicesRouter   = require('./routes/services');
 const techRouter       = require('./routes/technicians');
 const inventoryRouter  = require('./routes/inventory');
+const { errorToHttpStatus } = require('./errors');
 
 // ── Phase 2: wire payment validator + notification hook ───────────────────────
 const OrderService       = require('./services/OrderService');
@@ -71,5 +72,22 @@ app.use('/api/order-items', orderItemsRouter);
 app.use('/api/services',    servicesRouter);
 app.use('/api/technicians', techRouter);
 app.use('/api/inventory',   inventoryRouter);
+
+// 8.2 — Catch-all 404 for unmatched routes — returns JSON, not Express HTML page
+app.use((_req, res) => {
+  res.status(404).json({ error: 'المسار غير موجود' });
+});
+
+// 8.2 — Global error handler (last middleware)
+// Catches any error passed via next(err) or thrown inside async middleware.
+// No stack traces in production — avoids leaking internals.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const status = errorToHttpStatus(err);
+  const message = process.env.NODE_ENV === 'production' && status >= 500
+    ? 'خطأ في الخادم'
+    : err.message;
+  res.status(status).json({ error: message });
+});
 
 module.exports = app;

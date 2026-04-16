@@ -266,6 +266,14 @@ router.patch('/:id/status', (req, res) => {
     ).all(updated.id);
     res.json({ ...updated, items });
   } catch (err) {
+    // 8.6 — Include from/to for transition errors so the client can display context
+    if (err.name === 'InvalidTransitionError') {
+      return res.status(409).json({
+        error: `لا يمكن الانتقال من '${err.from}' إلى '${err.to}'`,
+        from: err.from,
+        to:   err.to,
+      });
+    }
     res.status(errorToHttpStatus(err)).json({ error: err.message });
   }
 });

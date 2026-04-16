@@ -14,7 +14,7 @@ After this phase, every endpoint returns the same envelope, every error uses the
 
 ---
 
-## Status: Planned
+## Status: Completed — 2026-04-17 (8.4 deferred to Phase 9)
 
 ---
 

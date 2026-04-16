@@ -60,13 +60,24 @@ class StateUpdateError extends Error {
  * Map a service error to an HTTP status code.
  * Used by route handlers — keeps HTTP logic out of the service.
  */
+/**
+ * Map a service error to an HTTP status code.
+ * Used by route handlers — keeps HTTP logic out of the service.
+ *
+ * Status code rationale:
+ *   409 Conflict       — state machine violations (wrong state, locked)
+ *   422 Unprocessable  — business rule violations (payment required, rule breach)
+ *   403 Forbidden      — permission denied
+ *   404 Not Found      — resource does not exist
+ *   500 Internal       — unexpected server errors
+ */
 function errorToHttpStatus(err) {
   switch (err.name) {
     case 'NotFoundError':              return 404;
-    case 'InvalidTransitionError':     return 400;
-    case 'BusinessRuleViolationError': return 400;
-    case 'PaymentRequiredError':       return 400;
-    case 'OrderLockedError':           return 409;
+    case 'InvalidTransitionError':     return 409; // 8.3: conflict state, not bad input
+    case 'BusinessRuleViolationError': return 422; // 8.3: business rule violation
+    case 'PaymentRequiredError':       return 422; // 8.3: business rule violation
+    case 'OrderLockedError':           return 409; // conflict (locked)
     case 'PermissionError':            return 403;
     case 'AuditWriteError':            return 500;
     case 'StateUpdateError':           return 500;

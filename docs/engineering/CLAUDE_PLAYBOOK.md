@@ -1031,6 +1031,22 @@ This section is an append-only log. Every significant change to the system must 
 
 ```
 2026-04-17
+Phase 8 — API Hardening applied.
+8.2: Global error handler added to app.js — catches next(err), returns { error } JSON, no stack traces in production.
+     Catch-all 404 handler added — unknown routes return JSON not Express HTML page.
+8.3: HTTP status codes corrected — InvalidTransitionError→409, BusinessRuleViolationError→422, PaymentRequiredError→422.
+8.5: 404 coverage confirmed on all single-resource endpoints.
+8.6: PATCH /status now returns { error, from, to } on InvalidTransitionError for client context.
+8.7: express-rate-limit added to POST /api/auth/login — 10 req per 15 min per IP.
+8.8: Rate limiter added to all /api/track/* endpoints — 60 req per min per IP.
+8.4: Deferred — response envelope { success, data, total } requires frontend coordination (Phase 9).
+     Test suite: 15 new tests (phase8.test.js), 135 total passing.
+```
+
+---
+
+```
+2026-04-17
 Phase 7 — Data Consistency applied.
 7.1: Phone normalization: normalizePhone() helper enforces 966XXXXXXXXX format on all write paths.
      Existing DB records normalized via idempotent migration in db.js.
