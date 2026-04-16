@@ -9,3 +9,4 @@ dist/
 .DS_Store
 github-actions-deployer_accessKeys.csv
 .worktrees/
+.claude/settings.local.json
