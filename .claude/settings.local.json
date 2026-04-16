@@ -28,7 +28,8 @@
       "Bash(aws ec2 describe-instances:*)",
       "Bash(rsync:*)",
       "Bash(dig +short:*)",
-      "Bash(gh run:*)"
+      "Bash(gh run:*)",
+      "Bash(./ship.sh *)"
     ]
   }
 }
