@@ -159,6 +159,17 @@ if (!columnExists('order_status_history', 'notes')) {
   db.exec(`ALTER TABLE order_status_history ADD COLUMN notes TEXT DEFAULT NULL`);
 }
 
+// ── Workflow status rename migrations (idempotent) ────────────────────────────
+// Rename old status names to new workflow names. Safe to run on every startup.
+db.exec(`
+  UPDATE orders SET status = 'inspection'     WHERE status = 'diagnosing';
+  UPDATE orders SET status = 'ready_for_return' WHERE status = 'ready_for_pickup';
+  UPDATE order_status_history SET to_status   = 'inspection'     WHERE to_status   = 'diagnosing';
+  UPDATE order_status_history SET from_status = 'inspection'     WHERE from_status = 'diagnosing';
+  UPDATE order_status_history SET to_status   = 'ready_for_return' WHERE to_status   = 'ready_for_pickup';
+  UPDATE order_status_history SET from_status = 'ready_for_return' WHERE from_status = 'ready_for_pickup';
+`);
+
 // ── Phase 3 migrations: order_items new columns ───────────────────────────────
 if (!columnExists('order_items', 'repair_description')) {
   db.exec(`ALTER TABLE order_items ADD COLUMN repair_description TEXT DEFAULT NULL`);
@@ -341,8 +352,8 @@ const createOrder = db.transaction((data) => {
     : (data.piece_type || '');
 
   const result = db.prepare(`
-    INSERT INTO orders (order_number, customer_name, phone, piece_type, notes, shop_id, customer_token)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO orders (order_number, customer_name, phone, piece_type, notes, shop_id, customer_token, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'new')
   `).run(order_number, data.customer_name, data.phone, piece_type, data.notes ?? '', data.shop_id ?? null, customer_token);
 
   const orderId = result.lastInsertRowid;
@@ -350,7 +361,7 @@ const createOrder = db.transaction((data) => {
   // Record initial status in history
   db.prepare(`
     INSERT INTO order_status_history (order_id, from_status, to_status, changed_by)
-    VALUES (?, NULL, 'received', ?)
+    VALUES (?, NULL, 'new', ?)
   `).run(orderId, data.created_by || 'system');
 
   if (items) {

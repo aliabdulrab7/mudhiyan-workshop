@@ -7,16 +7,16 @@ const { syncAllItemCosts, refreshOrderCost } = require('../helpers/costHelpers')
 
 const router = express.Router();
 
-// New 9-stage workflow
+// Current workflow statuses
 const STATUS_SEQUENCE = [
-  'received', 'diagnosing', 'waiting_approval', 'in_repair',
-  'quality_check', 'ready_for_pickup', 'invoiced', 'delivered', 'closed',
+  'new', 'received', 'inspection', 'waiting_approval', 'in_repair',
+  'quality_check', 'ready_for_return', 'returned_to_shop', 'delivered', 'closed',
 ];
 
 // Legacy statuses kept for existing data backward compatibility
 const ALLOWED_STATUSES = [
   ...STATUS_SEQUENCE,
-  'pending_approval', 'in_progress', 'ready', 'returned',
+  'diagnosing', 'ready_for_pickup', 'pending_approval', 'in_progress', 'ready', 'returned', 'invoiced',
 ];
 
 // All order routes require auth
@@ -31,16 +31,16 @@ router.get('/stats', (req, res) => {
   const row = db.prepare(`
     SELECT
       COUNT(*) AS total,
+      SUM(status = 'new')                                                         AS new,
       SUM(status = 'received')                                                    AS received,
-      SUM(status = 'diagnosing')                                                  AS diagnosing,
-      SUM(status IN ('waiting_approval','pending_approval'))                       AS waiting_approval,
-      SUM(status IN ('in_repair','in_progress'))                                   AS in_repair,
+      SUM(status IN ('inspection','diagnosing'))                                  AS inspection,
+      SUM(status IN ('waiting_approval','pending_approval'))                      AS waiting_approval,
+      SUM(status IN ('in_repair','in_progress'))                                  AS in_repair,
       SUM(status = 'quality_check')                                               AS quality_check,
-      SUM(status IN ('ready_for_pickup','ready'))                                  AS ready_for_pickup,
-      SUM(status = 'invoiced')                                                    AS invoiced,
+      SUM(status IN ('ready_for_return','ready_for_pickup','ready'))              AS ready_for_return,
+      SUM(status = 'returned_to_shop')                                            AS returned_to_shop,
       SUM(status = 'delivered')                                                   AS delivered,
-      SUM(status = 'closed')                                                      AS closed,
-      SUM(status = 'returned')                                                    AS returned
+      SUM(status = 'closed')                                                      AS closed
     FROM orders ${where}
   `).get(...params);
   res.json(row);
@@ -52,16 +52,16 @@ router.get('/branch-stats', requireRole('workshop'), (req, res) => {
     SELECT
       s.id   AS shop_id,
       s.name AS shop_name,
-      COALESCE(SUM(o.status = 'received'), 0)                                        AS received,
-      COALESCE(SUM(o.status IN ('waiting_approval','pending_approval')), 0)           AS pending_approval,
-      COALESCE(SUM(o.status IN ('in_repair','in_progress','diagnosing')), 0)          AS in_progress,
-      COALESCE(SUM(o.status IN ('ready_for_pickup','ready','quality_check')), 0)      AS ready,
-      COALESCE(SUM(o.status IN ('invoiced','delivered')), 0)                          AS delivered,
-      COUNT(o.id)                                                                     AS total
+      COALESCE(SUM(o.status IN ('new','received')), 0)                                       AS received,
+      COALESCE(SUM(o.status IN ('waiting_approval','pending_approval')), 0)                  AS pending_approval,
+      COALESCE(SUM(o.status IN ('in_repair','in_progress','inspection','diagnosing')), 0)    AS in_progress,
+      COALESCE(SUM(o.status IN ('ready_for_return','ready_for_pickup','ready','returned_to_shop','quality_check')), 0) AS ready,
+      COALESCE(SUM(o.status = 'delivered'), 0)                                               AS delivered,
+      COUNT(o.id)                                                                             AS total
     FROM shops s
     LEFT JOIN orders o ON o.shop_id = s.id
     GROUP BY s.id
-    ORDER BY (COALESCE(SUM(o.status IN ('ready_for_pickup','ready','quality_check')), 0)) DESC, s.name
+    ORDER BY (COALESCE(SUM(o.status IN ('ready_for_return','ready_for_pickup','ready','returned_to_shop','quality_check')), 0)) DESC, s.name
   `).all();
   res.json(rows);
 });
@@ -120,11 +120,15 @@ router.get('/', (req, res) => {
   // Map legacy status filters to new equivalents
   if (status && status !== 'all') {
     if (status === 'in_progress') {
-      query += " AND o.status IN ('in_repair','in_progress','diagnosing')";
+      query += " AND o.status IN ('in_repair','in_progress','inspection','diagnosing')";
     } else if (status === 'pending_approval') {
       query += " AND o.status IN ('waiting_approval','pending_approval')";
     } else if (status === 'ready') {
-      query += " AND o.status IN ('ready_for_pickup','ready','quality_check')";
+      query += " AND o.status IN ('ready_for_return','ready_for_pickup','ready','returned_to_shop','quality_check')";
+    } else if (status === 'diagnosing') {
+      query += " AND o.status IN ('inspection','diagnosing')";
+    } else if (status === 'ready_for_pickup') {
+      query += " AND o.status IN ('ready_for_return','ready_for_pickup')";
     } else {
       query += ' AND o.status = ?';
       params.push(status);
@@ -261,7 +265,7 @@ router.patch('/:id/cost', requireRole('workshop'), (req, res) => {
   let updated;
   let sendApproval = false;
 
-  if (order.status === 'diagnosing') {
+  if (order.status === 'inspection') {
     const targetStatus = total > 0 ? 'waiting_approval' : 'in_repair';
     try {
       updated = OrderService.transition(
@@ -306,7 +310,7 @@ router.post('/:orderId/items/:itemId/cost', requireRole('workshop'), (req, res) 
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   if (order.locked_at) return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
 
-  if (order.status !== 'diagnosing') {
+  if (order.status !== 'inspection') {
     return res.status(400).json({ error: 'لا يمكن تحديد التكلفة إلا في مرحلة الفحص' });
   }
 
@@ -376,9 +380,9 @@ router.post('/:id/confirm-payment', requireAuth, (req, res) => {
     return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
   }
 
-  if (order.status !== 'ready_for_pickup') {
+  if (order.status !== 'returned_to_shop') {
     return res.status(400).json({
-      error: 'تأكيد الدفع متاح فقط عندما يكون الطلب جاهزاً للاستلام',
+      error: 'تأكيد الدفع متاح فقط عندما تكون القطعة في الفرع',
     });
   }
 

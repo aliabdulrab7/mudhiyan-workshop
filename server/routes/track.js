@@ -7,14 +7,16 @@ const router = express.Router();
 
 // ── Status display labels (Arabic) ────────────────────────────────────────────
 const STATUS_LABELS = {
-  received:         'تم الاستلام',
-  diagnosing:       'قيد الفحص',
+  new:              'تم إنشاء الطلب',
+  received:         'استُلم في الورشة',
+  inspection:       'قيد الفحص',
   waiting_approval: 'بانتظار موافقتك',
   approved:         'تمت الموافقة',
   rejected:         'تم الرفض',
   in_repair:        'قيد الإصلاح',
   quality_check:    'فحص الجودة',
-  ready_for_pickup: 'جاهز للاستلام',
+  ready_for_return: 'جاهز للإرجاع للفرع',
+  returned_to_shop: 'وصل للفرع',
   delivered:        'تم التسليم',
   closed:           'مغلق',
   cancelled:        'ملغى',

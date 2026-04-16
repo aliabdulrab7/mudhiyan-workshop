@@ -81,7 +81,7 @@ router.post('/:id/diagnosis', requireRole('workshop'), (req, res) => {
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   if (checkLocked(order, res)) return;
 
-  if (order.status !== 'diagnosing') {
+  if (order.status !== 'inspection') {
     return res.status(400).json({ error: 'لا يمكن إضافة تشخيص إلا في مرحلة الفحص' });
   }
 

@@ -6,24 +6,28 @@ import StatusBadge, { STATUS } from './StatusBadge';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 
+// Workshop-triggered transitions (shop transitions handled via separate actions)
 const NEXT_STATUS = {
-  received:         'diagnosing',
-  diagnosing:       'waiting_approval',
+  new:              'received',
+  received:         'inspection',
+  inspection:       'waiting_approval',
   waiting_approval: 'in_repair',
   approved:         'in_repair',
   in_repair:        'quality_check',
-  quality_check:    'ready_for_pickup',
-  // ready_for_pickup → delivered requires payment confirmation (handled separately)
+  quality_check:    'ready_for_return',
+  // ready_for_return → returned_to_shop: shop employee only (separate action)
+  // returned_to_shop → delivered: shop employee only with payment (separate action)
   delivered:        'closed',
 };
 
 const NEXT_LABEL = {
-  received:         'بدء التشخيص',
-  diagnosing:       'طلب موافقة العميل',
+  new:              'استلام في الورشة',
+  received:         'بدء الفحص',
+  inspection:       'طلب موافقة العميل',
   waiting_approval: 'بدء الإصلاح',
   approved:         'بدء الإصلاح',
   in_repair:        'فحص الجودة',
-  quality_check:    'جاهز للاستلام',
+  quality_check:    'جاهز للإرجاع',
   delivered:        'إغلاق الطلب',
 };
 
@@ -75,7 +79,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
       const updated = await updateOrderStatus(order.id, next);
       update(updated);
       loadHistory();
-      if (updated.status === 'ready' || updated.status === 'ready_for_pickup') setJustMarkedReady(true);
+      if (updated.status === 'ready_for_return') setJustMarkedReady(true);
     }
     catch (e) { setError(e.message); }
     finally { setSavingStatus(false); }
@@ -106,12 +110,23 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     try {
       const updated = await updateCost(order.id, c);
       update(updated);
-      if (updated.status === 'pending_approval') {
+      if (updated.status === 'waiting_approval') {
         window.open(buildApprovalWaUrl(updated.phone, updated.customer_name, updated.cost, buildTrackingUrl(updated.customer_token)), '_blank', 'noopener,noreferrer');
       }
     }
     catch (e) { setError(e.message); }
     finally { setSavingCost(false); }
+  }
+
+  async function handleConfirmReturnedToShop() {
+    setSavingStatus(true);
+    setError('');
+    try {
+      const updated = await updateOrderStatus(order.id, 'returned_to_shop');
+      update(updated);
+      loadHistory();
+    } catch (e) { setError(e.message); }
+    finally { setSavingStatus(false); }
   }
 
   async function handleCancel() {
@@ -288,7 +303,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
           <Divider />
 
           {/* Actions */}
-          {(isWorkshop || order.status === 'ready') && (
+          {(isWorkshop || ['ready_for_return', 'returned_to_shop'].includes(order.status)) && (
             <section style={{ padding: '0 28px' }}>
               <SectionTitle>الإجراءات</SectionTitle>
 
@@ -305,83 +320,82 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                 </div>
               )}
 
-              {/* Branch employee: deliver to customer */}
-              {!isWorkshop && order.status === 'ready' && (
-                <div style={{ marginBottom: '12px' }}>
-                  <button
-                    className="btn-gold"
-                    style={{ width: '100%', justifyContent: 'center', background: '#16A34A', borderColor: 'rgba(22,163,74,0.4)' }}
-                    disabled={savingStatus}
-                    onClick={handleStatusAdvance}
-                  >
-                    {savingStatus ? 'جاري التحديث...' : '✓ تسليم القطعة للعميل'}
-                  </button>
-                </div>
+              {/* Shop employee: WhatsApp notification + confirm received from workshop */}
+              {!isWorkshop && order.status === 'ready_for_return' && (
+                <>
+                  <div style={{ marginBottom: '12px' }}>
+                    <button
+                      className="btn-ghost"
+                      style={{ width: '100%', justifyContent: 'center' }}
+                      onClick={() => window.open(buildReadyWaUrl(order.phone, order.customer_name, order.order_number), '_blank', 'noopener,noreferrer')}
+                    >
+                      📲 إرسال رسالة الاستلام (WhatsApp)
+                    </button>
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <button
+                      className="btn-gold"
+                      style={{ width: '100%', justifyContent: 'center', background: '#059669', borderColor: 'rgba(5,150,105,0.4)' }}
+                      disabled={savingStatus}
+                      onClick={handleConfirmReturnedToShop}
+                    >
+                      {savingStatus ? 'جاري التحديث...' : '✓ تأكيد وصول القطعة من الورشة'}
+                    </button>
+                  </div>
+                </>
               )}
 
-              {order.status === 'ready' && (
-                <div style={{ marginBottom: '16px' }}>
+              {/* Shop employee: payment + delivery to customer */}
+              {!isWorkshop && order.status === 'returned_to_shop' && (
+                <div style={{ marginBottom: '20px', padding: '16px', background: '#FFFBF0', border: '1px solid rgba(212,168,67,0.3)', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
+                    تأكيد الدفع والتسليم
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                    طريقة الدفع
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                    {[
+                      { value: 'cash', label: 'نقداً' },
+                      { value: 'card', label: 'بطاقة' },
+                      { value: 'transfer', label: 'تحويل' },
+                    ].map(({ value, label }) => (
+                      <button
+                        key={value}
+                        onClick={() => setPaymentMethod(value)}
+                        style={{
+                          flex: 1,
+                          padding: '10px 6px',
+                          border: paymentMethod === value ? '2px solid #D4A843' : '1px solid #D1D5DB',
+                          borderRadius: '8px',
+                          background: paymentMethod === value ? 'rgba(212,168,67,0.1)' : '#FFFFFF',
+                          color: paymentMethod === value ? '#92700A' : 'var(--text-secondary)',
+                          fontWeight: paymentMethod === value ? 700 : 400,
+                          fontSize: '0.88rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          fontFamily: 'Almarai, sans-serif',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                   <button
-                    className="btn-ghost"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    onClick={() => window.open(buildReadyWaUrl(order.phone, order.customer_name, order.order_number), '_blank', 'noopener,noreferrer')}
+                    className="btn-gold"
+                    style={{ width: '100%', justifyContent: 'center', opacity: paymentMethod ? 1 : 0.5 }}
+                    disabled={!paymentMethod || savingDelivery}
+                    onClick={handleDelivery}
                   >
-                    📲 إرسال رسالة الاستلام (WhatsApp)
+                    {savingDelivery ? 'جاري التأكيد...' : '✓ تأكيد التسليم والدفع'}
                   </button>
                 </div>
               )}
 
               {isWorkshop && (
                 <>
-                  {/* Payment confirmation flow for ready_for_pickup */}
-                  {order.status === 'ready_for_pickup' && (
-                    <div style={{ marginBottom: '20px', padding: '16px', background: '#FFFBF0', border: '1px solid rgba(212,168,67,0.3)', borderRadius: '10px' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
-                        تأكيد الدفع والتسليم
-                      </div>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                        طريقة الدفع
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                        {[
-                          { value: 'cash', label: 'نقداً' },
-                          { value: 'card', label: 'بطاقة' },
-                          { value: 'transfer', label: 'تحويل' },
-                        ].map(({ value, label }) => (
-                          <button
-                            key={value}
-                            onClick={() => setPaymentMethod(value)}
-                            style={{
-                              flex: 1,
-                              padding: '10px 6px',
-                              border: paymentMethod === value ? '2px solid #D4A843' : '1px solid #D1D5DB',
-                              borderRadius: '8px',
-                              background: paymentMethod === value ? 'rgba(212,168,67,0.1)' : '#FFFFFF',
-                              color: paymentMethod === value ? '#92700A' : 'var(--text-secondary)',
-                              fontWeight: paymentMethod === value ? 700 : 400,
-                              fontSize: '0.88rem',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s',
-                              fontFamily: 'Almarai, sans-serif',
-                            }}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        className="btn-gold"
-                        style={{ width: '100%', justifyContent: 'center', opacity: paymentMethod ? 1 : 0.5 }}
-                        disabled={!paymentMethod || savingDelivery}
-                        onClick={handleDelivery}
-                      >
-                        {savingDelivery ? 'جاري التأكيد...' : '✓ تأكيد التسليم والدفع'}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Auto-advance button — hidden when ready_for_pickup (payment flow handles it) */}
-                  {NEXT_STATUS[order.status] && order.status !== 'ready_for_pickup' && (
+                  {/* Auto-advance button — workshop transitions only */}
+                  {NEXT_STATUS[order.status] && (
                     <div style={{ marginBottom: '16px' }}>
                       <button
                         className="btn-primary"
@@ -404,7 +418,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                         {savingCost ? '...' : 'حفظ'}
                       </button>
                     </div>
-                    {order.status === 'received' && (
+                    {order.status === 'inspection' && (
                       <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '6px' }}>
                         تحديد التكلفة سينقل الطلب إلى "بانتظار الموافقة" تلقائياً
                       </div>
@@ -417,7 +431,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     </div>
                   )}
 
-                  {(order.status === 'ready' || order.status === 'ready_for_pickup') && (
+                  {order.status === 'ready_for_return' && (
                     <div style={{ marginTop: '24px' }}>
                       <SectionTitle>ملصق الجاهزية</SectionTitle>
                       <ReadyLabelCanvas order={order} autoPrint={justMarkedReady} />

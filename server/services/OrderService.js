@@ -35,14 +35,16 @@ const {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TRANSITIONS = {
-  received:         ['diagnosing'],
-  diagnosing:       ['waiting_approval', 'in_repair'],
+  new:              ['received'],
+  received:         ['inspection'],
+  inspection:       ['waiting_approval', 'in_repair'],
   waiting_approval: ['approved', 'rejected'],
   approved:         ['in_repair'],
-  rejected:         ['ready_for_pickup'],
+  rejected:         ['ready_for_return'],
   in_repair:        ['quality_check'],
-  quality_check:    ['ready_for_pickup', 'in_repair'],
-  ready_for_pickup: ['delivered'],
+  quality_check:    ['ready_for_return', 'in_repair'],
+  ready_for_return: ['returned_to_shop'],
+  returned_to_shop: ['delivered'],
   delivered:        ['closed'],
 };
 
@@ -80,8 +82,15 @@ function validateTransition(currentStatus, newStatus) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function validateBusinessRules(order, newStatus, user) {
-  // Rule: DIAGNOSING → WAITING_APPROVAL requires cost > 0
-  if (order.status === 'diagnosing' && newStatus === 'waiting_approval') {
+  // Rule: NEW → RECEIVED requires workshop role
+  if (order.status === 'new' && newStatus === 'received') {
+    if (user?.role !== 'workshop') {
+      throw new PermissionError('استلام الطلب في الورشة متاح للورشة فقط');
+    }
+  }
+
+  // Rule: INSPECTION → WAITING_APPROVAL requires cost > 0
+  if (order.status === 'inspection' && newStatus === 'waiting_approval') {
     if (!(order.cost > 0)) {
       throw new BusinessRuleViolationError(
         'لا يمكن طلب موافقة العميل بدون تحديد تكلفة الإصلاح'
@@ -89,8 +98,8 @@ function validateBusinessRules(order, newStatus, user) {
     }
   }
 
-  // Rule: DIAGNOSING → IN_REPAIR requires cost == 0
-  if (order.status === 'diagnosing' && newStatus === 'in_repair') {
+  // Rule: INSPECTION → IN_REPAIR requires cost == 0
+  if (order.status === 'inspection' && newStatus === 'in_repair') {
     if (order.cost > 0) {
       throw new BusinessRuleViolationError(
         'التكلفة محددة — يجب الحصول على موافقة العميل أولاً'
@@ -106,6 +115,20 @@ function validateBusinessRules(order, newStatus, user) {
     );
   }
 
+  // Rule: READY_FOR_RETURN → RETURNED_TO_SHOP requires shop_employee role
+  if (order.status === 'ready_for_return' && newStatus === 'returned_to_shop') {
+    if (user?.role !== 'shop_employee') {
+      throw new PermissionError('تأكيد استلام القطعة من الورشة متاح للفرع فقط');
+    }
+  }
+
+  // Rule: RETURNED_TO_SHOP → DELIVERED requires shop_employee role
+  if (order.status === 'returned_to_shop' && newStatus === 'delivered') {
+    if (user?.role !== 'shop_employee') {
+      throw new PermissionError('تسليم الطلب للعميل متاح للفرع فقط');
+    }
+  }
+
   // Rule: DELIVERED → CLOSED requires workshop role only
   if (order.status === 'delivered' && newStatus === 'closed') {
     if (user?.role !== 'workshop') {
@@ -113,7 +136,7 @@ function validateBusinessRules(order, newStatus, user) {
     }
   }
 
-  // Rule: CANCELLED requires workshop or branch staff (not technician)
+  // Rule: CANCELLED requires workshop or branch staff
   if (newStatus === 'cancelled') {
     const allowed = ['workshop', 'shop_employee'];
     if (!allowed.includes(user?.role)) {
@@ -121,10 +144,8 @@ function validateBusinessRules(order, newStatus, user) {
     }
   }
 
-  // Rule: READY_FOR_PICKUP → DELIVERED requires payment confirmation
-  // Phase 1: payment system not yet built — runs registered validator if present.
-  // Phase 2 calls registerPaymentValidator() to inject the real check.
-  if (order.status === 'ready_for_pickup' && newStatus === 'delivered') {
+  // Rule: RETURNED_TO_SHOP → DELIVERED requires payment confirmation
+  if (order.status === 'returned_to_shop' && newStatus === 'delivered') {
     runPaymentValidator(order);
   }
 }

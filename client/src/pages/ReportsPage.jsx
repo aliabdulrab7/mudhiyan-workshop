@@ -14,15 +14,15 @@ function useMobile() {
 }
 
 const ALL_STAT_CARDS = [
-  { key: 'received',         label: 'مستلمة',              icon: '◈', color: '#2980B9', gradient: 'linear-gradient(135deg, rgba(41,128,185,0.06), rgba(41,128,185,0.01))' },
-  { key: 'diagnosing',       label: 'تشخيص',               icon: '⚲', color: '#7C3AED', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.01))' },
-  { key: 'waiting_approval', label: 'بانتظار الموافقة',     icon: '⏳', color: '#D97706', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.06), rgba(217,119,6,0.01))' },
-  { key: 'in_repair',        label: 'قيد الإصلاح',          icon: '⟳', color: '#1A6EA0', gradient: 'linear-gradient(135deg, rgba(26,110,160,0.06), rgba(26,110,160,0.01))' },
-  { key: 'quality_check',    label: 'فحص الجودة',           icon: '✓', color: '#6B7280', gradient: 'linear-gradient(135deg, rgba(107,114,128,0.06), rgba(107,114,128,0.01))' },
-  { key: 'ready_for_pickup', label: 'جاهزة للاستلام',       icon: '✦', color: '#16A34A', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01))' },
-  { key: 'invoiced',         label: 'جاهزة للتسليم',        icon: '◎', color: '#059669', gradient: 'linear-gradient(135deg, rgba(5,150,105,0.06), rgba(5,150,105,0.01))' },
-  { key: 'delivered',        label: 'مُسلَّمة',              icon: '✔', color: '#1E293B', gradient: 'linear-gradient(135deg, rgba(30,41,59,0.06), rgba(30,41,59,0.01))' },
-  { key: 'closed',           label: 'مغلقة',               icon: '⊗', color: '#64748B', gradient: 'linear-gradient(135deg, rgba(100,116,139,0.06), rgba(100,116,139,0.01))' },
+  { key: 'received',         label: 'مستلمة في الورشة',     icon: '◈', color: '#2980B9', gradient: 'linear-gradient(135deg, rgba(41,128,185,0.06), rgba(41,128,185,0.01))' },
+  { key: 'inspection',       label: 'قيد الفحص',             icon: '⚲', color: '#7C3AED', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.01))' },
+  { key: 'waiting_approval', label: 'بانتظار الموافقة',       icon: '⏳', color: '#D97706', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.06), rgba(217,119,6,0.01))' },
+  { key: 'in_repair',        label: 'قيد الإصلاح',            icon: '⟳', color: '#1A6EA0', gradient: 'linear-gradient(135deg, rgba(26,110,160,0.06), rgba(26,110,160,0.01))' },
+  { key: 'quality_check',    label: 'فحص الجودة',             icon: '✓', color: '#6B7280', gradient: 'linear-gradient(135deg, rgba(107,114,128,0.06), rgba(107,114,128,0.01))' },
+  { key: 'ready_for_return', label: 'جاهزة للإرجاع',         icon: '✦', color: '#16A34A', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01))' },
+  { key: 'returned_to_shop', label: 'وصلت للفرع',             icon: '◎', color: '#059669', gradient: 'linear-gradient(135deg, rgba(5,150,105,0.06), rgba(5,150,105,0.01))' },
+  { key: 'delivered',        label: 'مُسلَّمة',                icon: '✔', color: '#1E293B', gradient: 'linear-gradient(135deg, rgba(30,41,59,0.06), rgba(30,41,59,0.01))' },
+  { key: 'closed',           label: 'مغلقة',                 icon: '⊗', color: '#64748B', gradient: 'linear-gradient(135deg, rgba(100,116,139,0.06), rgba(100,116,139,0.01))' },
 ];
 
 export default function ReportsPage() {

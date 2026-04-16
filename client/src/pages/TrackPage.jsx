@@ -4,48 +4,52 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getTrackOrder, approveOrder, rejectOrder } from '../api/orders';
 import SkeletonLoader from '../components/SkeletonLoader';
 
-// Customer-facing progress steps (simplified from 9-stage internal workflow)
-const STEPS = ['received', 'diagnosing', 'in_repair', 'ready_for_pickup', 'delivered'];
+// Customer-facing progress steps (simplified from full internal workflow)
+const STEPS = ['received', 'inspection', 'in_repair', 'ready_for_return', 'delivered'];
 
 const STEP_LABELS = {
   received:         'استُلم',
-  diagnosing:       'قيد الفحص',
+  inspection:       'قيد الفحص',
   in_repair:        'قيد التنفيذ',
-  ready_for_pickup: 'جاهز',
+  ready_for_return: 'جاهز',
   delivered:        'سُلِّم',
 };
 
 const STEP_COLORS = {
   received:         '#2980B9',
-  diagnosing:       '#D97706',
+  inspection:       '#D97706',
   in_repair:        '#1A6EA0',
-  ready_for_pickup: '#16A34A',
+  ready_for_return: '#16A34A',
   delivered:        '#7C3AED',
 };
 
-// Map all 9 backend statuses to a progress step position
+// Map all backend statuses to a customer-facing progress step
 const STATUS_TO_STEP = {
+  new:              'received',        // order created, not yet at workshop
   received:         'received',
-  diagnosing:       'diagnosing',
-  waiting_approval: 'diagnosing',  // diagnosis done, awaiting customer
+  inspection:       'inspection',
+  waiting_approval: 'inspection',      // inspection done, awaiting customer
   approved:         'in_repair',
-  rejected:         null,          // terminal — shown separately
+  rejected:         null,              // terminal — shown separately
   in_repair:        'in_repair',
-  quality_check:    'in_repair',   // internal QC, customer sees "in repair"
-  ready_for_pickup: 'ready_for_pickup',
+  quality_check:    'in_repair',       // internal QC, customer sees "in repair"
+  ready_for_return: 'ready_for_return',
+  returned_to_shop: 'ready_for_return', // at branch — still "ready" from customer view
   delivered:        'delivered',
   closed:           'delivered',
-  cancelled:        null,          // terminal — shown separately
+  cancelled:        null,              // terminal — shown separately
 };
 
 const STATUS_MESSAGES = {
-  received:         'تم استلام قطعتك، سيتم تقييمها قريباً',
-  diagnosing:       'جارٍ فحص قطعتك وتقييمها',
+  new:              'تم إنشاء طلب الصيانة، سيتم استلامه في الورشة قريباً',
+  received:         'تم استلام قطعتك في الورشة، سيتم فحصها قريباً',
+  inspection:       'جارٍ فحص قطعتك وتقييمها',
   waiting_approval: 'يرجى الموافقة على تكلفة الإصلاح أدناه',
   approved:         'تمت الموافقة، بدأ التنفيذ',
   in_repair:        'قطعتك قيد التنفيذ',
   quality_check:    'قطعتك قيد التنفيذ',
-  ready_for_pickup: '✓ قطعتك جاهزة للاستلام!',
+  ready_for_return: 'قطعتك جاهزة وفي طريقها للفرع',
+  returned_to_shop: '✓ قطعتك جاهزة للاستلام من الفرع!',
   delivered:        'تم التسليم، شكراً لثقتك',
   closed:           'تم التسليم، شكراً لثقتك',
   rejected:         'تم رفض الطلب',
@@ -54,8 +58,8 @@ const STATUS_MESSAGES = {
 
 // Statuses that are still in-progress (keep auto-refreshing)
 const ACTIVE_STATUSES = new Set([
-  'received', 'diagnosing', 'waiting_approval', 'approved',
-  'in_repair', 'quality_check',
+  'new', 'received', 'inspection', 'waiting_approval', 'approved',
+  'in_repair', 'quality_check', 'ready_for_return',
 ]);
 
 export default function TrackPage() {
@@ -302,12 +306,12 @@ export default function TrackPage() {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             style={{
-              background: order.status === 'ready_for_pickup' ? 'rgba(22,163,74,0.06)'
-                        : order.status === 'cancelled'       ? 'rgba(107,114,128,0.06)'
-                        : order.status === 'rejected'        ? 'rgba(220,38,38,0.06)'
+              background: order.status === 'returned_to_shop' ? 'rgba(22,163,74,0.06)'
+                        : order.status === 'cancelled'        ? 'rgba(107,114,128,0.06)'
+                        : order.status === 'rejected'         ? 'rgba(220,38,38,0.06)'
                         : `${activeColor}08`,
               border: `1px solid ${
-                order.status === 'ready_for_pickup' ? 'rgba(22,163,74,0.20)'
+                order.status === 'returned_to_shop' ? 'rgba(22,163,74,0.20)'
                 : order.status === 'cancelled'      ? 'rgba(107,114,128,0.20)'
                 : order.status === 'rejected'       ? 'rgba(220,38,38,0.20)'
                 : `${activeColor}20`
@@ -315,7 +319,7 @@ export default function TrackPage() {
               borderRadius: '12px',
               padding: '14px 18px',
               marginBottom: order.status === 'waiting_approval' ? '18px' : '0',
-              color: order.status === 'ready_for_pickup' ? '#16A34A'
+              color: order.status === 'returned_to_shop' ? '#16A34A'
                    : order.status === 'cancelled'        ? '#6B7280'
                    : order.status === 'rejected'         ? '#DC2626'
                    : activeColor,

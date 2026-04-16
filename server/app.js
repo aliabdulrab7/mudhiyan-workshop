@@ -17,6 +17,7 @@ const OrderService       = require('./services/OrderService');
 const NotificationService = require('./services/NotificationService');
 const { PaymentRequiredError } = require('./errors');
 
+// Payment is required when shop delivers to customer (returned_to_shop → delivered)
 OrderService.registerPaymentValidator((order) => {
   if (!order.payment_confirmed) {
     throw new PaymentRequiredError();
