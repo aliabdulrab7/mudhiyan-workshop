@@ -7,6 +7,10 @@ ARCHITECTURE_DECISIONS.md
 SYSTEM_INVARIANTS.md
 CLAUDE_PLAYBOOK.md
 
+# Github commit
+
+./ship.sh
+
 # 2. Go to the app directory
 
 cd /var/www/mudhiyan
