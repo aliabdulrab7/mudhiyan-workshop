@@ -16,8 +16,9 @@ function requireAuth(req, res, next) {
 }
 
 function requireRole(role) {
+  const allowed = Array.isArray(role) ? role : [role];
   return (req, res, next) => {
-    if (req.user?.role !== role) {
+    if (!allowed.includes(req.user?.role)) {
       return res.status(403).json({ error: 'غير مسموح' });
     }
     next();

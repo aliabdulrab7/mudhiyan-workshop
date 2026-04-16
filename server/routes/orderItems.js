@@ -28,14 +28,15 @@ function getOrder(orderId) {
 
 function checkLocked(order, res) {
   if (order.locked_at) {
-    res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+    res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
     return true;
   }
   return false;
 }
 
 // ── PUT /api/order-items/:id — update item details ────────────────────────────
-router.put('/:id', (req, res) => {
+// 6.7 — workshop only: edits repair_description, workshop_comment, and item fields
+router.put('/:id', requireRole('workshop'), (req, res) => {
   const item = getItem(req.params.id);
   if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
 
@@ -126,7 +127,8 @@ router.post('/:id/diagnosis', requireRole('workshop'), (req, res) => {
 });
 
 // ── POST /api/order-items/:id/photos — add a photo URL ────────────────────────
-router.post('/:id/photos', (req, res) => {
+// 6.7 — workshop only: repair photos are uploaded by the workshop
+router.post('/:id/photos', requireRole('workshop'), (req, res) => {
   const item = getItem(req.params.id);
   if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
 

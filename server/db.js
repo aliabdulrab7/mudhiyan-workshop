@@ -37,7 +37,7 @@ db.exec(`
     phone          TEXT NOT NULL,
     piece_type     TEXT NOT NULL,
     notes          TEXT DEFAULT '',
-    status         TEXT NOT NULL DEFAULT 'received',
+    status         TEXT NOT NULL DEFAULT 'new',
     created_at     TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     updated_at     TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );

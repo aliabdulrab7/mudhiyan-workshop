@@ -168,9 +168,16 @@ router.get('/:id', (req, res) => {
 });
 
 // GET /api/orders/:id/history
+// 6.4 — shop_employee scoped to their own shop; workshop sees all
 router.get('/:id/history', (req, res) => {
+  const isWorkshop = req.user.role === 'workshop';
+  const order = isWorkshop
+    ? db.prepare('SELECT id FROM orders WHERE id = ?').get(req.params.id)
+    : db.prepare('SELECT id FROM orders WHERE id = ? AND shop_id = ?').get(req.params.id, req.user.shop_id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+
   const history = db.prepare(
-    `SELECT * FROM order_status_history WHERE order_id = ? ORDER BY created_at DESC`
+    'SELECT * FROM order_status_history WHERE order_id = ? ORDER BY created_at DESC'
   ).all(req.params.id);
   res.json(history);
 });
@@ -217,7 +224,8 @@ router.post('/', requireRole('shop_employee'), (req, res) => {
 
 // PATCH /api/orders/:id/status
 // All transitions go through OrderService.transition() — no direct DB updates.
-router.patch('/:id/status', requireAuth, (req, res) => {
+// 6.8 — requireAuth is already applied by router.use() above; removed duplicate.
+router.patch('/:id/status', (req, res) => {
   const { status, notes } = req.body;
 
   if (!status) {
@@ -256,7 +264,7 @@ router.patch('/:id/cost', requireRole('workshop'), (req, res) => {
 
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-  if (order.locked_at) return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+  if (order.locked_at) return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
 
   // Sync all items and recalculate order cost
   syncAllItemCosts(order.id, cost);
@@ -308,7 +316,7 @@ router.post('/:orderId/items/:itemId/cost', requireRole('workshop'), (req, res) 
 
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.orderId);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-  if (order.locked_at) return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+  if (order.locked_at) return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
 
   if (order.status !== 'inspection') {
     return res.status(400).json({ error: 'لا يمكن تحديد التكلفة إلا في مرحلة الفحص' });
@@ -369,15 +377,16 @@ router.post('/:orderId/items/:itemId/cost', requireRole('workshop'), (req, res) 
   });
 });
 
-// POST /api/orders/:id/confirm-payment — branch staff or workshop only
+// POST /api/orders/:id/confirm-payment — shop_employee only (ADR-013)
 // Staff confirms physical payment was collected at the counter.
 // Must be called before PATCH /status { delivered } will succeed.
-router.post('/:id/confirm-payment', requireAuth, (req, res) => {
+// 6.6 — restricted to shop_employee per ADR-013.
+router.post('/:id/confirm-payment', requireRole('shop_employee'), (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
 
   if (order.locked_at) {
-    return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+    return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
   }
 
   if (order.status !== 'returned_to_shop') {
@@ -386,11 +395,9 @@ router.post('/:id/confirm-payment', requireAuth, (req, res) => {
     });
   }
 
-  // Scope check: shop_employee can only confirm for their own shop
-  if (req.user.role === 'shop_employee') {
-    if (order.shop_id !== req.user.shop_id) {
-      return res.status(403).json({ error: 'غير مصرح' });
-    }
+  // Shop isolation: shop_employee can only confirm for their own shop
+  if (order.shop_id !== req.user.shop_id) {
+    return res.status(403).json({ error: 'غير مصرح' });
   }
 
   db.prepare(`
@@ -419,7 +426,7 @@ router.put('/:id', requireAuth, (req, res) => {
     ? db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id)
     : db.prepare('SELECT * FROM orders WHERE id = ? AND shop_id = ?').get(req.params.id, req.user.shop_id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-  if (order.locked_at) return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+  if (order.locked_at) return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
 
   const allowed = ['customer_name', 'phone', 'notes', 'is_urgent'];
   const updates = []; const values = [];
@@ -460,7 +467,7 @@ router.delete('/:id', requireRole('workshop'), (req, res) => {
 router.post('/:orderId/items/:itemId/assign-technician', requireRole('workshop'), (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.orderId);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-  if (order.locked_at) return res.status(403).json({ error: 'الطلب مغلق بعد التسليم' });
+  if (order.locked_at) return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
 
   const item = db.prepare('SELECT * FROM order_items WHERE id = ? AND order_id = ?')
     .get(req.params.itemId, req.params.orderId);

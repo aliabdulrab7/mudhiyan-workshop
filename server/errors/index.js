@@ -66,7 +66,7 @@ function errorToHttpStatus(err) {
     case 'InvalidTransitionError':     return 400;
     case 'BusinessRuleViolationError': return 400;
     case 'PaymentRequiredError':       return 400;
-    case 'OrderLockedError':           return 403;
+    case 'OrderLockedError':           return 409;
     case 'PermissionError':            return 403;
     case 'AuditWriteError':            return 500;
     case 'StateUpdateError':           return 500;
