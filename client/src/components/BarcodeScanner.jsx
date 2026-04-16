@@ -18,6 +18,7 @@ export default function BarcodeScanner({ onScan, active = true }) {
         qrbox: { width: 260, height: 100 },
         formatsToSupport: [7], // CODE_128 = 7
         rememberLastUsedCamera: true,
+        useBarCodeDetectorIfSupported: false, // native BarcodeDetector rejects CODE_128 format mapping → use ZXing
       },
       false
     );
