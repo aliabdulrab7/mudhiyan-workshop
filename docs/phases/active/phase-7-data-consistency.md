@@ -15,7 +15,7 @@ This phase adds input validation on all write endpoints, reviews database constr
 
 ---
 
-## Status: Planned
+## Status: Completed — 2026-04-17
 
 ---
 

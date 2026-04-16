@@ -52,6 +52,14 @@ router.put('/:id', requireRole('workshop'), (req, res) => {
     'repair_description',
   ];
 
+  // 7.7 — Length guards
+  if (req.body.workshop_comment !== undefined && req.body.workshop_comment.length > 1000) {
+    return res.status(400).json({ error: 'تعليق الورشة طويل جداً (الحد الأقصى 1000 حرف)' });
+  }
+  if (req.body.notes !== undefined && req.body.notes.length > 2000) {
+    return res.status(400).json({ error: 'الملاحظات طويلة جداً (الحد الأقصى 2000 حرف)' });
+  }
+
   const updates = [];
   const values  = [];
   for (const field of allowed) {

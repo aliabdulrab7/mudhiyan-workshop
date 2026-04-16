@@ -343,7 +343,7 @@ describe('PUT /api/order-items/:id', () => {
       .put(`/api/order-items/${itemId}`)
       .set(auth(wsToken))
       .send({ brand: 'blocked' });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(409); // phase 6: locked orders return 409
   });
 });
 
@@ -620,10 +620,10 @@ describe('POST /api/order-items/:id/diagnosis', () => {
     const orderNum = `P3-DX-${Date.now()}-${Math.random().toString(36).slice(2,5)}`;
     const r = db.prepare(`
       INSERT INTO orders (order_number, customer_name, phone, piece_type, shop_id, customer_token, status)
-      VALUES (?, 'Ahmed', '966501112222', 'خاتم', 1, lower(hex(randomblob(8))), 'diagnosing')
+      VALUES (?, 'Ahmed', '966501112222', 'خاتم', 1, lower(hex(randomblob(8))), 'inspection')
     `).run(orderNum);
     orderId = r.lastInsertRowid;
-    db.prepare(`INSERT INTO order_status_history (order_id, from_status, to_status, changed_by) VALUES (?, 'received', 'diagnosing', 'test')`).run(orderId);
+    db.prepare(`INSERT INTO order_status_history (order_id, from_status, to_status, changed_by) VALUES (?, 'received', 'inspection', 'test')`).run(orderId);
 
     itemId = db.prepare(`
       INSERT INTO order_items (order_id, item_type, item_name, quantity, notes, workshop_comment)

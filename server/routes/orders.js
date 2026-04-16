@@ -4,6 +4,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const OrderService = require('../services/OrderService');
 const { errorToHttpStatus } = require('../errors');
 const { syncAllItemCosts, refreshOrderCost } = require('../helpers/costHelpers');
+const { normalizePhone } = require('../helpers/phoneHelper');
 
 const router = express.Router();
 
@@ -184,13 +185,22 @@ router.get('/:id/history', (req, res) => {
 
 // POST /api/orders — shop_employee only
 router.post('/', requireRole('shop_employee'), (req, res) => {
-  const { customer_name, phone, items } = req.body;
+  const { customer_name, phone, notes, items } = req.body;
   if (!customer_name || !phone) {
     return res.status(400).json({ error: 'الاسم ورقم الجوال مطلوبان' });
   }
-  if (customer_name.trim().length > 100) return res.status(400).json({ error: 'الاسم طويل جداً' });
+  if (customer_name.trim().length > 100) return res.status(400).json({ error: 'الاسم طويل جداً (الحد الأقصى 100 حرف)' });
+  if (notes && notes.length > 2000) return res.status(400).json({ error: 'الملاحظات طويلة جداً (الحد الأقصى 2000 حرف)' });
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'يجب إضافة صنف واحد على الأقل' });
+  }
+
+  // 7.1 — Phone normalization
+  let normalizedPhone;
+  try {
+    normalizedPhone = normalizePhone(phone);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
   }
 
   for (const item of items) {
@@ -200,12 +210,16 @@ router.post('/', requireRole('shop_employee'), (req, res) => {
     if (!item.workshop_comment || !item.workshop_comment.trim()) {
       return res.status(400).json({ error: 'تعليق الورشة مطلوب لكل صنف' });
     }
+    if (item.workshop_comment.length > 1000) {
+      return res.status(400).json({ error: 'تعليق الورشة طويل جداً (الحد الأقصى 1000 حرف)' });
+    }
   }
 
   try {
     const created = createOrder({
       customer_name: customer_name.trim(),
-      phone:         phone.trim(),
+      phone:         normalizedPhone,
+      notes:         notes ?? '',
       items:         items.map(i => ({
         item_name:        i.item_name.trim(),
         brand:            (i.brand || '').trim(),
@@ -427,6 +441,22 @@ router.put('/:id', requireAuth, (req, res) => {
     : db.prepare('SELECT * FROM orders WHERE id = ? AND shop_id = ?').get(req.params.id, req.user.shop_id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   if (order.locked_at) return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
+
+  // 7.1 — Phone normalization on update
+  if (req.body.phone !== undefined) {
+    try {
+      req.body.phone = normalizePhone(req.body.phone);
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+  }
+  // 7.7 — Length guards
+  if (req.body.customer_name && req.body.customer_name.trim().length > 100) {
+    return res.status(400).json({ error: 'الاسم طويل جداً (الحد الأقصى 100 حرف)' });
+  }
+  if (req.body.notes !== undefined && req.body.notes.length > 2000) {
+    return res.status(400).json({ error: 'الملاحظات طويلة جداً (الحد الأقصى 2000 حرف)' });
+  }
 
   const allowed = ['customer_name', 'phone', 'notes', 'is_urgent'];
   const updates = []; const values = [];

@@ -47,7 +47,7 @@ describe('PATCH /api/orders/:id/cost', () => {
   beforeEach(() => {
     db.prepare(`DELETE FROM orders`).run();
     const res = db.prepare(`INSERT INTO orders (order_number, customer_name, phone, piece_type, shop_id, customer_token, status)
-      VALUES ('WRK-COST-0001','Ali','966500000001','خاتم',1,'token-cost','diagnosing')`).run();
+      VALUES ('WRK-COST-0001','Ali','966500000001','خاتم',1,'token-cost','inspection')`).run();
     orderId = res.lastInsertRowid;
     // Add an item so refreshOrderCost has rows to sum
     db.prepare(`INSERT INTO order_items (order_id, item_name, item_type, sort_order) VALUES (?, 'خاتم ذهبي', 'ring', 1)`).run(orderId);

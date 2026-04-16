@@ -1031,6 +1031,23 @@ This section is an append-only log. Every significant change to the system must 
 
 ```
 2026-04-17
+Phase 7 — Data Consistency applied.
+7.1: Phone normalization: normalizePhone() helper enforces 966XXXXXXXXX format on all write paths.
+     Existing DB records normalized via idempotent migration in db.js.
+7.2: Cost validation confirmed on all three cost endpoints (PATCH /cost, POST /items/:id/cost, POST /diagnosis).
+7.3: Required field validation hardened in POST /api/orders (phone, name, items, workshop_comment).
+7.4: UNIQUE INDEX on orders.customer_token (INV-12 now enforced at DB level).
+7.5: 10-concurrent-order test confirms order_number uniqueness under load (INV-11).
+7.6: orders.cost sync validated — confirmed equal to SUM(order_items.estimated_cost) after any update.
+7.7: Length guards added: notes max 2000 chars, workshop_comment max 1000 chars.
+     Test suite: 26 new tests, 120 total passing.
+Stale test fixes: diagnosing→inspection in test fixtures; 403→409 on locked order; ready_for_pickup→ready_for_return; status_label for received.
+```
+
+---
+
+```
+2026-04-17
 Phase 6 — System Stabilization applied.
 6.1: Production startup guard: server exits on default JWT_SECRET in production.
 6.2: orders.CREATE TABLE DEFAULT changed from 'received' to 'new' (INV-01 alignment).

@@ -70,7 +70,7 @@ describe('GET /api/track/:token', () => {
     expect(res.status).toBe(200);
     expect(res.body.tracking_number).toBe('P4-ACTIVE-001');
     expect(res.body.status).toBe('received');
-    expect(res.body.status_label).toBe('تم الاستلام');
+    expect(res.body.status_label).toBe('استُلم في الورشة');
     expect(res.body.estimated_cost).toBeDefined();
     expect(Array.isArray(res.body.items)).toBe(true);
     expect(res.body.created_at).toBeDefined();
@@ -213,9 +213,9 @@ describe('POST /api/track/:token/reject', () => {
     const order = db.prepare('SELECT status FROM orders WHERE id = ?').get(orderWaitingId);
     expect(order.status).toBe('rejected');
 
-    // Verify the FSM allows rejected → ready_for_pickup (not → in_repair)
+    // Verify the FSM allows rejected → ready_for_return (renamed from ready_for_pickup)
     const { isValidTransition } = require('../services/OrderService');
-    expect(isValidTransition('rejected', 'ready_for_pickup')).toBe(true);
+    expect(isValidTransition('rejected', 'ready_for_return')).toBe(true);
     expect(isValidTransition('rejected', 'in_repair')).toBe(false);
   });
 

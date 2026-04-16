@@ -68,6 +68,15 @@ if (!columnExists('orders', 'is_urgent')) {
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_cust_tok ON orders(customer_token) WHERE customer_token IS NOT NULL`);
 
+// 7.4 — UNIQUE constraint on customer_token (INV-12: tokens are unique and immutable)
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS uniq_customer_token ON orders(customer_token) WHERE customer_token IS NOT NULL`);
+
+// 7.1 — Phone normalization migration: bring existing records to 966XXXXXXXXX format
+// 0XXXXXXXXX (10 digits) → 966XXXXXXXXX
+db.exec(`UPDATE orders SET phone = '966' || SUBSTR(phone, 2) WHERE phone GLOB '0[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'`);
+// 5XXXXXXXX (9 digits) → 966XXXXXXXXX
+db.exec(`UPDATE orders SET phone = '966' || phone WHERE phone GLOB '5[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'`);
+
 // locked_at: set when order reaches DELIVERED — blocks all subsequent writes
 if (!columnExists('orders', 'locked_at')) {
   db.exec(`ALTER TABLE orders ADD COLUMN locked_at TEXT DEFAULT NULL`);
