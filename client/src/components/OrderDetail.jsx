@@ -46,8 +46,16 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [savingCancel, setSavingCancel]         = useState(false);
   const [error, setError]         = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
+
+  function copyTrackingLink() {
+    navigator.clipboard.writeText(buildTrackingUrl(order.customer_token)).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  }
 
   useEffect(() => {
     loadComments();
@@ -233,6 +241,33 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             <InfoRow label="العميل" value={order.customer_name} bold />
             <InfoRow label="الجوال" value={'+' + order.phone} mono />
             {order.cost > 0 && <InfoRow label="التكلفة" value={`${order.cost} ريال`} bold />}
+
+            {/* Copy tracking link */}
+            {order.customer_token && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #F3F4F6' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>رابط المتابعة</span>
+                <button
+                  onClick={copyTrackingLink}
+                  style={{
+                    background: linkCopied ? 'rgba(22,163,74,0.08)' : 'rgba(41,128,185,0.08)',
+                    border: `1px solid ${linkCopied ? 'rgba(22,163,74,0.25)' : 'rgba(41,128,185,0.25)'}`,
+                    color: linkCopied ? '#16A34A' : '#2980B9',
+                    borderRadius: '6px',
+                    padding: '4px 12px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'Almarai, sans-serif',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  {linkCopied ? '✓ تم النسخ' : '⎘ نسخ الرابط'}
+                </button>
+              </div>
+            )}
 
             {/* Items table */}
             {order.items && order.items.length > 0 ? (

@@ -5,7 +5,7 @@ import StatusBadge, { STATUS } from './StatusBadge';
 import OrderDetail from './OrderDetail';
 import { useNavigate } from 'react-router-dom';
 import { getRole } from '../api/auth';
-import { buildReadyWaUrl } from '../utils/whatsapp';
+import { buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import SkeletonLoader from './SkeletonLoader';
 
 function useMobile() {
@@ -37,9 +37,19 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(null);
   const [listError, setListError] = useState('');
+  const [copiedId, setCopiedId]   = useState(null);
   const navigate   = useNavigate();
   const isMobile   = useMobile();
   const isWorkshop = getRole() === 'workshop';
+
+  function copyTrackingLink(order, e) {
+    e.stopPropagation();
+    if (!order.customer_token) return;
+    navigator.clipboard.writeText(buildTrackingUrl(order.customer_token)).then(() => {
+      setCopiedId(order.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  }
 
   function handleOrderUpdated(updated) {
     setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
@@ -208,6 +218,15 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                     ✓ تأكيد الوصول
                   </button>
                 )}
+                {order.customer_token && (
+                  <button
+                    className={isMobile ? 'btn-ghost mobile-status-btn' : 'btn-ghost-sm'}
+                    onClick={e => copyTrackingLink(order, e)}
+                    style={copiedId === order.id ? { color: '#16A34A', borderColor: 'rgba(22,163,74,0.3)' } : {}}
+                  >
+                    {copiedId === order.id ? '✓' : '⎘'}
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}
@@ -288,7 +307,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
 
               <StatusBadge status={order.status} />
 
-              <div style={{ display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                 {isWorkshop && nextStatus[order.status] && (
                   <button
                     className="btn-ghost-sm"
@@ -309,6 +328,19 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                 {order.status === 'delivered' && (
                   <span style={{ color: '#16A34A', fontSize: '0.78rem' }}>✓</span>
                 )}
+                {order.customer_token && (
+                  <button
+                    className="btn-ghost-sm"
+                    onClick={e => copyTrackingLink(order, e)}
+                    title="نسخ رابط المتابعة"
+                    style={copiedId === order.id
+                      ? { color: '#16A34A', borderColor: 'rgba(22,163,74,0.3)', padding: '3px 8px' }
+                      : { padding: '3px 8px' }
+                    }
+                  >
+                    {copiedId === order.id ? '✓' : '⎘'}
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}
@@ -324,6 +356,39 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
           onUpdated={handleOrderUpdated}
         />
       )}
+
+      {/* Copy toast */}
+      <AnimatePresence>
+        {copiedId && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'fixed',
+              bottom: '24px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: '#1E293B',
+              color: '#FFFFFF',
+              padding: '10px 20px',
+              borderRadius: '20px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              fontFamily: 'Almarai, sans-serif',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+              zIndex: 500,
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span style={{ color: '#4ADE80' }}>✓</span> تم نسخ رابط المتابعة
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
