@@ -225,10 +225,59 @@ export default function TrackPage() {
             </span>
           </div>
 
-          <div style={{ marginBottom: '28px' }}>
+          <div style={{ marginBottom: order.items && order.items.length > 0 ? '14px' : '28px' }}>
             <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '4px' }}>نوع القطعة</div>
             <div style={{ fontWeight: 600, color: '#222222' }}>{order.piece_type}</div>
           </div>
+
+          {/* Item breakdown — shown when items exist */}
+          {order.items && order.items.length > 0 && (
+            <div style={{ marginBottom: '28px' }}>
+              <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '8px' }}>الأصناف</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {order.items.map((item, i) => (
+                  <div key={i} style={{
+                    background: '#F9FAFB',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: '#222222', fontSize: '0.88rem' }}>
+                        {item.item_name}
+                        {item.quantity > 1 && (
+                          <span style={{ color: '#9CA3AF', fontWeight: 400, marginRight: '4px', fontSize: '0.78rem' }}>
+                            × {item.quantity}
+                          </span>
+                        )}
+                      </div>
+                      {item.repair_description && (
+                        <div style={{ color: '#6B7280', fontSize: '0.78rem', marginTop: '3px' }}>
+                          {item.repair_description}
+                        </div>
+                      )}
+                    </div>
+                    {item.estimated_cost > 0 && (
+                      <div style={{
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        color: '#D97706',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}>
+                        {item.estimated_cost} ر.س
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Progress tracker — hidden for terminal statuses */}
           {!isTerminal && (
@@ -342,7 +391,40 @@ export default function TrackPage() {
                 padding: '20px',
               }}
             >
-              <div style={{ fontSize: '0.82rem', color: '#D97706', marginBottom: '6px' }}>رسوم الإصلاح</div>
+              <div style={{ fontSize: '0.82rem', color: '#D97706', marginBottom: '12px' }}>رسوم الإصلاح</div>
+
+              {/* Per-item cost breakdown */}
+              {order.items && order.items.some(it => it.estimated_cost > 0) && (
+                <div style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {order.items.filter(it => it.estimated_cost > 0).map((item, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                      <span style={{ color: '#92400E' }}>
+                        {item.item_name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}
+                      </span>
+                      <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#D97706', fontWeight: 600 }}>
+                        {item.estimated_cost} ر.س
+                      </span>
+                    </div>
+                  ))}
+                  {order.items.filter(it => it.estimated_cost > 0).length > 1 && (
+                    <div style={{
+                      borderTop: '1px solid rgba(217,119,6,0.20)',
+                      paddingTop: '6px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '0.82rem',
+                      color: '#9CA3AF',
+                    }}>
+                      <span>المجموع</span>
+                      <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#B45309' }}>
+                        {order.estimated_cost} ر.س
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{
                 fontSize: '1.8rem',
                 fontWeight: 800,

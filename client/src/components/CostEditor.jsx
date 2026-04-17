@@ -14,7 +14,7 @@ export default function CostEditor({ order, onUpdated }) {
     try {
       const updated = await updateCost(order.id, parseInt(cost, 10));
       onUpdated(updated);
-      if (updated.status === 'pending_approval') {
+      if (updated.status === 'waiting_approval') {
         window.open(buildApprovalWaUrl(updated.phone, updated.customer_name, updated.cost, buildTrackingUrl(updated.customer_token)), '_blank', 'noopener,noreferrer');
       }
     } catch (err) {

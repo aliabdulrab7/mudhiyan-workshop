@@ -385,7 +385,7 @@ const createOrder = db.transaction((data) => {
       insertItem.run(
         orderId,
         itemName,        // item_type (legacy compat)
-        1,               // quantity (no longer tracked per-item)
+        Math.min(99, Math.max(1, parseInt(item.quantity, 10) || 1)), // quantity
         workshopComment, // notes (legacy compat)
         i,
         itemName,

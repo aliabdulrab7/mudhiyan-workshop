@@ -1,44 +1,10 @@
-READ FIRST:
+this file is for scratch only, not for implementation
 
-PROJECT_GUARDRAILS.md
-CLAUDE_PROTOCOL.md
-CLAUDE_PHASE_PLAN.md
-ARCHITECTURE_DECISIONS.md
-SYSTEM_INVARIANTS.md
-CLAUDE_PLAYBOOK.md
+# Workshop
 
-i'm concedring to implement aws sns to send notifications to customers when their job status changes and use aws, can you create a plan for it? with complete details, complexity and cost estimation
-
-# Github commit
-
-./ship.sh
-
-# 2. Go to the app directory
-
-cd /var/www/mudhiyan
-
-# 3. Pull latest code
-
-git pull origin master
-
-# 4. Install any new dependencies
-
-npm install --prefix client --production=false
-npm install --prefix server
-
-# 5. Build the React frontend
-
-npm run build --prefix client
-
-# 6. Restart the server
-
-pm2 restart mudhiyan
-
-# 7. Confirm it's running
-
-pm2 status
-
-#
+- <div><label style="display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px;">تكلفة الإصلاح (ريال)</label><div style="display: flex; gap: 8px;"><input class="input-base" min="0" type="number" value="0" style="flex: 1 1 0%;"><button class="btn-primary" style="flex-shrink: 0;">حفظ</button></div></div> this element be hidden and only visible when the status is RECEIVED from shop. and when click save it will update the status to WAITING_APPROVAL and it should have a field for notes so the customer can see what is the cost of the repair for.
+- Both the workshop and shop can see the traking link and send to cusomer in case he didnt get it. and the link should be copied to the clipboard when the user click on it.
+- we are dealing with high volume of orders so we need to optimize the speed of scanning speaceliy for when the worhsop complete the repair and the status is ready for pickup. is there the worshop do scan the barcode and the status is updated to ready for pickup? in bulk
 
 READ FIRST:
 
