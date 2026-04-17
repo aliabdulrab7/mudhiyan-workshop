@@ -10,7 +10,8 @@ export default function OrderForm({ onSuccess }) {
   const [phoneDigits,  setPhoneDigits]  = useState('');
   const [items,        setItems]        = useState([newRow()]);
   const [loading,      setLoading]      = useState(false);
-  const [error,        setError]        = useState('');
+  const [fieldErrors,  setFieldErrors]  = useState({});
+  const [submitError,  setSubmitError]  = useState('');
 
   function addRow() {
     setItems(prev => [...prev, newRow()]);
@@ -23,19 +24,33 @@ export default function OrderForm({ onSuccess }) {
 
   function updateRow(i, field, value) {
     setItems(prev => prev.map((row, idx) => idx === i ? { ...row, [field]: value } : row));
-    setError('');
+    // clear per-item error on edit
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      delete next[`item_comment_${i}`];
+      return next;
+    });
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!customerName.trim())         return setError('يرجى إدخال اسم العميل');
-    if (phoneDigits.length !== 9)     return setError('يرجى إدخال 9 أرقام بعد رمز الدولة');
-    if (items.length === 0)           return setError('يرجى إضافة صنف واحد على الأقل');
+    const errs = {};
 
-    // Validate mandatory comments
-    const missingComment = items.find(it => !it.workshop_comment.trim());
-    if (missingComment) return setError('يرجى إضافة الملاحظات الفنية لكل صنف');
+    if (!customerName.trim()) errs.customerName = 'يرجى إدخال اسم العميل';
+    if (phoneDigits.length !== 9) errs.phone = 'يرجى إدخال 9 أرقام بعد رمز الدولة';
+    if (items.length === 0) errs.items = 'يرجى إضافة صنف واحد على الأقل';
 
+    items.forEach((it, i) => {
+      if (!it.workshop_comment.trim()) errs[`item_comment_${i}`] = 'الملاحظات الفنية مطلوبة';
+    });
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      return;
+    }
+
+    setFieldErrors({});
+    setSubmitError('');
     setLoading(true);
     try {
       const order = await createOrder({
@@ -50,7 +65,7 @@ export default function OrderForm({ onSuccess }) {
       });
       onSuccess(order);
     } catch (err) {
-      setError(err.message);
+      setSubmitError(err.message);
     } finally {
       setLoading(false);
     }
@@ -69,10 +84,17 @@ export default function OrderForm({ onSuccess }) {
           type="text"
           placeholder="محمد العتيبي"
           value={customerName}
-          onChange={e => { setCustomerName(e.target.value); setError(''); }}
+          onChange={e => {
+            setCustomerName(e.target.value);
+            setFieldErrors(prev => { const n = { ...prev }; delete n.customerName; return n; });
+          }}
+          style={fieldErrors.customerName ? { borderColor: '#DC2626' } : {}}
           autoComplete="off"
           autoCapitalize="words"
         />
+        {fieldErrors.customerName && (
+          <div style={{ color: '#DC2626', fontSize: '0.78rem', marginTop: '4px' }}>{fieldErrors.customerName}</div>
+        )}
       </div>
 
       {/* Phone */}
@@ -102,11 +124,18 @@ export default function OrderForm({ onSuccess }) {
             onChange={e => {
               const val = e.target.value.replace(/\D/g, '').slice(0, 9);
               setPhoneDigits(val);
-              setError('');
+              setFieldErrors(prev => { const n = { ...prev }; delete n.phone; return n; });
             }}
-            style={{ fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.08em' }}
+            style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              letterSpacing: '0.08em',
+              ...(fieldErrors.phone ? { borderColor: '#DC2626' } : {}),
+            }}
           />
         </div>
+        {fieldErrors.phone && (
+          <div style={{ color: '#DC2626', fontSize: '0.78rem', marginTop: '4px' }}>{fieldErrors.phone}</div>
+        )}
       </div>
 
       {/* Items table */}
@@ -182,13 +211,23 @@ export default function OrderForm({ onSuccess }) {
               />
 
               {/* Technical comments */}
-              <textarea
-                placeholder="الإصلاح المطلوب... (إلزامي)"
-                value={row.workshop_comment}
-                onChange={e => updateRow(i, 'workshop_comment', e.target.value)}
-                className="input-base"
-                style={{ padding: '8px 10px', fontSize: '0.85rem', resize: 'vertical', minHeight: '38px', height: '38px' }}
-              />
+              <div>
+                <textarea
+                  placeholder="الإصلاح المطلوب... (إلزامي)"
+                  value={row.workshop_comment}
+                  onChange={e => updateRow(i, 'workshop_comment', e.target.value)}
+                  className="input-base"
+                  style={{
+                    padding: '8px 10px', fontSize: '0.85rem', resize: 'vertical', minHeight: '38px', height: '38px',
+                    ...(fieldErrors[`item_comment_${i}`] ? { borderColor: '#DC2626' } : {}),
+                  }}
+                />
+                {fieldErrors[`item_comment_${i}`] && (
+                  <div style={{ color: '#DC2626', fontSize: '0.72rem', marginTop: '2px' }}>
+                    {fieldErrors[`item_comment_${i}`]}
+                  </div>
+                )}
+              </div>
 
               {/* Delete row */}
               <button
@@ -241,7 +280,7 @@ export default function OrderForm({ onSuccess }) {
         </button>
       </div>
 
-      {error && (
+      {fieldErrors.items && (
         <div style={{
           background: 'rgba(220,38,38,0.06)',
           border: '1px solid rgba(220,38,38,0.20)',
@@ -250,7 +289,20 @@ export default function OrderForm({ onSuccess }) {
           color: '#DC2626',
           fontSize: '0.88rem',
         }}>
-          {error}
+          {fieldErrors.items}
+        </div>
+      )}
+
+      {submitError && (
+        <div style={{
+          background: 'rgba(220,38,38,0.06)',
+          border: '1px solid rgba(220,38,38,0.20)',
+          borderRadius: 'var(--radius)',
+          padding: '10px 14px',
+          color: '#DC2626',
+          fontSize: '0.88rem',
+        }}>
+          {submitError}
         </div>
       )}
 

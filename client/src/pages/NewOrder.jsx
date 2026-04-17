@@ -68,9 +68,9 @@ export default function NewOrder() {
           <a href={receiptWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
             <button
               className="btn-gold"
-              style={{ width: '100%', justifyContent: 'center' }}
+              style={{ width: '100%', justifyContent: 'center', minHeight: '44px' }}
             >
-              📲 إرسال إيصال الاستلام (WhatsApp)
+              📲 إرسال إيصال الاستلام (WhatsApp) ↗
             </button>
           </a>
           <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>

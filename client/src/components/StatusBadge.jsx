@@ -21,21 +21,24 @@ const STATUS = {
   ready:            { label: 'جاهزة',              bg: 'rgba(22, 163, 74, 0.10)',  fg: '#16A34A'  },
 };
 
-export default function StatusBadge({ status }) {
-  const s = STATUS[status] || STATUS.received;
+const FALLBACK = { bg: 'rgba(100,116,139,0.10)', fg: '#64748B' };
+
+export default function StatusBadge({ status, small }) {
+  const s = STATUS[status] ?? FALLBACK;
+  const label = s.label ?? status;
   return (
     <span style={{
       background: s.bg,
       color: s.fg,
-      padding: '4px 12px',
+      padding: small ? '2px 8px' : '4px 12px',
       borderRadius: '20px',
-      fontSize: '0.75rem',
+      fontSize: small ? '0.68rem' : '0.75rem',
       fontWeight: 700,
       whiteSpace: 'nowrap',
       border: `1px solid ${s.fg}22`,
       letterSpacing: '0.01em',
     }}>
-      {s.label}
+      {label}
     </span>
   );
 }

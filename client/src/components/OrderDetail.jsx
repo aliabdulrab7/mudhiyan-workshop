@@ -302,8 +302,25 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 
           <Divider />
 
-          {/* Actions */}
-          {(isWorkshop || ['ready_for_return', 'returned_to_shop'].includes(order.status)) && (
+          {/* Locked order banner */}
+          {order.locked_at && (
+            <section style={{ padding: '0 28px 0' }}>
+              <div style={{
+                padding: '12px 16px',
+                background: 'rgba(30,41,59,0.06)',
+                border: '1px solid rgba(30,41,59,0.15)',
+                borderRadius: 'var(--radius)',
+                display: 'flex', alignItems: 'center', gap: '10px',
+                fontSize: '0.85rem', color: '#1E293B',
+              }}>
+                <span style={{ fontSize: '1rem' }}>🔒</span>
+                <span>هذا الطلب مغلق ولا يمكن تعديله</span>
+              </div>
+            </section>
+          )}
+
+          {/* Actions — hidden when order is locked */}
+          {!order.locked_at && (isWorkshop || ['ready_for_return', 'returned_to_shop'].includes(order.status)) && (
             <section style={{ padding: '0 28px' }}>
               <SectionTitle>الإجراءات</SectionTitle>
 
@@ -312,7 +329,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                 <div style={{ marginBottom: '12px' }}>
                   <button
                     className="btn-ghost"
-                    style={{ width: '100%', justifyContent: 'center' }}
+                    style={{ width: '100%', justifyContent: 'center', minHeight: '44px' }}
                     onClick={() => window.open('/orders/' + order.id + '/label', '_blank', 'noopener,noreferrer')}
                   >
                     🖨 طباعة الملصقات
@@ -326,16 +343,16 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   <div style={{ marginBottom: '12px' }}>
                     <button
                       className="btn-ghost"
-                      style={{ width: '100%', justifyContent: 'center' }}
+                      style={{ width: '100%', justifyContent: 'center', minHeight: '44px' }}
                       onClick={() => window.open(buildReadyWaUrl(order.phone, order.customer_name, order.order_number), '_blank', 'noopener,noreferrer')}
                     >
-                      📲 إرسال رسالة الاستلام (WhatsApp)
+                      📲 إرسال رسالة الاستلام (WhatsApp) ↗
                     </button>
                   </div>
                   <div style={{ marginBottom: '12px' }}>
                     <button
                       className="btn-gold"
-                      style={{ width: '100%', justifyContent: 'center', background: '#059669', borderColor: 'rgba(5,150,105,0.4)' }}
+                      style={{ width: '100%', justifyContent: 'center', minHeight: '44px', background: '#059669', borderColor: 'rgba(5,150,105,0.4)' }}
                       disabled={savingStatus}
                       onClick={handleConfirmReturnedToShop}
                     >
@@ -383,7 +400,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   </div>
                   <button
                     className="btn-gold"
-                    style={{ width: '100%', justifyContent: 'center', opacity: paymentMethod ? 1 : 0.5 }}
+                    style={{ width: '100%', justifyContent: 'center', minHeight: '44px', opacity: paymentMethod ? 1 : 0.5 }}
                     disabled={!paymentMethod || savingDelivery}
                     onClick={handleDelivery}
                   >
@@ -399,7 +416,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     <div style={{ marginBottom: '16px' }}>
                       <button
                         className="btn-primary"
-                        style={{ width: '100%', justifyContent: 'center' }}
+                        style={{ width: '100%', justifyContent: 'center', minHeight: '44px' }}
                         disabled={savingStatus}
                         onClick={handleStatusAdvance}
                       >

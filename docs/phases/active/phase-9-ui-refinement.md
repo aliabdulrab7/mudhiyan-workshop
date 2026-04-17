@@ -14,7 +14,7 @@ This phase produces no new backend features — it aligns the frontend with the 
 
 ---
 
-## Status: Planned
+## Status: Completed — 2026-04-17 (9.9 deferred — optional, not confirmed by team)
 
 ---
 

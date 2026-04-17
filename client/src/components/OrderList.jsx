@@ -21,11 +21,12 @@ function useMobile() {
 const FILTERS = [
   { value: 'all',              label: 'الكل' },
   { value: 'received',         label: 'مستلمة' },
-  { value: 'diagnosing',       label: 'تشخيص' },
+  { value: 'inspection',       label: 'قيد الفحص' },
   { value: 'waiting_approval', label: 'بانتظار الموافقة' },
   { value: 'in_repair',        label: 'قيد الإصلاح' },
   { value: 'quality_check',    label: 'فحص الجودة' },
-  { value: 'ready_for_pickup', label: 'جاهزة للاستلام' },
+  { value: 'ready_for_return', label: 'جاهزة للإرجاع' },
+  { value: 'returned_to_shop', label: 'وصلت للفرع' },
   { value: 'delivered',        label: 'تم التسليم' },
 ];
 
@@ -35,6 +36,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   const [search, setSearch]       = useState('');
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(null);
+  const [listError, setListError] = useState('');
   const navigate   = useNavigate();
   const isMobile   = useMobile();
   const isWorkshop = getRole() === 'workshop';
@@ -47,9 +49,10 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
 
   useEffect(() => {
     setLoading(true);
+    setListError('');
     getOrders({ status, search, shop_id: shopId })
-      .then(setOrders)
-      .catch(console.error)
+      .then(data => { setOrders(data); })
+      .catch(() => setListError('تعذّر تحميل الطلبات، يرجى إعادة المحاولة'))
       .finally(() => setLoading(false));
   }, [status, search, refresh, shopId]);
 
@@ -58,7 +61,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
       const updated = await updateOrderStatus(order.id, newStatus);
       setOrders(prev => prev.map(o => o.id === order.id ? updated : o));
     } catch (e) {
-      console.error(e);
+      setListError(e.message || 'تعذّر تحديث الحالة');
     }
   }
 
@@ -69,18 +72,17 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
     });
   }
 
+  // Workshop quick-advance shortcuts (subset of full state machine)
   const nextStatus = {
-    received:         'diagnosing',
-    diagnosing:       'in_repair',
-    in_repair:        'quality_check',
-    quality_check:    'ready_for_pickup',
+    received:      'inspection',
+    in_repair:     'quality_check',
+    quality_check: 'ready_for_return',
   };
 
   const nextLabel = {
-    received:         'بدء التشخيص',
-    diagnosing:       'بدء الإصلاح',
-    in_repair:        'فحص الجودة',
-    quality_check:    'جاهز للاستلام',
+    received:      'بدء الفحص',
+    in_repair:     'فحص الجودة',
+    quality_check: 'جاهز للإرجاع',
   };
 
   return (
@@ -120,6 +122,19 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
         />
       </div>
 
+      {/* Error banner */}
+      {listError && (
+        <div style={{
+          padding: '10px 14px', marginBottom: '12px',
+          background: 'rgba(220,38,38,0.06)',
+          border: '1px solid rgba(220,38,38,0.20)',
+          borderRadius: 'var(--radius)',
+          color: '#DC2626', fontSize: '0.88rem',
+        }}>
+          {listError}
+        </div>
+      )}
+
       {/* Table / Cards */}
       {loading ? (
         <SkeletonLoader type="list" count={4} isMobile={isMobile} />
@@ -133,7 +148,14 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
           background: '#FFFFFF',
         }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '12px', opacity: 0.25 }}>◈</div>
-          لا توجد طلبات
+          <div style={{ fontWeight: 600, marginBottom: '6px' }}>
+            {status === 'all' && !search ? 'لا توجد طلبات بعد' : 'لا توجد طلبات تطابق هذا الفلتر'}
+          </div>
+          {status !== 'all' && (
+            <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>
+              جرّب تغيير الفلتر أو مسح البحث
+            </div>
+          )}
         </div>
       ) : isMobile ? (
         /* ── Mobile card view ── */
@@ -177,13 +199,13 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                     {nextLabel[order.status]}
                   </button>
                 )}
-                {!isWorkshop && order.status === 'ready_for_pickup' && (
+                {!isWorkshop && order.status === 'ready_for_return' && (
                   <button
                     className={isMobile ? 'btn-gold mobile-status-btn' : 'btn-ghost-sm'}
-                    style={isMobile ? {} : { borderColor: 'rgba(22,163,74,0.4)', color: '#16A34A' }}
-                    onClick={() => changeStatus(order, 'delivered')}
+                    style={isMobile ? {} : { borderColor: 'rgba(5,150,105,0.4)', color: '#059669' }}
+                    onClick={() => changeStatus(order, 'returned_to_shop')}
                   >
-                    ✓ تسليم للعميل
+                    ✓ تأكيد الوصول
                   </button>
                 )}
               </div>
@@ -275,13 +297,13 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                     {nextLabel[order.status]}
                   </button>
                 )}
-                {!isWorkshop && order.status === 'ready_for_pickup' && (
+                {!isWorkshop && order.status === 'ready_for_return' && (
                   <button
                     className="btn-ghost-sm"
-                    style={{ borderColor: 'rgba(22,163,74,0.4)', color: '#16A34A' }}
-                    onClick={() => changeStatus(order, 'delivered')}
+                    style={{ borderColor: 'rgba(5,150,105,0.4)', color: '#059669' }}
+                    onClick={() => changeStatus(order, 'returned_to_shop')}
                   >
-                    ✓ تسليم
+                    ✓ تأكيد الوصول
                   </button>
                 )}
                 {order.status === 'delivered' && (

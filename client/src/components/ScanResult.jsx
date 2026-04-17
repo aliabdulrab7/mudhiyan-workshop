@@ -22,6 +22,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
   const [order, setOrder] = useState(initialOrder);
   const [promoting, setPromoting] = useState(false);
   const [justMarkedReady, setJustMarkedReady] = useState(false);
+  const [scanError, setScanError] = useState('');
   const isWorkshop = getRole() === 'workshop';
 
   function handleOrderUpdate(updated) {
@@ -35,14 +36,15 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
 
   async function markReady() {
     setPromoting(true);
+    setScanError('');
     try {
-      const updated = await updateOrderStatus(order.id, 'ready');
+      const updated = await updateOrderStatus(order.id, 'ready_for_return');
       handleOrderUpdate(updated);
-      if (updated.status === 'ready') {
+      if (updated.status === 'ready_for_return') {
         setJustMarkedReady(true);
       }
     } catch (e) {
-      console.error(e);
+      setScanError(e.message || 'تعذّر تحديث الحالة');
     } finally {
       setPromoting(false);
     }
@@ -98,13 +100,13 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
         {order.notes && <Row label="ملاحظات" value={order.notes} />}
       </div>
 
-      {/* Cost editor — workshop + received only */}
-      {isWorkshop && order.status === 'received' && (
+      {/* Cost editor — workshop + received only, not locked */}
+      {isWorkshop && !order.locked_at && order.status === 'received' && (
         <CostEditor order={order} onUpdated={handleOrderUpdate} />
       )}
 
-      {/* Approval wa.me — pending_approval */}
-      {order.status === 'pending_approval' && (
+      {/* Approval wa.me — waiting_approval */}
+      {!order.locked_at && order.status === 'waiting_approval' && (
         <div style={{
           background: 'rgba(201,151,58,0.06)',
           border: '1px solid var(--gold-border)',
@@ -116,15 +118,15 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
             أرسل رابط الموافقة للعميل ({order.cost} ريال)
           </div>
           <a href={approvalWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <button className="btn-gold" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>
-              📲 أرسل رابط الموافقة
+            <button className="btn-gold" style={{ fontSize: '0.85rem', minHeight: '44px', padding: '8px 16px' }}>
+              📲 أرسل رابط الموافقة ↗
             </button>
           </a>
         </div>
       )}
 
-      {/* Mark ready — workshop + in_progress */}
-      {isWorkshop && order.status === 'in_progress' && (
+      {/* Mark ready — workshop + in_repair, not locked */}
+      {isWorkshop && !order.locked_at && order.status === 'in_repair' && (
         <div style={{
           background: 'rgba(201,151,58,0.06)',
           border: '1px solid var(--gold-border)',
@@ -133,24 +135,24 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           marginBottom: '16px',
         }}>
           <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
-            هل الصيانة جاهزة للاستلام؟
+            هل الصيانة جاهزة للإرجاع للفرع؟
           </div>
           <button
             className="btn-gold"
             onClick={markReady}
             disabled={promoting}
             style={isMobile
-              ? { width: '100%', justifyContent: 'center', padding: '14px 0', fontSize: '1rem' }
-              : { fontSize: '0.85rem', padding: '8px 16px' }
+              ? { width: '100%', justifyContent: 'center', padding: '14px 0', fontSize: '1rem', minHeight: '44px' }
+              : { fontSize: '0.85rem', padding: '8px 16px', minHeight: '44px' }
             }
           >
-            {promoting ? '...' : '✓ تعيين جاهزة'}
+            {promoting ? '...' : '✓ تعيين جاهزة للإرجاع'}
           </button>
         </div>
       )}
 
-      {/* Pickup wa.me — ready */}
-      {order.status === 'ready' && (
+      {/* Pickup wa.me — ready_for_return */}
+      {!order.locked_at && order.status === 'ready_for_return' && (
         <div style={{
           background: 'rgba(6,95,70,0.06)',
           border: '1px solid rgba(6,95,70,0.2)',
@@ -159,18 +161,18 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           marginBottom: '16px',
         }}>
           <div style={{ fontSize: '0.82rem', color: 'var(--status-ready-fg)', marginBottom: '10px', fontWeight: 600 }}>
-            ✓ القطعة جاهزة — أبلغ العميل بالاستلام
+            ✓ القطعة جاهزة — أبلغ الفرع بالاستلام
           </div>
           <a href={readyWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <button className="btn-gold" style={{ fontSize: '0.85rem', padding: '8px 16px', width: '100%', justifyContent: 'center' }}>
-              📲 إرسال رسالة الاستلام للعميل (WhatsApp)
+            <button className="btn-gold" style={{ fontSize: '0.85rem', padding: '8px 16px', width: '100%', justifyContent: 'center', minHeight: '44px' }}>
+              📲 إرسال رسالة الاستلام (WhatsApp) ↗
             </button>
           </a>
         </div>
       )}
 
-      {/* Ready Label — workshop + ready */}
-      {isWorkshop && order.status === 'ready' && (
+      {/* Ready Label — workshop + ready_for_return */}
+      {isWorkshop && !order.locked_at && order.status === 'ready_for_return' && (
         <div style={{
           background: 'var(--bg-elevated)',
           border: '1px solid var(--gold-border)',
@@ -182,6 +184,19 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
             ملصق الجاهزية (للطباعة والإرفاق بالقطعة)
           </div>
           <ReadyLabelCanvas order={order} autoPrint={justMarkedReady} />
+        </div>
+      )}
+
+      {/* Error display */}
+      {scanError && (
+        <div style={{
+          padding: '10px 14px', marginBottom: '12px',
+          background: 'rgba(220,38,38,0.06)',
+          border: '1px solid rgba(220,38,38,0.20)',
+          borderRadius: 'var(--radius)',
+          color: '#DC2626', fontSize: '0.85rem',
+        }}>
+          {scanError}
         </div>
       )}
 
