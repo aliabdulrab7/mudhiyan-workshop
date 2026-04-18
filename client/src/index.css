@@ -133,6 +133,21 @@ body {
   display: inline-block;
 }
 
+/* ── Stat card ── */
+.stat-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  text-align: right;
+}
+.stat-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
 /* ── Table row hover ── */
 .order-row {
   transition: background 0.15s ease, border-color 0.15s ease;

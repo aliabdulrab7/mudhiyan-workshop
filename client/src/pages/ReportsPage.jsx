@@ -63,15 +63,7 @@ export default function ReportsPage() {
     >
       {/* Header */}
       <div style={{ marginBottom: '28px' }}>
-        <h1 style={{
-          margin: 0,
-          fontSize: '1.6rem',
-          fontWeight: 800,
-          background: 'linear-gradient(135deg, var(--text-primary), var(--text-secondary))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          letterSpacing: '-0.01em',
-        }}>
+        <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>
           التقارير
         </h1>
         <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '6px' }}>
@@ -86,15 +78,15 @@ export default function ReportsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           style={{
-            background: 'linear-gradient(135deg, rgba(217,119,6,0.08), rgba(217,119,6,0.03))',
-            border: '1px solid rgba(217,119,6,0.35)',
-            borderRadius: '10px',
-            padding: '14px 18px',
-            marginBottom: '24px',
+            background: 'rgba(217,119,6,0.05)',
+            border: '1px solid rgba(217,119,6,0.25)',
+            borderRight: '3px solid #D97706',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            boxShadow: '0 2px 12px rgba(217,119,6,0.10)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -174,7 +166,7 @@ export default function ReportsPage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color, fontSize: '0.85rem' }}>{icon}</span>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }}/>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{label}</span>
                 </div>
                 <div style={{
