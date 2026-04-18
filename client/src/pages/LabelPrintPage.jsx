@@ -46,7 +46,7 @@ export default function LabelPrintPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#FFFFFF',
+      background: 'var(--bg)',
       padding: 'clamp(16px, 4vw, 40px)',
       fontFamily: 'Almarai, sans-serif',
     }}>
@@ -60,38 +60,24 @@ export default function LabelPrintPage() {
       }}>
         <button
           onClick={() => navigate('/')}
-          style={{
-            background: 'none',
-            border: '1px solid #E5E7EB',
-            borderRadius: 'var(--radius, 8px)',
-            padding: '8px 14px',
-            fontSize: '0.88rem',
-            color: 'var(--text-secondary, #4B5563)',
-            cursor: 'pointer',
-            fontFamily: 'Almarai, sans-serif',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#F9FAFB'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+          className="btn-ghost"
+          style={{ padding: '8px 14px', fontSize: '0.88rem' }}
         >
           ← رجوع
         </button>
         <div>
           <h1 style={{
             margin: 0,
-            fontSize: 'clamp(1.1rem, 3vw, 1.4rem)',
+            fontSize: '1.3rem',
             fontWeight: 700,
-            color: 'var(--text-primary, #111)',
+            color: 'var(--text)',
           }}>
             طباعة الملصقات
           </h1>
           {order && (
             <div style={{
               fontSize: '0.78rem',
-              color: 'var(--text-muted, #9CA3AF)',
+              color: 'var(--text-muted)',
               marginTop: '4px',
               fontFamily: 'JetBrains Mono, monospace',
             }}>
@@ -103,7 +89,7 @@ export default function LabelPrintPage() {
 
       {/* Content */}
       {loading && (
-        <div style={{ color: 'var(--text-muted, #9CA3AF)', fontSize: '0.9rem', padding: '40px 0', textAlign: 'center' }}>
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '40px 0', textAlign: 'center' }}>
           جاري تحميل الطلب...
         </div>
       )}
@@ -113,7 +99,7 @@ export default function LabelPrintPage() {
           padding: '16px 20px',
           background: 'rgba(220,38,38,0.06)',
           border: '1px solid rgba(220,38,38,0.2)',
-          borderRadius: 'var(--radius, 8px)',
+          borderRadius: 'var(--radius)',
           color: '#DC2626',
           fontSize: '0.88rem',
         }}>
@@ -125,22 +111,22 @@ export default function LabelPrintPage() {
         <div style={{
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
-          gap: '32px',
+          gap: '24px',
           alignItems: isMobile ? 'stretch' : 'flex-start',
         }}>
           {/* Label 1 — Customer tracking label */}
           <div style={{
             flex: 1,
-            background: '#FFFFFF',
-            border: '1px solid #E5E7EB',
-            borderRadius: '12px',
+            background: 'var(--bg-raised)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
             padding: '24px',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            boxShadow: 'var(--shadow-sm)',
           }}>
             <div style={{
               fontSize: '0.72rem',
               fontWeight: 700,
-              color: 'var(--text-muted, #9CA3AF)',
+              color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               marginBottom: '20px',
@@ -153,16 +139,16 @@ export default function LabelPrintPage() {
           {/* Label 2 — Workshop internal label */}
           <div style={{
             flex: 1,
-            background: '#FFFFFF',
-            border: '1px solid #E5E7EB',
-            borderRadius: '12px',
+            background: 'var(--bg-raised)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
             padding: '24px',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            boxShadow: 'var(--shadow-sm)',
           }}>
             <div style={{
               fontSize: '0.72rem',
               fontWeight: 700,
-              color: 'var(--text-muted, #9CA3AF)',
+              color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               marginBottom: '20px',

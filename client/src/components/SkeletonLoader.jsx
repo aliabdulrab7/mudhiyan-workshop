@@ -9,17 +9,17 @@ export default function SkeletonLoader({ type = 'list', count = 3, isMobile = tr
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         style={{
-          minHeight: '100vh', background: '#F3F4F6', padding: '24px 16px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start'
+          minHeight: '100vh', background: 'var(--bg)', padding: '24px 16px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start'
         }}
       >
         <div style={{ width: '100%', maxWidth: '480px' }}>
           <div style={{ textAlign: 'center', marginBottom: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <div className="skeleton" style={{ width: '48px', height: '48px', borderRadius: '14px' }}></div>
+            <div className="skeleton" style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)' }}></div>
             <div className="skeleton" style={{ width: '140px', height: '24px' }}></div>
             <div className="skeleton" style={{ width: '100px', height: '14px' }}></div>
           </div>
           <div style={{
-            background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '18px', padding: '28px',
+            background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '28px',
           }}>
             <div style={{ marginBottom: '24px' }}>
               <div className="skeleton" style={{ width: '60px', height: '12px', marginBottom: '8px' }}></div>
@@ -40,7 +40,7 @@ export default function SkeletonLoader({ type = 'list', count = 3, isMobile = tr
                 ))}
               </div>
             </div>
-            <div className="skeleton" style={{ width: '100%', height: '48px', borderRadius: '12px' }}></div>
+            <div className="skeleton" style={{ width: '100%', height: '48px', borderRadius: 'var(--radius-md)' }}></div>
           </div>
         </div>
       </motion.div>
@@ -59,7 +59,7 @@ export default function SkeletonLoader({ type = 'list', count = 3, isMobile = tr
       >
         {[1, 2, 3, 4, 5].map(i => (
           <div key={i} style={{
-            background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '14px', padding: '16px 18px',
+            background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px',
             display: 'flex', flexDirection: 'column', gap: '10px', ...(isMobile ? { minWidth: '120px', flexShrink: 0 } : {})
           }}>
             <div className="skeleton" style={{ width: '60px', height: '14px' }}></div>
@@ -73,10 +73,10 @@ export default function SkeletonLoader({ type = 'list', count = 3, isMobile = tr
   // default type = 'list'
   return (
     <div style={{
-      background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+      background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
     }}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} style={{ padding: '14px 18px', borderBottom: i < count - 1 ? '1px solid #F3F4F6' : 'none' }}>
+        <div key={i} style={{ padding: '14px 18px', borderBottom: i < count - 1 ? '1px solid var(--border-faint)' : 'none' }}>
           {isMobile ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>

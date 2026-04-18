@@ -308,7 +308,7 @@ export default function OrderForm({ onSuccess }) {
 
       <button
         type="submit"
-        className="btn-gold"
+        className="btn-primary"
         disabled={loading}
         style={{ marginTop: '4px', width: '100%', minHeight: '48px', fontSize: '1rem', justifyContent: 'center' }}
       >
