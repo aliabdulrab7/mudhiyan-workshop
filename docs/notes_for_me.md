@@ -11,6 +11,10 @@ i'm concedring to implement aws sns to send notifications to customers when thei
 
 # Github commit
 
+git add .
+git commit -m "UI refinements"
+git push
+
 ./ship.sh
 
 # 2. Go to the app directory
