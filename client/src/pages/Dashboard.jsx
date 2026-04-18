@@ -5,10 +5,10 @@ import { getStats, getOrders, getBranchStats } from '../api/orders';
 import { getRole } from '../api/auth';
 import OrderList from '../components/OrderList';
 import StatusPill from '../components/StatusPill';
-import Toast from '../components/Toast';
 import { useApprovalNotifications } from '../hooks/useApprovalNotifications';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
+import { useToast } from '../components/ToastProvider';
 
 function useMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 768);
@@ -38,10 +38,10 @@ export default function Dashboard() {
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [refresh, setRefresh]           = useState(0);
-  const [toasts, setToasts]             = useState([]);
   const isMobile   = useMobile();
   const navigate   = useNavigate();
   const isWorkshop = getRole() === 'workshop';
+  const toast      = useToast();
 
   async function loadData() {
     const [s, received, pending, rejected, branches] = await Promise.all([
@@ -59,15 +59,11 @@ export default function Dashboard() {
   useEffect(() => { loadData(); }, [refresh]);
 
   const handleApproved = useCallback((order) => {
-    setToasts(prev => [...prev, { ...order, _toastId: Date.now() + Math.random() }]);
+    toast(`وافق ${order.customer_name} على ${order.order_number}`, 'success');
     setRefresh(r => r + 1);
-  }, []);
+  }, [toast]);
 
   useApprovalNotifications(handleApproved);
-
-  function dismissToast(id) {
-    setToasts(prev => prev.filter(t => t._toastId !== id));
-  }
 
   const dateStr = new Date().toLocaleDateString('ar-SA', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -82,11 +78,6 @@ export default function Dashboard() {
       transition={{ duration: 0.35 }}
       style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)' }}
     >
-      <Toast
-        notifications={toasts.map(t => ({ id: t._toastId, ...t }))}
-        onDismiss={dismissToast}
-      />
-
       {/* ── Page header ── */}
       <div className="flex items-start justify-between mb-6">
         <div>
