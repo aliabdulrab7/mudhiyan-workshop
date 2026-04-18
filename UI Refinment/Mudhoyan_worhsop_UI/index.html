@@ -38,9 +38,12 @@
   --primary-ring:  oklch(0.55 0.19 270 / 0.25);
 
   /* Status chroma (shared lightness for harmony) */
+  --status-new:        oklch(0.62 0.01 260);   /* neutral grey */
   --status-received:   oklch(0.60 0.14 240);   /* blue */
   --status-inspection: oklch(0.55 0.16 295);   /* purple */
   --status-waiting:    oklch(0.68 0.15 70);    /* amber */
+  --status-approved:   oklch(0.60 0.15 150);   /* green */
+  --status-rejected:   oklch(0.58 0.21 25);    /* red */
   --status-repair:     oklch(0.60 0.13 220);   /* steel blue */
   --status-quality:    oklch(0.55 0.08 260);   /* slate */
   --status-ready:      oklch(0.60 0.15 150);   /* green */
@@ -683,7 +686,7 @@ html[data-dir="rtl"] .toast-layer { right: auto; left: 20px; align-items: flex-s
 }
 .grid-stats {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 8px;
 }
 @media (max-width: 1280px) { .grid-stats { grid-template-columns: repeat(4, 1fr); } }

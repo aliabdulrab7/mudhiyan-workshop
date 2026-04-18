@@ -23,24 +23,31 @@ const I18N = {
     crumbs: {
       dashboard: 'Dashboard',
       orders: 'Orders',
+      inbox: 'My queue',
       newOrder: 'Orders · New intake',
       scan: 'Scan',
       label: 'Label print',
       track: 'Customer tracking',
     },
     stats: {
-      received: 'Received',
-      inspection: 'Inspecting',
-      waiting: 'Awaiting approval',
-      repair: 'In repair',
-      quality: 'Quality check',
-      ready: 'Ready to return',
+      new:       'New intakes',
+      received:  'Received',
+      inspection:'Inspecting',
+      waiting:   'Awaiting approval',
+      approved:  'Approved',
+      rejected:  'Rejected',
+      repair:    'In repair',
+      quality:   'Quality check',
+      ready:     'Ready to return',
       delivered: 'At branch',
     },
     status: {
+      new:              'New',
       received:         'Received',
       inspection:       'Inspecting',
       waiting_approval: 'Awaiting approval',
+      approved:         'Approved',
+      rejected:         'Rejected',
       in_repair:        'In repair',
       quality_check:    'Quality check',
       ready_for_return: 'Ready',
@@ -111,24 +118,31 @@ const I18N = {
     crumbs: {
       dashboard: 'اللوحة',
       orders: 'الطلبات',
+      inbox: 'طابوري',
       newOrder: 'الطلبات · استلام جديد',
       scan: 'مسح',
       label: 'طباعة ملصق',
       track: 'تتبع الطلب',
     },
     stats: {
-      received: 'مستلمة',
-      inspection: 'قيد الفحص',
-      waiting: 'بانتظار الموافقة',
-      repair: 'قيد الإصلاح',
-      quality: 'فحص الجودة',
-      ready: 'جاهزة للإرجاع',
+      new:       'استلامات جديدة',
+      received:  'مستلمة',
+      inspection:'قيد الفحص',
+      waiting:   'بانتظار الموافقة',
+      approved:  'موافق عليها',
+      rejected:  'مرفوضة',
+      repair:    'قيد الإصلاح',
+      quality:   'فحص الجودة',
+      ready:     'جاهزة للإرجاع',
       delivered: 'وصلت للفرع',
     },
     status: {
+      new:              'جديد',
       received:         'مستلمة',
       inspection:       'قيد الفحص',
       waiting_approval: 'بانتظار الموافقة',
+      approved:         'موافق عليه',
+      rejected:         'مرفوض',
       in_repair:        'قيد الإصلاح',
       quality_check:    'فحص الجودة',
       ready_for_return: 'جاهزة',
@@ -181,15 +195,41 @@ const I18N = {
 };
 
 const STATUS_ORDER = [
-  'received', 'inspection', 'waiting_approval',
-  'in_repair', 'quality_check', 'ready_for_return',
-  'returned_to_shop', 'delivered', 'closed'
+  'new', 'received', 'inspection', 'waiting_approval',
+  'approved', 'rejected', 'in_repair', 'quality_check',
+  'ready_for_return', 'returned_to_shop', 'delivered', 'closed'
 ];
 
+// Linear order for timeline/future-state display (excludes branches)
+const STATUS_LINEAR = [
+  'new', 'received', 'inspection', 'waiting_approval',
+  'approved', 'in_repair', 'quality_check',
+  'ready_for_return', 'returned_to_shop', 'delivered', 'closed'
+];
+
+// Next status for the advance-status button (workshop perspective)
+const NEXT_STATUS = {
+  new:              'received',
+  received:         'inspection',
+  inspection:       'waiting_approval',  // set cost & send for approval
+  waiting_approval: null,                // customer action — no advance button
+  approved:         'in_repair',
+  rejected:         'ready_for_return',
+  in_repair:        'quality_check',
+  quality_check:    'ready_for_return',
+  ready_for_return: 'returned_to_shop',
+  returned_to_shop: 'delivered',
+  delivered:        'closed',
+  closed:           null,
+};
+
 const STATUS_META = {
+  new:              { color: 'var(--status-new)',        key: 'new' },
   received:         { color: 'var(--status-received)',   key: 'received' },
   inspection:       { color: 'var(--status-inspection)', key: 'inspection' },
   waiting_approval: { color: 'var(--status-waiting)',    key: 'waiting_approval' },
+  approved:         { color: 'var(--status-approved)',   key: 'approved' },
+  rejected:         { color: 'var(--status-rejected)',   key: 'rejected' },
   in_repair:        { color: 'var(--status-repair)',     key: 'in_repair' },
   quality_check:    { color: 'var(--status-quality)',    key: 'quality_check' },
   ready_for_return: { color: 'var(--status-ready)',      key: 'ready_for_return' },
@@ -258,15 +298,37 @@ function rnd(seed) {
 
 function pad(n, w = 4) { return String(n).padStart(w, '0'); }
 
+function buildHistory(currentStatus, now, hoursAgo) {
+  let chain;
+  if (currentStatus === 'rejected') {
+    chain = ['new', 'received', 'inspection', 'waiting_approval', 'rejected'];
+  } else if (currentStatus === 'approved') {
+    chain = ['new', 'received', 'inspection', 'waiting_approval', 'approved'];
+  } else {
+    // Standard linear path (no branching for most statuses)
+    const linear = ['new', 'received', 'inspection', 'waiting_approval', 'in_repair', 'quality_check', 'ready_for_return', 'returned_to_shop', 'delivered', 'closed'];
+    const idx = linear.indexOf(currentStatus);
+    chain = idx >= 0 ? linear.slice(0, idx + 1) : ['new'];
+  }
+  return chain.map((s, idx) => ({
+    status: s,
+    at: new Date(now - (hoursAgo - idx * (hoursAgo / (chain.length + 1))) * 3600 * 1000),
+    who: ['Intake · Nakheel', 'Workshop · Hassan B.', 'Customer', 'Workshop · Khalid A.', 'QC', 'Logistics'][idx % 6],
+  }));
+}
+
 function makeOrders() {
   const r = rnd(42);
   const pick = (arr) => arr[Math.floor(r() * arr.length)];
   const now = new Date('2026-04-18T10:40:00Z').getTime();
 
   const statuses = [
+    'new', 'new', 'new',                                      // fresh intakes
     'received','received','received',
     'inspection','inspection',
     'waiting_approval','waiting_approval',
+    'approved',                                                // customer approved
+    'rejected',                                                // customer rejected
     'in_repair','in_repair','in_repair','in_repair',
     'quality_check','quality_check',
     'ready_for_return','ready_for_return','ready_for_return',
@@ -316,15 +378,6 @@ function makeOrders() {
   });
 }
 
-function buildHistory(currentStatus, now, hoursAgo) {
-  const chain = STATUS_ORDER.slice(0, STATUS_ORDER.indexOf(currentStatus) + 1);
-  return chain.map((s, idx) => ({
-    status: s,
-    at: new Date(now - (hoursAgo - idx * (hoursAgo / (chain.length + 1))) * 3600 * 1000),
-    who: ['Intake · Nakheel', 'Workshop · Hassan B.', 'Customer', 'Workshop · Khalid A.', 'QC', 'Logistics'][idx % 6],
-  }));
-}
-
 const ORDERS = makeOrders();
 
 // Count by status
@@ -361,6 +414,7 @@ function formatMoney(v, dir = 'ltr') {
 }
 
 Object.assign(window, {
-  I18N, STATUS_ORDER, STATUS_META, BRANCHES, TECHNICIANS, PIECES, CUSTOMERS, ISSUES,
+  I18N, STATUS_ORDER, STATUS_LINEAR, NEXT_STATUS, STATUS_META,
+  BRANCHES, TECHNICIANS, PIECES, CUSTOMERS, ISSUES,
   ORDERS, statusCounts, relTime, formatDate, formatMoney, pad
 });

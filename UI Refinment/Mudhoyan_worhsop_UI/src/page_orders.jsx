@@ -9,21 +9,27 @@ function OrdersPage({ lang, orders, filter, setFilter, onOpenOrder, selected, se
   const counts = statusCounts(orders);
 
   const filters = [
-    { key: 'all', label: lang === 'ar' ? 'الكل' : 'All', count: orders.length },
-    { key: 'received', label: t.stats.received, count: counts.received },
-    { key: 'inspection', label: t.stats.inspection, count: counts.inspection },
-    { key: 'waiting_approval', label: t.stats.waiting, count: counts.waiting_approval },
-    { key: 'in_repair', label: t.stats.repair, count: counts.in_repair },
-    { key: 'quality_check', label: t.stats.quality, count: counts.quality_check },
-    { key: 'ready_for_return', label: t.stats.ready, count: counts.ready_for_return },
-    { key: 'delivered', label: t.stats.delivered, count: counts.delivered + counts.returned_to_shop },
+    { key: 'all',              label: lang === 'ar' ? 'الكل'            : 'All',              count: orders.length },
+    { key: 'new',              label: t.status.new,                                            count: counts.new },
+    { key: 'received',         label: t.stats.received,                                        count: counts.received },
+    { key: 'inspection',       label: t.stats.inspection,                                      count: counts.inspection },
+    { key: 'waiting_approval', label: t.stats.waiting,                                         count: counts.waiting_approval },
+    { key: 'approved',         label: t.status.approved,                                       count: counts.approved },
+    { key: 'rejected',         label: t.status.rejected,                                       count: counts.rejected },
+    { key: 'in_repair',        label: t.stats.repair,                                          count: counts.in_repair },
+    { key: 'quality_check',    label: t.stats.quality,                                         count: counts.quality_check },
+    { key: 'ready_for_return', label: t.stats.ready,                                           count: counts.ready_for_return },
+    { key: 'delivered',        label: t.stats.delivered,                                       count: counts.delivered + counts.returned_to_shop },
   ];
 
   const filtered = React.useMemo(() => {
     let list = orders;
     if (filter !== 'all') {
-      if (filter === 'delivered') list = list.filter(o => o.status === 'delivered' || o.status === 'returned_to_shop');
-      else list = list.filter(o => o.status === filter);
+      if (filter === 'delivered') {
+        list = list.filter(o => o.status === 'delivered' || o.status === 'returned_to_shop');
+      } else {
+        list = list.filter(o => o.status === filter);
+      }
     }
     if (search) {
       const s = search.toLowerCase();
@@ -64,7 +70,7 @@ function OrdersPage({ lang, orders, filter, setFilter, onOpenOrder, selected, se
     setSort(s => s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'desc' });
   }
 
-  // keyboard j/k
+  // Keyboard j/k navigation
   React.useEffect(() => {
     function onKey(e) {
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
@@ -101,12 +107,23 @@ function OrdersPage({ lang, orders, filter, setFilter, onOpenOrder, selected, se
         </div>
       </div>
 
+      {/* Status filter chips */}
       <div style={{ padding: '0 24px 12px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {filters.map(f => (
           <button key={f.key}
             className={`chip ${filter === f.key ? 'active' : ''}`}
             onClick={() => setFilter(f.key)}>
-            {f.label}<span className="count">{f.count}</span>
+            {f.count > 0 && (
+              <span className="dot" style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: filter === f.key
+                  ? 'currentColor'
+                  : STATUS_META[f.key]?.color || 'var(--text-faint)',
+                display: 'inline-block',
+              }}/>
+            )}
+            {f.label}
+            <span className="count">{f.count}</span>
           </button>
         ))}
       </div>
@@ -131,84 +148,92 @@ function OrdersPage({ lang, orders, filter, setFilter, onOpenOrder, selected, se
           <button className="btn btn-sm btn-ghost btn-icon"><Icon.Settings size={13}/></button>
         </div>
         <div style={{ overflowX: 'auto' }}>
-        <table className="table">
-          <colgroup>
-            <col style={{ width: 36 }}/>
-            <col style={{ width: 100 }}/>
-            <col style={{ width: 110 }}/>
-            <col style={{ width: 200 }}/>
-            <col style={{ width: 180 }}/>
-            <col style={{ width: 150 }}/>
-            <col style={{ width: 140 }}/>
-            <col style={{ width: 130 }}/>
-            <col style={{ width: 100 }}/>
-            <col style={{ width: 36 }}/>
-          </colgroup>
-          <thead>
-            <tr>
-              <th className="col-check"><Checkbox checked={allSelected} indeterminate={!allSelected && selected.length > 0} onChange={toggleSelectAll}/></th>
-              <th className="sortable" onClick={() => setSortCol('order_number')}>{t.table.id} <SortIcon col="order_number"/></th>
-              <th className="sortable" onClick={() => setSortCol('status')}>{t.table.status} <SortIcon col="status"/></th>
-              <th className="sortable" onClick={() => setSortCol('customer')}>{t.table.customer} <SortIcon col="customer"/></th>
-              <th>{t.table.piece}</th>
-              <th>{t.table.branch}</th>
-              <th>{t.table.technician}</th>
-              <th className="sortable" onClick={() => setSortCol('etaAt')}>{t.table.eta} <SortIcon col="etaAt"/></th>
-              <th className="sortable" onClick={() => setSortCol('value')} style={{ textAlign: 'right' }}>{t.table.value} <SortIcon col="value"/></th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((o, i) => {
-              const isSel = selected.includes(o.id);
-              const isFoc = i === focusRow;
-              return (
-                <tr key={o.id} className={`${isSel ? 'selected' : ''} ${isFoc ? 'focused' : ''}`} onClick={() => onOpenOrder(o)} onMouseEnter={() => setFocusRow(i)}>
-                  <td className="col-check"><Checkbox checked={isSel} onChange={() => toggleSelect(o.id)}/></td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <PriorityDot priority={o.priority}/>
-                      <span className="stamp">{o.order_number}</span>
-                    </div>
-                  </td>
-                  <td><StatusPill status={o.status} dir={dir}/></td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Avatar name={o.customer.en} size={20}/>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.customer[lang]}</div>
-                        <div className="mono" style={{ fontSize: 11, color: 'var(--text-faint)' }}>+{o.customer.phone.slice(0,3)} {o.customer.phone.slice(3,5)} {o.customer.phone.slice(5,8)} {o.customer.phone.slice(8)}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 500 }}>{o.piece[lang]} {o.quantity > 1 && <span className="mono text-xs text-mute">×{o.quantity}</span>}</div>
-                    <div className="subline">{o.issue[lang]}</div>
-                  </td>
-                  <td className="text-mute">{o.branch[lang]}</td>
-                  <td>
-                    {o.technician ? (
+          <table className="table">
+            <colgroup>
+              <col style={{ width: 36 }}/>
+              <col style={{ width: 100 }}/>
+              <col style={{ width: 120 }}/>
+              <col style={{ width: 200 }}/>
+              <col style={{ width: 180 }}/>
+              <col style={{ width: 150 }}/>
+              <col style={{ width: 140 }}/>
+              <col style={{ width: 130 }}/>
+              <col style={{ width: 100 }}/>
+              <col style={{ width: 36 }}/>
+            </colgroup>
+            <thead>
+              <tr>
+                <th className="col-check"><Checkbox checked={allSelected} indeterminate={!allSelected && selected.length > 0} onChange={toggleSelectAll}/></th>
+                <th className="sortable" onClick={() => setSortCol('order_number')}>{t.table.id} <SortIcon col="order_number"/></th>
+                <th className="sortable" onClick={() => setSortCol('status')}>{t.table.status} <SortIcon col="status"/></th>
+                <th className="sortable" onClick={() => setSortCol('customer')}>{t.table.customer} <SortIcon col="customer"/></th>
+                <th>{t.table.piece}</th>
+                <th>{t.table.branch}</th>
+                <th>{t.table.technician}</th>
+                <th className="sortable" onClick={() => setSortCol('etaAt')}>{t.table.eta} <SortIcon col="etaAt"/></th>
+                <th className="sortable" onClick={() => setSortCol('value')} style={{ textAlign: 'right' }}>{t.table.value} <SortIcon col="value"/></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((o, i) => {
+                const isSel = selected.includes(o.id);
+                const isFoc = i === focusRow;
+                return (
+                  <tr key={o.id}
+                      className={`${isSel ? 'selected' : ''} ${isFoc ? 'focused' : ''}`}
+                      onClick={() => onOpenOrder(o)}
+                      onMouseEnter={() => setFocusRow(i)}>
+                    <td className="col-check"><Checkbox checked={isSel} onChange={() => toggleSelect(o.id)}/></td>
+                    <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Avatar name={o.technician.en} size={18}/>
-                        <span>{o.technician[lang]}</span>
+                        <PriorityDot priority={o.priority}/>
+                        <span className="stamp">{o.order_number}</span>
                       </div>
-                    ) : <span className="text-mute" style={{ fontStyle: 'italic' }}>{t.table.unassigned}</span>}
-                  </td>
-                  <td className="mono text-sm">{formatDate(o.etaAt, dir)} <span className="text-mute text-xs">· {relTime(o.etaAt, dir)}</span></td>
-                  <td className="mono text-sm" style={{ textAlign: 'right' }}>{formatMoney(o.value, dir)}</td>
-                  <td>
-                    <button className="btn btn-ghost btn-icon btn-sm" onClick={e => e.stopPropagation()}><Icon.Ellipsis size={13}/></button>
-                  </td>
-                </tr>
-              );
-            })}
-            {filtered.length === 0 && (
-              <tr><td colSpan={10} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-faint)' }}>
-                {lang === 'ar' ? 'لا توجد نتائج' : 'No results'}
-              </td></tr>
-            )}
-          </tbody>
-        </table>
+                    </td>
+                    <td><StatusPill status={o.status} dir={dir}/></td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Avatar name={o.customer.en} size={20}/>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.customer[lang]}</div>
+                          <div className="mono" style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                            +{o.customer.phone.slice(0,3)} {o.customer.phone.slice(3,5)} {o.customer.phone.slice(5,8)} {o.customer.phone.slice(8)}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{o.piece[lang]} {o.quantity > 1 && <span className="mono text-xs text-mute">×{o.quantity}</span>}</div>
+                      <div className="subline">{o.issue[lang]}</div>
+                    </td>
+                    <td className="text-mute">{o.branch[lang]}</td>
+                    <td>
+                      {o.technician ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Avatar name={o.technician.en} size={18}/>
+                          <span>{o.technician[lang]}</span>
+                        </div>
+                      ) : <span className="text-mute" style={{ fontStyle: 'italic' }}>{t.table.unassigned}</span>}
+                    </td>
+                    <td className="mono text-sm">{formatDate(o.etaAt, dir)} <span className="text-mute text-xs">· {relTime(o.etaAt, dir)}</span></td>
+                    <td className="mono text-sm" style={{ textAlign: 'right' }}>{formatMoney(o.value, dir)}</td>
+                    <td>
+                      <button className="btn btn-ghost btn-icon btn-sm" onClick={e => e.stopPropagation()}><Icon.Ellipsis size={13}/></button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-faint)' }}>
+                  <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.3 }}>∅</div>
+                  {search
+                    ? (lang === 'ar' ? `لا نتائج لـ "${search}"` : `No results for "${search}"`)
+                    : (lang === 'ar' ? 'لا توجد طلبات في هذه الفئة' : 'No orders in this category')}
+                </td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
         <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span>{lang === 'ar' ? 'تنقّل' : 'Navigate'}: <Kbd>J</Kbd> <Kbd>K</Kbd></span>

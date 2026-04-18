@@ -4,18 +4,21 @@ function DashboardPage({ lang, orders, onOpenOrder, onOpenOrders }) {
   const counts = statusCounts(orders);
 
   const statCards = [
-    { key: 'received', value: counts.received, label: t.stats.received, color: 'var(--status-received)', spark: [3,4,2,5,6,4,7] },
-    { key: 'inspection', value: counts.inspection, label: t.stats.inspection, color: 'var(--status-inspection)', spark: [2,3,3,4,2,3,2] },
-    { key: 'waiting_approval', value: counts.waiting_approval, label: t.stats.waiting, color: 'var(--status-waiting)', spark: [1,2,2,3,2,2,2] },
-    { key: 'in_repair', value: counts.in_repair, label: t.stats.repair, color: 'var(--status-repair)', spark: [4,5,4,5,4,4,4] },
-    { key: 'quality_check', value: counts.quality_check, label: t.stats.quality, color: 'var(--status-quality)', spark: [1,2,1,2,2,2,2] },
-    { key: 'ready_for_return', value: counts.ready_for_return, label: t.stats.ready, color: 'var(--status-ready)', spark: [2,2,3,3,3,3,3] },
+    { key: 'new',              value: counts.new,              label: t.stats.new,       color: 'var(--status-new)',        spark: [1,2,1,3,2,2,3] },
+    { key: 'received',         value: counts.received,         label: t.stats.received,  color: 'var(--status-received)',   spark: [3,4,2,5,6,4,7] },
+    { key: 'inspection',       value: counts.inspection,       label: t.stats.inspection,color: 'var(--status-inspection)', spark: [2,3,3,4,2,3,2] },
+    { key: 'waiting_approval', value: counts.waiting_approval, label: t.stats.waiting,   color: 'var(--status-waiting)',    spark: [1,2,2,3,2,2,2] },
+    { key: 'in_repair',        value: counts.in_repair,        label: t.stats.repair,    color: 'var(--status-repair)',     spark: [4,5,4,5,4,4,4] },
+    { key: 'quality_check',    value: counts.quality_check,    label: t.stats.quality,   color: 'var(--status-quality)',    spark: [1,2,1,2,2,2,2] },
+    { key: 'ready_for_return', value: counts.ready_for_return, label: t.stats.ready,     color: 'var(--status-ready)',      spark: [2,2,3,3,3,3,3] },
     { key: 'returned_to_shop', value: counts.returned_to_shop + counts.delivered, label: t.stats.delivered, color: 'var(--status-delivered)', spark: [1,1,2,2,2,2,2] },
   ];
 
-  const received = orders.filter(o => o.status === 'received');
-  const awaitingApproval = orders.filter(o => o.status === 'waiting_approval');
-  const ready = orders.filter(o => o.status === 'ready_for_return');
+  const newOrders       = orders.filter(o => o.status === 'new');
+  const received        = orders.filter(o => o.status === 'received');
+  const awaitingApproval= orders.filter(o => o.status === 'waiting_approval');
+  const ready           = orders.filter(o => o.status === 'ready_for_return');
+  const rejected        = orders.filter(o => o.status === 'rejected');
 
   const dateStr = new Date('2026-04-18T10:40:00Z').toLocaleDateString(lang === 'ar' ? 'ar' : 'en', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -35,6 +38,7 @@ function DashboardPage({ lang, orders, onOpenOrder, onOpenOrders }) {
       </div>
 
       <div className="dash">
+        {/* Stat cards */}
         <div className="grid-stats">
           {statCards.map(c => (
             <div key={c.key} className="stat-card card" onClick={() => onOpenOrders(c.key)}>
@@ -48,7 +52,40 @@ function DashboardPage({ lang, orders, onOpenOrder, onOpenOrders }) {
           ))}
         </div>
 
+        {/* Rejected alert — only show if any exist */}
+        {rejected.length > 0 && (
+          <div className="card" style={{ borderTop: `2px solid var(--status-rejected)`, padding: 0, overflow: 'hidden' }}>
+            <div className="sec-head">
+              <div className="flex items-center gap-2">
+                <span style={{ color: 'var(--status-rejected)', display: 'grid', placeItems: 'center' }}><Icon.Warn size={15}/></span>
+                <span className="sec-title">{lang === 'ar' ? 'طلبات مرفوضة — تحتاج إعادة للفرع' : 'Rejected orders — return to branch'}</span>
+                <span className="mono" style={{ fontSize: 11.5, color: 'var(--status-rejected)', marginLeft: 4 }}>{rejected.length}</span>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => onOpenOrders('rejected')}><Icon.ChevRight size={13}/></button>
+            </div>
+            {rejected.slice(0, 3).map(o => (
+              <div key={o.id} className="mini-row" onClick={() => onOpenOrder(o)}>
+                <span className="stamp">{o.order_number}</span>
+                <span className="name">{o.customer[lang]}</span>
+                <span className="meta">{o.piece[lang]} · {o.issue[lang]}</span>
+                <StatusPill status={o.status} dir={lang === 'ar' ? 'rtl' : 'ltr'}/>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Main action panels */}
         <div className="grid-two">
+          <ActionPanel
+            title={lang === 'ar' ? 'استلامات جديدة — لم تُستلم بعد' : 'New intakes — not yet received'}
+            icon={<Icon.Plus/>}
+            count={newOrders.length}
+            color="var(--status-new)"
+            orders={newOrders.slice(0, 4)}
+            lang={lang}
+            onOrder={onOpenOrder}
+            empty={lang === 'ar' ? 'لا استلامات جديدة' : 'No new intakes'}
+          />
           <ActionPanel
             title={lang === 'ar' ? 'تنتظر التقييم' : 'Awaiting intake review'}
             icon={<Icon.Inbox/>}
@@ -59,6 +96,9 @@ function DashboardPage({ lang, orders, onOpenOrder, onOpenOrders }) {
             onOrder={onOpenOrder}
             empty={lang === 'ar' ? 'لا جديد' : 'Nothing new'}
           />
+        </div>
+
+        <div className="grid-two">
           <ActionPanel
             title={lang === 'ar' ? 'بانتظار موافقة العميل' : 'Awaiting customer approval'}
             icon={<Icon.Clock/>}
@@ -70,14 +110,13 @@ function DashboardPage({ lang, orders, onOpenOrder, onOpenOrders }) {
             empty={lang === 'ar' ? 'لا شيء معلّق' : 'All clear'}
             highlight
           />
+          <ReadyToReturn orders={ready.slice(0, 5)} lang={lang} onOrder={onOpenOrder}/>
         </div>
 
         <div className="grid-two">
-          <ReadyToReturn orders={ready.slice(0, 5)} lang={lang} onOrder={onOpenOrder}/>
           <BranchLoad orders={orders} lang={lang}/>
+          <ActivityFeed orders={orders.slice(0, 8)} lang={lang}/>
         </div>
-
-        <ActivityFeed orders={orders.slice(0, 8)} lang={lang}/>
       </div>
     </div>
   );
@@ -120,7 +159,11 @@ function ReadyToReturn({ orders, lang, onOrder }) {
         </div>
         <button className="btn btn-sm"><Icon.Printer size={13}/> {lang === 'ar' ? 'طباعة جماعية' : 'Bulk print'}</button>
       </div>
-      {orders.map(o => (
+      {orders.length === 0 ? (
+        <div style={{ padding: '24px 14px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 12.5 }}>
+          {lang === 'ar' ? 'لا شيء جاهز' : 'Nothing ready yet'}
+        </div>
+      ) : orders.map(o => (
         <div key={o.id} className="mini-row" onClick={() => onOrder(o)}>
           <span className="stamp">{o.order_number}</span>
           <span className="name">{o.customer[lang]}</span>
@@ -184,14 +227,14 @@ function ActivityFeed({ orders, lang }) {
           const ago = (i + 1) * 4;
           const texts = {
             en: [
-              ['Status →', STATUS_META[o.status].key.replace(/_/g, ' ')],
+              ['Status →', I18N.en.status[o.status] || o.status],
               ['Assigned to', o.technician?.en || 'unassigned'],
               ['Note added', o.workshop_notes.en],
               ['Customer notified', o.customer.en],
               ['Quoted', formatMoney(o.value)],
             ],
             ar: [
-              ['تغيّرت الحالة →', I18N.ar.status[o.status]],
+              ['تغيّرت الحالة →', I18N.ar.status[o.status] || o.status],
               ['عُيِّن إلى', o.technician?.ar || 'غير مُعيّن'],
               ['أُضيفت ملاحظة', o.workshop_notes.ar],
               ['إشعار العميل', o.customer.ar],
