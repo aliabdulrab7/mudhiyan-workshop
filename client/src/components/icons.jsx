@@ -34,6 +34,10 @@ export const Icons = {
   Logout:    (p) => <I {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></I>,
   Command:   (p) => <I {...p}><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></I>,
   Diamond:   (p) => <I {...p}><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M6 3 2 9l10 12 10-12-4-6"/></I>,
+  Warn:      (p) => <I {...p}><path d="m10.29 3.86-8.13 14a2 2 0 0 0 1.71 3h16.26a2 2 0 0 0 1.71-3l-8.13-14a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></I>,
+  Refresh:   (p) => <I {...p}><path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/><path d="M21 21v-5h-5"/></I>,
+  Clock:     (p) => <I {...p}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></I>,
+  Check:     (p) => <I {...p}><path d="M20 6 9 17l-5-5"/></I>,
 };
 
 export default Icons;

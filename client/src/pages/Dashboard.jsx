@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getStats, getOrders, getBranchStats } from '../api/orders';
 import { getRole } from '../api/auth';
 import OrderList from '../components/OrderList';
+import StatusPill from '../components/StatusPill';
 import Toast from '../components/Toast';
 import { useApprovalNotifications } from '../hooks/useApprovalNotifications';
 import SkeletonLoader from '../components/SkeletonLoader';
+import { Icons } from '../components/icons';
 
 function useMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 768);
@@ -19,40 +21,26 @@ function useMobile() {
 }
 
 const STAT_CARDS = [
-  { key: 'new',              label: 'استلامات جديدة',    icon: '✦', gradient: 'linear-gradient(135deg, rgba(100,116,139,0.06), rgba(100,116,139,0.01))' },
-  { key: 'received',         label: 'مستلمة',            icon: '◈', gradient: 'linear-gradient(135deg, rgba(41,128,185,0.06), rgba(41,128,185,0.01))' },
-  { key: 'inspection',       label: 'قيد الفحص',          icon: '⚲', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.01))' },
-  { key: 'waiting_approval', label: 'بانتظار الموافقة',   icon: '⏳', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.06), rgba(217,119,6,0.01))' },
-  { key: 'in_repair',        label: 'قيد الإصلاح',        icon: '⟳', gradient: 'linear-gradient(135deg, rgba(26,110,160,0.06), rgba(26,110,160,0.01))' },
-  { key: 'quality_check',    label: 'فحص الجودة',         icon: '✓', gradient: 'linear-gradient(135deg, rgba(107,114,128,0.06), rgba(107,114,128,0.01))' },
-  { key: 'ready_for_return', label: 'جاهزة للإرجاع',      icon: '◉', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01))' },
-  { key: 'returned_to_shop', label: 'وصلت للفرع',         icon: '◎', gradient: 'linear-gradient(135deg, rgba(5,150,105,0.06), rgba(5,150,105,0.01))' },
+  { key: 'new',              label: 'جديد',              color: '#64748B' },
+  { key: 'received',         label: 'مستلمة',            color: '#2980B9' },
+  { key: 'inspection',       label: 'قيد الفحص',          color: '#7C3AED' },
+  { key: 'waiting_approval', label: 'بانتظار الموافقة',   color: '#D97706' },
+  { key: 'in_repair',        label: 'قيد الإصلاح',        color: '#1A6EA0' },
+  { key: 'quality_check',    label: 'فحص الجودة',         color: '#6B7280' },
+  { key: 'ready_for_return', label: 'جاهزة للإرجاع',      color: '#16A34A' },
+  { key: 'returned_to_shop', label: 'وصلت للفرع',         color: '#059669' },
 ];
 
-const STATUS_COLORS = {
-  new:              '#64748B',
-  received:         '#2980B9',
-  inspection:       '#7C3AED',
-  waiting_approval: '#D97706',
-  in_repair:        '#1A6EA0',
-  quality_check:    '#6B7280',
-  ready_for_return: '#16A34A',
-  returned_to_shop: '#059669',
-  delivered:        '#1E293B',
-  closed:           '#64748B',
-  rejected:         '#DC2626',
-};
-
 export default function Dashboard() {
-  const [stats, setStats]             = useState(null);
+  const [stats, setStats]               = useState(null);
   const [actionOrders, setActionOrders] = useState({ received: [], pending: [], rejected: [] });
-  const [branchStats, setBranchStats] = useState([]);
+  const [branchStats, setBranchStats]   = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
-  const [refresh, setRefresh]         = useState(0);
-  const [toasts, setToasts]           = useState([]);
-  const isMobile  = useMobile();
-  const navigate  = useNavigate();
+  const [refresh, setRefresh]           = useState(0);
+  const [toasts, setToasts]             = useState([]);
+  const isMobile   = useMobile();
+  const navigate   = useNavigate();
   const isWorkshop = getRole() === 'workshop';
 
   async function loadData() {
@@ -81,19 +69,17 @@ export default function Dashboard() {
     setToasts(prev => prev.filter(t => t._toastId !== id));
   }
 
-  function applyFilter(status) {
-    setFilterStatus(status);
-  }
-
   const dateStr = new Date().toLocaleDateString('ar-SA', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
+
+  const branchMax = Math.max(...branchStats.map(b => (b.received || 0) + (b.in_progress || 0) + (b.ready || 0) + (b.pending_approval || 0)), 1);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.35 }}
       style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)' }}
     >
       <Toast
@@ -101,149 +87,66 @@ export default function Dashboard() {
         onDismiss={dismissToast}
       />
 
-      {/* Header */}
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{
-          margin: 0,
-          fontSize: '1.6rem',
-          fontWeight: 800,
-          background: 'linear-gradient(135deg, var(--text-primary), var(--text-secondary))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          letterSpacing: '-0.01em',
-        }}>
-          لوحة الطلبات
-        </h1>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '6px' }}>{dateStr}</div>
+      {/* ── Page header ── */}
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-bold text-text m-0 mb-1">لوحة الطلبات</h1>
+          <div className="text-xs text-text-muted">{dateStr}</div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="btn-ghost-sm flex items-center gap-1.5"
+            onClick={() => setRefresh(r => r + 1)}
+          >
+            <Icons.Refresh size={11} />
+            تحديث
+          </button>
+        </div>
       </div>
 
-      {/* Action panels — workshop only */}
-      {isWorkshop && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-          gap: '14px',
-          marginBottom: '28px',
-        }}>
-          <ActionPanel
-            icon="◈" title="تنتظر التقييم"
-            count={actionOrders.received.length}
-            accent="#2980B9"
-            emptyText="لا توجد طلبات جديدة"
-            orders={actionOrders.received}
-            active={filterStatus === 'received'}
-            onFilterClick={() => applyFilter(filterStatus === 'received' ? 'all' : 'received')}
-          />
-          <ActionPanel
-            icon="⏳" title="بانتظار موافقة العميل"
-            count={actionOrders.pending.length}
-            accent="#d29922"
-            emptyText="لا توجد طلبات بانتظار الموافقة"
-            orders={actionOrders.pending}
-            active={filterStatus === 'waiting_approval'}
-            onFilterClick={() => applyFilter(filterStatus === 'waiting_approval' ? 'all' : 'waiting_approval')}
-            highlight={actionOrders.pending.length > 0}
-          />
-        </div>
-      )}
-
-      {/* Rejected alert — workshop only, shown when rejections exist */}
-      {isWorkshop && actionOrders.rejected.length > 0 && (
-        <div style={{
-          marginBottom: '20px',
-          border: '1px solid rgba(220,38,38,0.25)',
-          borderTop: '3px solid #DC2626',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          background: '#FFFFFF',
-        }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 16px',
-            borderBottom: '1px solid rgba(220,38,38,0.12)',
-            background: 'rgba(220,38,38,0.03)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: '#DC2626', fontSize: '0.9rem' }}>⚠</span>
-              <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#DC2626' }}>
-                طلبات مرفوضة — يجب إعادتها للفرع
-              </span>
-              <span style={{
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '0.75rem',
-                color: '#DC2626',
-                background: 'rgba(220,38,38,0.10)',
-                border: '1px solid rgba(220,38,38,0.20)',
-                borderRadius: '20px',
-                padding: '1px 8px',
-              }}>{actionOrders.rejected.length}</span>
-            </div>
-            <button
-              onClick={() => applyFilter('rejected')}
-              style={{ background: 'transparent', border: 'none', color: '#DC2626', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Almarai, sans-serif' }}
-            >
-              عرض الكل ←
-            </button>
-          </div>
-          {actionOrders.rejected.slice(0, 3).map(o => (
-            <div key={o.id} style={{
-              display: 'flex', alignItems: 'center', gap: '12px',
-              padding: '10px 16px',
-              borderBottom: '1px solid #F9FAFB',
-              fontSize: '0.82rem',
-            }}>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem', color: '#DC2626' }}>{o.order_number}</span>
-              <span style={{ fontWeight: 600, flex: 1 }}>{o.customer_name}</span>
-              <span style={{ color: 'var(--text-muted)' }}>{o.piece_type}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Stat cards */}
+      {/* ── Stat cards ── */}
       {stats ? (
         <div
           className={isMobile ? 'scroll-row' : ''}
           style={isMobile ? {
-            display: 'flex', gap: '10px', marginBottom: '24px',
+            display: 'flex', gap: '10px', marginBottom: '20px',
           } : {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
             gap: '10px',
-            marginBottom: '28px',
+            marginBottom: '20px',
           }}
         >
-          {STAT_CARDS.map(({ key, label, icon, gradient }, i) => (
+          {STAT_CARDS.map(({ key, label, color }, i) => (
             <motion.button
               key={key}
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.3 }}
-              onClick={() => applyFilter(filterStatus === key ? 'all' : key)}
+              transition={{ delay: i * 0.05, duration: 0.25 }}
+              onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
+              className="stat-card text-right transition-all"
               style={{
-                background: filterStatus === key ? gradient : '#FFFFFF',
-                border: `1px solid ${filterStatus === key ? 'rgba(41,128,185,0.30)' : '#E5E7EB'}`,
-                borderRadius: '8px',
-                padding: '14px 16px',
-                display: 'flex', flexDirection: 'column', gap: '8px',
+                background: filterStatus === key
+                  ? `color-mix(in oklch, ${color} 9%, var(--bg-raised))`
+                  : 'var(--bg-raised)',
+                border: `1px solid ${filterStatus === key
+                  ? `color-mix(in oklch, ${color} 30%, var(--border))`
+                  : 'var(--border)'}`,
+                borderRadius: 'var(--radius)',
+                padding: '14px 14px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
                 cursor: 'pointer',
-                textAlign: 'right',
-                transition: 'all 0.15s ease',
-                ...(isMobile ? { minWidth: '120px', flexShrink: 0 } : {}),
-                boxShadow: filterStatus === key ? '0 0 0 3px rgba(41,128,185,0.10)' : 'var(--shadow-sm)',
+                boxShadow: 'var(--shadow-sm)',
+                ...(isMobile ? { minWidth: '118px', flexShrink: 0 } : {}),
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ color: STATUS_COLORS[key], fontSize: '0.85rem' }}>{icon}</span>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{label}</span>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                <span className="text-[11px] text-text-muted leading-tight">{label}</span>
               </div>
-              <div style={{
-                fontSize: '2rem',
-                fontWeight: 800,
-                color: STATUS_COLORS[key],
-                fontFamily: 'JetBrains Mono, monospace',
-                lineHeight: 1,
-              }}>
+              <div className="font-mono text-3xl font-semibold leading-none" style={{ color }}>
                 {stats[key] ?? 0}
               </div>
             </motion.button>
@@ -253,43 +156,123 @@ export default function Dashboard() {
         <SkeletonLoader type="stats" isMobile={isMobile} />
       )}
 
-      <div className="gold-line" style={{ marginBottom: '24px' }} />
+      {/* ── Action panels — workshop only ── */}
+      {isWorkshop && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gap: '12px',
+          marginBottom: '16px',
+        }}>
+          <ActionPanel
+            icon={<Icons.Inbox size={14} />}
+            title="تنتظر التقييم"
+            count={actionOrders.received.length}
+            color="#2980B9"
+            emptyText="لا توجد طلبات جديدة"
+            orders={actionOrders.received}
+            active={filterStatus === 'received'}
+            onFilterClick={() => setFilterStatus(filterStatus === 'received' ? 'all' : 'received')}
+          />
+          <ActionPanel
+            icon={<Icons.Orders size={14} />}
+            title="بانتظار موافقة العميل"
+            count={actionOrders.pending.length}
+            color="#D97706"
+            emptyText="لا توجد طلبات بانتظار الموافقة"
+            orders={actionOrders.pending}
+            active={filterStatus === 'waiting_approval'}
+            onFilterClick={() => setFilterStatus(filterStatus === 'waiting_approval' ? 'all' : 'waiting_approval')}
+            highlight={actionOrders.pending.length > 0}
+          />
+        </div>
+      )}
 
-      {/* Branch overview — workshop only */}
+      {/* ── Rejected alert ── */}
+      <AnimatePresence>
+        {isWorkshop && actionOrders.rejected.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="mb-4 rounded-lg overflow-hidden"
+            style={{ border: '1px solid rgba(220,38,38,0.25)', borderTop: '2px solid #DC2626' }}
+          >
+            <div className="flex items-center justify-between px-4 py-3 bg-bg-raised border-b" style={{ borderColor: 'rgba(220,38,38,0.12)' }}>
+              <div className="flex items-center gap-2">
+                <Icons.Warn size={14} stroke="#DC2626" />
+                <span className="font-bold text-sm" style={{ color: '#DC2626' }}>طلبات مرفوضة — يجب إعادتها للفرع</span>
+                <span className="font-mono text-xs px-2 py-0.5 rounded-full" style={{ color: '#DC2626', background: 'rgba(220,38,38,0.10)', border: '1px solid rgba(220,38,38,0.20)' }}>
+                  {actionOrders.rejected.length}
+                </span>
+              </div>
+              <button
+                onClick={() => setFilterStatus('rejected')}
+                className="text-xs cursor-pointer"
+                style={{ background: 'transparent', border: 'none', color: '#DC2626', fontFamily: 'Almarai, sans-serif' }}
+              >
+                عرض الكل ←
+              </button>
+            </div>
+            {actionOrders.rejected.slice(0, 3).map(o => (
+              <div key={o.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border-faint last:border-0 bg-bg-raised text-sm">
+                <span className="font-mono text-xs" style={{ color: '#DC2626' }}>{o.order_number}</span>
+                <span className="font-semibold flex-1 text-text">{o.customer_name}</span>
+                <span className="text-text-muted">{o.piece_type}</span>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Branch load — workshop only ── */}
       {isWorkshop && branchStats.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              الفروع
-            </span>
+        <div className="bg-bg-raised border border-border rounded-lg mb-4 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <Icons.Branch size={13} stroke="var(--text-muted)" />
+              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">الفروع</span>
+            </div>
             {selectedBranch && (
               <button
                 onClick={() => setSelectedBranch(null)}
-                style={{ background: 'transparent', border: 'none', color: '#2980B9', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Almarai, sans-serif' }}
+                className="text-xs cursor-pointer"
+                style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontFamily: 'Almarai, sans-serif' }}
               >
                 ← عرض الكل
               </button>
             )}
           </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: '8px',
-          }}>
-            {branchStats.map(branch => (
-              <BranchCard
-                key={branch.shop_id}
-                branch={branch}
-                active={selectedBranch === branch.shop_id}
-                onClick={() => setSelectedBranch(selectedBranch === branch.shop_id ? null : branch.shop_id)}
-              />
-            ))}
+          <div className="px-4 py-3 flex flex-col gap-2">
+            {branchStats.map(branch => {
+              const total = (branch.received || 0) + (branch.in_progress || 0) + (branch.ready || 0) + (branch.pending_approval || 0);
+              const ready = branch.ready || 0;
+              const isActive = selectedBranch === branch.shop_id;
+              return (
+                <div
+                  key={branch.shop_id}
+                  className={`grid items-center gap-3 cursor-pointer py-1 px-2 rounded transition-colors ${isActive ? 'bg-[var(--primary-soft)]' : 'hover:bg-bg-soft'}`}
+                  style={{ gridTemplateColumns: '1fr 120px 40px' }}
+                  onClick={() => setSelectedBranch(isActive ? null : branch.shop_id)}
+                >
+                  <span className="text-sm text-text truncate">{branch.shop_name}</span>
+                  <div className="h-2 bg-bg-soft rounded overflow-hidden relative">
+                    <div className="h-full rounded transition-all" style={{ width: `${(total / branchMax) * 100}%`, background: 'var(--primary)' }} />
+                    {ready > 0 && (
+                      <div className="absolute inset-y-0 rounded transition-all" style={{ width: `${(ready / branchMax) * 100}%`, background: '#16A34A', left: 0 }} />
+                    )}
+                  </div>
+                  <span className="font-mono text-xs text-text-muted text-left">{total}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      <div className="gold-line" style={{ marginBottom: '24px' }} />
+      <div className="gold-line mb-5" />
 
+      {/* ── Orders table ── */}
       <OrderList
         key={`${filterStatus}-${selectedBranch}`}
         defaultStatus={filterStatus}
@@ -300,123 +283,58 @@ export default function Dashboard() {
 
       {isMobile && (
         <button className="fab-new-order" onClick={() => navigate('/new')} aria-label="صيانة جديدة">
-          ✦
+          +
         </button>
       )}
     </motion.div>
   );
 }
 
-function BranchCard({ branch, active, onClick }) {
-  const activeCount = branch.received + branch.pending_approval + branch.in_progress + branch.ready;
+function ActionPanel({ icon, title, count, color, emptyText, orders, active, onFilterClick, highlight }) {
   return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      style={{
-        background: active ? 'rgba(41,128,185,0.06)' : '#FFFFFF',
-        border: `1px solid ${active ? 'rgba(41,128,185,0.35)' : '#E5E7EB'}`,
-        borderRadius: '8px',
-        padding: '12px 14px',
-        cursor: 'pointer',
-        textAlign: 'right',
-        transition: 'all 0.15s',
-        outline: active ? '2px solid rgba(41,128,185,0.4)' : 'none',
-        outlineOffset: '2px',
-        boxShadow: 'var(--shadow-sm)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#222222' }}>{branch.shop_name}</span>
-        {branch.ready > 0 && (
-          <span style={{
-            background: 'rgba(22,163,74,0.10)', color: '#16A34A',
-            borderRadius: '12px', padding: '2px 8px',
-            fontSize: '0.68rem', fontWeight: 700,
-            border: '1px solid rgba(22,163,74,0.25)',
-          }}>
-            {branch.ready} جاهز
-          </span>
-        )}
-      </div>
-      <div style={{ display: 'flex', gap: '10px', fontSize: '0.75rem' }}>
-        <span style={{ color: '#2980B9' }}>◈ {branch.received}</span>
-        <span style={{ color: '#1A6EA0' }}>⟳ {branch.in_progress}</span>
-        <span style={{ color: '#16A34A' }}>✓ {branch.ready}</span>
-        {branch.pending_approval > 0 && (
-          <span style={{ color: '#D97706' }}>⏳ {branch.pending_approval}</span>
-        )}
-      </div>
-      {activeCount === 0 && (
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>لا طلبات نشطة</div>
-      )}
-    </motion.button>
-  );
-}
-
-function ActionPanel({ icon, title, count, accent, emptyText, orders, active, onFilterClick, highlight }) {
-  return (
-    <motion.div
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
+    <div
       onClick={onFilterClick}
+      className="bg-bg-raised border rounded-lg overflow-hidden cursor-pointer transition-all"
       style={{
-        background: '#FFFFFF',
-        border: `1px solid ${highlight && count > 0 ? `${accent}55` : '#E5E7EB'}`,
-        borderRadius: '8px',
-        padding: '16px 18px',
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-        outline: active ? `2px solid ${accent}` : 'none',
-        outlineOffset: '2px',
-        boxShadow: count > 0 ? `0 2px 12px ${accent}18` : 'var(--shadow-sm)',
+        borderColor: highlight && count > 0 ? `color-mix(in oklch, ${color} 30%, var(--border))` : 'var(--border)',
+        borderTop: highlight && count > 0 ? `2px solid ${color}` : undefined,
+        boxShadow: active ? `0 0 0 2px ${color}` : 'var(--shadow-sm)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '1rem', color: accent }}>{icon}</span>
-          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{title}</span>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <span style={{ color }}>{icon}</span>
+          <span className="text-sm font-semibold text-text">{title}</span>
         </div>
-        <span style={{
-          background: count > 0 ? `${accent}12` : '#F3F4F6',
-          color: count > 0 ? accent : 'var(--text-muted)',
-          fontFamily: 'JetBrains Mono, monospace',
-          fontWeight: 800,
-          fontSize: '0.95rem',
-          padding: '3px 12px',
-          borderRadius: '20px',
-          border: `1px solid ${count > 0 ? `${accent}30` : '#E5E7EB'}`,
-        }}>
+        <span
+          className="font-mono text-sm font-bold px-2.5 py-0.5 rounded-full"
+          style={{
+            color,
+            background: `color-mix(in oklch, ${color} 9%, var(--bg-raised))`,
+            border: `1px solid color-mix(in oklch, ${color} 20%, var(--border))`,
+          }}
+        >
           {count}
         </span>
       </div>
-
       {count === 0 ? (
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>{emptyText}</div>
+        <div className="px-4 py-5 text-xs text-text-faint text-center italic">{emptyText}</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {orders.slice(0, 3).map(o => (
-            <div key={o.id} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '7px 10px',
-              background: '#F3F4F6',
-              borderRadius: '6px',
-              fontSize: '0.8rem',
-            }}>
-              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{o.customer_name}</span>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', color: accent, fontSize: '0.72rem' }}>
-                {o.order_number}
-              </span>
+        <div className="flex flex-col">
+          {orders.slice(0, 4).map(o => (
+            <div key={o.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border-faint last:border-0 text-sm hover:bg-bg-soft transition-colors">
+              <span className="order-stamp text-[11px] px-2 py-0.5">{o.order_number}</span>
+              <span className="font-medium text-text flex-1 truncate">{o.customer_name}</span>
+              <span className="text-xs text-text-muted">{o.piece_type}</span>
             </div>
           ))}
-          {count > 3 && (
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'center', paddingTop: '2px' }}>
-              +{count - 3} أخرى
+          {count > 4 && (
+            <div className="px-4 py-2 text-xs text-text-faint text-center">
+              +{count - 4} أخرى
             </div>
           )}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
