@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateOrderStatus, updateCost, getComments, addComment, getOrderHistory, confirmPayment } from '../api/orders';
 import { getRole } from '../api/auth';
-import StatusBadge, { STATUS } from './StatusBadge';
+import StatusPill from './StatusPill';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 
@@ -230,7 +230,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             >×</button>
           </div>
           <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <StatusBadge status={order.status} />
+            <StatusPill status={order.status} />
             <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)' }}>{dateStr}</span>
           </div>
         </div>
@@ -584,7 +584,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   </div>
                   <div style={{ paddingBottom: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <StatusBadge status={h.to_status} small />
+                      <StatusPill status={h.to_status} size="sm" />
                       <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
                         {new Date(h.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
                       </span>

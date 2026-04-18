@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import StatusBadge from './StatusBadge';
+import StatusPill from './StatusPill';
 import CostEditor from './CostEditor';
 import { updateOrderStatus } from '../api/orders';
 import { getRole } from '../api/auth';
@@ -95,7 +95,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
         <Row label="العميل" value={order.customer_name} bold />
         <Row label="القطعة" value={order.piece_type} />
         <Row label="الجوال" value={'+' + order.phone} mono />
-        <Row label="الحالة" value={<StatusBadge status={order.status} />} />
+        <Row label="الحالة" value={<StatusPill status={order.status} />} />
         {order.cost > 0 && <Row label="التكلفة" value={`${order.cost} ريال`} bold />}
         {order.notes && <Row label="ملاحظات" value={order.notes} />}
       </div>
