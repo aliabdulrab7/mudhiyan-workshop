@@ -52,7 +52,7 @@ export default function ScanPage() {
       {!viaMobile && (
         <>
           <div style={{ marginBottom: '28px' }}>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>
               مسح الباركود
             </h1>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
@@ -66,8 +66,8 @@ export default function ScanPage() {
       <div style={{ display: 'flex', gap: '36px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
         {!viaMobile && (
           <div style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--gold-border)',
+            background: 'var(--bg-raised)',
+            border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
             padding: '20px',
             minWidth: '320px',
@@ -106,7 +106,7 @@ export default function ScanPage() {
                 border: '1px solid rgba(239,68,68,0.2)',
                 borderRadius: 'var(--radius)',
                 padding: '10px 14px',
-                color: '#FCA5A5',
+                color: '#DC2626',
                 fontSize: '0.83rem',
               }}>
                 {errorMsg}
@@ -134,7 +134,7 @@ export default function ScanPage() {
             border: '1px solid rgba(239,68,68,0.2)',
             borderRadius: 'var(--radius)',
             padding: '16px',
-            color: '#FCA5A5',
+            color: '#DC2626',
             maxWidth: '400px',
           }}>
             <div style={{ marginBottom: '10px' }}>{errorMsg}</div>

@@ -202,7 +202,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
       >
         {/* Header */}
         <div style={{
-          background: 'linear-gradient(135deg, #2980B9, #1A6EA0)',
+          background: 'var(--primary)',
           color: '#fff',
           padding: '24px 28px', flexShrink: 0,
         }}>

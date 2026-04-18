@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getServices, createService, updateService } from '../api/services';
+import { Icons } from '../components/icons';
 
 export default function ServicesPage() {
   const [services, setServices]     = useState([]);
@@ -92,15 +93,15 @@ export default function ServicesPage() {
       style={{ padding: '28px', maxWidth: '700px' }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)' }}>قائمة الخدمات</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>قائمة الخدمات</h1>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
             إدارة خدمات الورشة والأسعار الافتراضية
           </p>
         </div>
         {!showForm && (
-          <button className="btn-gold" onClick={handleShowForm}>✦ إضافة خدمة</button>
+          <button className="btn-primary" onClick={handleShowForm}>+ إضافة خدمة</button>
         )}
       </div>
 
@@ -112,21 +113,20 @@ export default function ServicesPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             style={{
-              background: 'var(--bg-card)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid var(--gold-border)',
-              borderRadius: 'var(--radius-lg)',
+              background: 'var(--bg-raised)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
               padding: '24px',
-              marginBottom: '32px',
-              boxShadow: 'var(--shadow-lg)',
+              marginBottom: '24px',
+              boxShadow: 'var(--shadow-md)',
             }}
           >
-            <h2 style={{ margin: '0 0 20px', fontSize: '1.1rem', fontWeight: 700, color: 'var(--gold)' }}>
+            <h2 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
               إضافة خدمة جديدة
             </h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                   اسم الخدمة
                 </label>
                 <input
@@ -138,7 +138,7 @@ export default function ServicesPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                   الوصف
                 </label>
                 <input
@@ -149,7 +149,7 @@ export default function ServicesPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                   السعر الافتراضي (ريال)
                 </label>
                 <input
@@ -165,14 +165,14 @@ export default function ServicesPage() {
               </div>
 
               {error && (
-                <div style={{ color: '#FCA5A5', fontSize: '0.88rem', padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius)' }}>
+                <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '10px 14px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)' }}>
                   {error}
                 </div>
               )}
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-                <button className="btn-gold" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
-                  {submitting ? '...' : '✦ حفظ'}
+                <button className="btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
+                  {submitting ? '...' : 'حفظ'}
                 </button>
                 <button className="btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} style={{ flex: 0.5, justifyContent: 'center' }}>
                   إلغاء
@@ -185,7 +185,7 @@ export default function ServicesPage() {
 
       {/* Error outside form */}
       {error && !showForm && (
-        <div style={{ color: '#FCA5A5', fontSize: '0.88rem', padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius)', marginBottom: '20px' }}>
+        <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '12px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)', marginBottom: '20px' }}>
           {error}
         </div>
       )}
@@ -195,9 +195,9 @@ export default function ServicesPage() {
         <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '40px' }}>جاري التحميل...</div>
       ) : services.length === 0 ? (
         <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--gold-border)',
-          borderRadius: 'var(--radius-lg)',
+          background: 'var(--bg-raised)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
           padding: '60px 40px',
           textAlign: 'center',
           color: 'var(--text-muted)',
@@ -206,7 +206,7 @@ export default function ServicesPage() {
           لا توجد خدمات مسجلة
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <AnimatePresence>
             {services.map((service, idx) => (
               <motion.div
@@ -215,18 +215,18 @@ export default function ServicesPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--gold-border)',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '18px 24px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                  background: 'var(--bg-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '16px 20px',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
                 {editingId === service.id ? (
                   /* Inline edit form */
                   <form onSubmit={e => handleEditSubmit(e, service.id)} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-soft)', marginBottom: '6px' }}>
                         اسم الخدمة
                       </label>
                       <input
@@ -237,7 +237,7 @@ export default function ServicesPage() {
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-soft)', marginBottom: '6px' }}>
                         الوصف
                       </label>
                       <input
@@ -248,7 +248,7 @@ export default function ServicesPage() {
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-soft)', marginBottom: '6px' }}>
                         السعر الافتراضي (ريال)
                       </label>
                       <input
@@ -263,13 +263,13 @@ export default function ServicesPage() {
                     </div>
 
                     {editError && (
-                      <div style={{ color: '#FCA5A5', fontSize: '0.85rem', padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius)' }}>
+                      <div style={{ color: '#DC2626', fontSize: '0.85rem', padding: '8px 12px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)' }}>
                         {editError}
                       </div>
                     )}
 
                     <div style={{ display: 'flex', gap: '10px' }}>
-                      <button className="btn-gold" type="submit" disabled={editSubmitting} style={{ flex: 1, justifyContent: 'center' }}>
+                      <button className="btn-primary" type="submit" disabled={editSubmitting} style={{ flex: 1, justifyContent: 'center' }}>
                         {editSubmitting ? '...' : 'حفظ'}
                       </button>
                       <button className="btn-ghost" type="button" onClick={handleCancelEdit} style={{ flex: 0.5, justifyContent: 'center' }}>
@@ -280,30 +280,29 @@ export default function ServicesPage() {
                 ) : (
                   /* Read-only row */
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                      {/* Service icon */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                       <div style={{
-                        width: '46px', height: '46px', borderRadius: '12px',
-                        background: 'rgba(201,151,58,0.1)',
-                        border: '1px solid var(--gold-border)',
+                        width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                        background: 'var(--primary-soft)',
+                        border: '1px solid var(--border)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1.3rem', color: 'var(--gold)', flexShrink: 0,
+                        flexShrink: 0,
                       }}>
-                        ✦
+                        <Icons.Tag size={18} stroke="var(--primary)" />
                       </div>
                       <div>
-                        <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.97rem' }}>
                           {service.name}
                         </div>
                         {service.description && (
-                          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          <div style={{ fontSize: '0.80rem', color: 'var(--text-muted)', marginTop: '3px' }}>
                             {service.description}
                           </div>
                         )}
                         {service.default_price != null && (
-                          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          <div style={{ fontSize: '0.80rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                             السعر:{' '}
-                            <span style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--gold)' }}>
+                            <span style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--primary)' }}>
                               {service.default_price} ريال
                             </span>
                           </div>
@@ -311,16 +310,14 @@ export default function ServicesPage() {
                       </div>
                     </div>
 
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       className="btn-ghost-sm"
                       type="button"
                       onClick={() => handleStartEdit(service)}
                       style={{ padding: '6px 16px', flexShrink: 0 }}
                     >
                       تعديل
-                    </motion.button>
+                    </button>
                   </div>
                 )}
               </motion.div>

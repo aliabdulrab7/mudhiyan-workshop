@@ -51,8 +51,8 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
   }
 
   const cardStyle = {
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--gold-border)',
+    background: 'var(--bg-raised)',
+    border: '1px solid var(--border)',
     borderRadius: 'var(--radius-lg)',
     padding: '28px',
     maxWidth: isMobile ? '100%' : '440px',
@@ -65,10 +65,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       animate={{ opacity: 1, scale: 1 }}
       style={{
         ...cardStyle,
-        background: 'var(--bg-card)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid var(--gold-border)',
-        boxShadow: 'var(--shadow-lg)',
+        boxShadow: 'var(--shadow-md)',
       }}
     >
       {/* Header */}
@@ -83,7 +80,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           ✓
         </div>
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>تم العثور على الطلب</div>
+          <div style={{ fontWeight: 700, color: 'var(--text)' }}>تم العثور على الطلب</div>
           <span className="order-stamp">{order.order_number}</span>
         </div>
       </div>
@@ -108,8 +105,9 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       {/* Approval wa.me — waiting_approval */}
       {!order.locked_at && order.status === 'waiting_approval' && (
         <div style={{
-          background: 'rgba(201,151,58,0.06)',
-          border: '1px solid var(--gold-border)',
+          background: 'rgba(217,119,6,0.05)',
+          border: '1px solid rgba(217,119,6,0.20)',
+          borderRight: '3px solid #D97706',
           borderRadius: 'var(--radius)',
           padding: '12px 14px',
           marginBottom: '16px',
@@ -128,8 +126,9 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       {/* Mark ready — workshop + in_repair, not locked */}
       {isWorkshop && !order.locked_at && order.status === 'in_repair' && (
         <div style={{
-          background: 'rgba(201,151,58,0.06)',
-          border: '1px solid var(--gold-border)',
+          background: 'var(--primary-soft)',
+          border: '1px solid var(--border)',
+          borderRight: '3px solid var(--primary)',
           borderRadius: 'var(--radius)',
           padding: '12px 14px',
           marginBottom: '16px',
@@ -174,8 +173,8 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       {/* Ready Label — workshop + ready_for_return */}
       {isWorkshop && !order.locked_at && order.status === 'ready_for_return' && (
         <div style={{
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--gold-border)',
+          background: 'var(--bg-raised)',
+          border: '1px solid var(--border)',
           borderRadius: 'var(--radius)',
           padding: '12px 14px',
           marginBottom: '16px',
@@ -218,7 +217,7 @@ function Row({ label, value, bold, mono }) {
         fontWeight: bold ? 700 : 400,
         fontFamily: mono ? 'JetBrains Mono, monospace' : 'inherit',
         fontSize: mono ? '0.82rem' : '0.92rem',
-        color: 'var(--text-primary)',
+        color: 'var(--text)',
       }}>
         {value}
       </span>

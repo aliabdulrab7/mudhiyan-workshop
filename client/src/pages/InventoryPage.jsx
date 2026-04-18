@@ -73,15 +73,15 @@ export default function InventoryPage() {
       style={{ padding: '28px', maxWidth: '800px', direction: 'rtl' }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)' }}>المخزون</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>المخزون</h1>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
             إدارة مواد وكميات المخزون
           </p>
         </div>
         {!showForm && (
-          <button className="btn-gold" onClick={handleShowForm}>✦ إضافة مادة</button>
+          <button className="btn-primary" onClick={handleShowForm}>+ إضافة مادة</button>
         )}
       </div>
 
@@ -93,23 +93,22 @@ export default function InventoryPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             style={{
-              background: 'var(--bg-card)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid var(--gold-border)',
-              borderRadius: 'var(--radius-lg)',
+              background: 'var(--bg-raised)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
               padding: '24px',
-              marginBottom: '32px',
-              boxShadow: 'var(--shadow-lg)',
+              marginBottom: '24px',
+              boxShadow: 'var(--shadow-md)',
             }}
           >
-            <h2 style={{ margin: '0 0 20px', fontSize: '1.1rem', fontWeight: 700, color: 'var(--gold)' }}>
+            <h2 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
               إضافة مادة جديدة
             </h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               {/* Name */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                  اسم المادة <span style={{ color: 'var(--gold)' }}>*</span>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
+                  اسم المادة <span style={{ color: 'var(--primary)' }}>*</span>
                 </label>
                 <input
                   className="input-base"
@@ -122,7 +121,7 @@ export default function InventoryPage() {
 
               {/* Category */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                   الفئة <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>(اختياري)</span>
                 </label>
                 <input
@@ -136,7 +135,7 @@ export default function InventoryPage() {
               {/* Qty + Unit + Price row */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                     الكمية
                   </label>
                   <input
@@ -149,7 +148,7 @@ export default function InventoryPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                     الوحدة
                   </label>
                   <input
@@ -160,7 +159,7 @@ export default function InventoryPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                     سعر الوحدة (ريال)
                   </label>
                   <input
@@ -176,14 +175,14 @@ export default function InventoryPage() {
               </div>
 
               {error && (
-                <div style={{ color: '#FCA5A5', fontSize: '0.88rem', padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius)' }}>
+                <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '10px 14px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)' }}>
                   {error}
                 </div>
               )}
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-                <button className="btn-gold" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
-                  {submitting ? '...' : '✦ حفظ'}
+                <button className="btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
+                  {submitting ? '...' : 'حفظ'}
                 </button>
                 <button className="btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} style={{ flex: 0.5, justifyContent: 'center' }}>
                   إلغاء
@@ -196,7 +195,7 @@ export default function InventoryPage() {
 
       {/* Error outside form */}
       {error && !showForm && (
-        <div style={{ color: '#FCA5A5', fontSize: '0.88rem', padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius)', marginBottom: '20px' }}>
+        <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '12px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)', marginBottom: '20px' }}>
           {error}
         </div>
       )}
@@ -206,9 +205,9 @@ export default function InventoryPage() {
         <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '40px' }}>جاري التحميل...</div>
       ) : items.length === 0 ? (
         <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--gold-border)',
-          borderRadius: 'var(--radius-lg)',
+          background: 'var(--bg-raised)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
           padding: '60px 40px',
           textAlign: 'center',
           color: 'var(--text-muted)',
@@ -223,12 +222,13 @@ export default function InventoryPage() {
             display: 'grid',
             gridTemplateColumns: '2fr 1fr 1.2fr 0.8fr 1fr 100px',
             gap: '8px',
-            padding: '8px 20px',
-            fontSize: '0.78rem',
+            padding: '8px 16px',
+            fontSize: '0.72rem',
             color: 'var(--text-muted)',
             fontWeight: 700,
-            letterSpacing: '0.04em',
-            marginBottom: '6px',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            marginBottom: '4px',
           }}>
             <span>المادة</span>
             <span>الفئة</span>
@@ -238,7 +238,7 @@ export default function InventoryPage() {
             <span style={{ textAlign: 'center' }}>تعديل</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <AnimatePresence>
               {items.map((item, idx) => (
                 <motion.div
@@ -247,24 +247,24 @@ export default function InventoryPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.04 }}
                   style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--gold-border)',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: '16px 20px',
+                    background: 'var(--bg-raised)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    padding: '14px 16px',
                     display: 'grid',
                     gridTemplateColumns: '2fr 1fr 1.2fr 0.8fr 1fr 100px',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    boxShadow: 'var(--shadow-sm)',
                   }}
                 >
                   {/* Name */}
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.97rem' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.92rem' }}>
                     {item.name}
                   </div>
 
                   {/* Category */}
-                  <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                     {item.category || '—'}
                   </div>
 
@@ -273,65 +273,63 @@ export default function InventoryPage() {
                     fontFamily: 'JetBrains Mono, monospace',
                     fontSize: '1rem',
                     fontWeight: 700,
-                    color: item.stock_qty <= 0 ? '#F87171' : 'var(--text-primary)',
+                    color: item.stock_qty <= 0 ? '#DC2626' : 'var(--text)',
                   }}>
                     {item.stock_qty}
                   </div>
 
                   {/* Unit */}
-                  <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)' }}>
                     {item.unit}
                   </div>
 
                   {/* Cost per unit */}
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.9rem', color: 'var(--gold)' }}>
+                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.9rem', color: 'var(--primary)' }}>
                     {Number(item.cost_per_unit).toFixed(2)}
                   </div>
 
                   {/* Adjust +/- */}
                   <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
+                    <button
                       disabled={adjusting[item.id]}
                       onClick={() => handleAdjust(item.id, -1)}
                       style={{
-                        width: '30px', height: '30px',
-                        border: '1px solid var(--gold-border)',
-                        borderRadius: '6px',
-                        background: 'rgba(201,151,58,0.08)',
-                        color: 'var(--text-primary)',
+                        width: '28px', height: '28px',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-soft)',
+                        color: 'var(--text)',
                         fontSize: '1rem',
                         fontFamily: 'JetBrains Mono, monospace',
                         cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: 0,
                         lineHeight: 1,
+                        transition: 'border-color 0.15s',
                       }}
                     >
                       −
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
+                    </button>
+                    <button
                       disabled={adjusting[item.id]}
                       onClick={() => handleAdjust(item.id, 1)}
                       style={{
-                        width: '30px', height: '30px',
-                        border: '1px solid var(--gold-border)',
-                        borderRadius: '6px',
-                        background: 'rgba(201,151,58,0.08)',
-                        color: 'var(--gold)',
+                        width: '28px', height: '28px',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--primary-soft)',
+                        color: 'var(--primary)',
                         fontSize: '1rem',
                         fontFamily: 'JetBrains Mono, monospace',
                         cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: 0,
                         lineHeight: 1,
+                        transition: 'border-color 0.15s',
                       }}
                     >
                       +
-                    </motion.button>
+                    </button>
                   </div>
                 </motion.div>
               ))}

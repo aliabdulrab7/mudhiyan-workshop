@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getBranches, createBranch, deleteBranch } from '../api/admin';
+import { Icons } from '../components/icons';
 
 export default function BranchesPage() {
   const [branches, setBranches]   = useState([]);
@@ -19,7 +20,6 @@ export default function BranchesPage() {
 
   useEffect(() => { load(); }, []);
 
-  // Auto-suggest next branch code when name is empty
   function handleShowForm() {
     const next = `BR${branches.length + 1}`;
     setForm({ name: next, username: next.toLowerCase(), password: '' });
@@ -60,15 +60,15 @@ export default function BranchesPage() {
       style={{ padding: '28px', maxWidth: '700px' }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)' }}>إدارة الفروع</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>إدارة الفروع</h1>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
             كل فرع يحصل على حساب دخول مستقل
           </p>
         </div>
         {!showForm && (
-          <button className="btn-gold" onClick={handleShowForm}>✦ فرع جديد</button>
+          <button className="btn-primary" onClick={handleShowForm}>+ فرع جديد</button>
         )}
       </div>
 
@@ -80,21 +80,20 @@ export default function BranchesPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             style={{
-              background: 'var(--bg-card)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid var(--gold-border)',
-              borderRadius: 'var(--radius-lg)',
+              background: 'var(--bg-raised)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
               padding: '24px',
-              marginBottom: '32px',
-              boxShadow: 'var(--shadow-lg)',
+              marginBottom: '24px',
+              boxShadow: 'var(--shadow-md)',
             }}
           >
-            <h2 style={{ margin: '0 0 20px', fontSize: '1.1rem', fontWeight: 700, color: 'var(--gold)' }}>
+            <h2 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
               إنشاء فرع جديد
             </h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                   اسم الفرع
                 </label>
                 <input
@@ -107,7 +106,7 @@ export default function BranchesPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                     اسم المستخدم
                   </label>
                   <input
@@ -120,7 +119,7 @@ export default function BranchesPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
                     كلمة المرور
                   </label>
                   <input
@@ -136,14 +135,14 @@ export default function BranchesPage() {
               </div>
 
               {error && (
-                <div style={{ color: '#FCA5A5', fontSize: '0.88rem', padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius)' }}>
+                <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '10px 14px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)' }}>
                   {error}
                 </div>
               )}
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-                <button className="btn-gold" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
-                  {submitting ? '...' : '✦ إنشاء الفرع'}
+                <button className="btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
+                  {submitting ? '...' : 'إنشاء الفرع'}
                 </button>
                 <button className="btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} style={{ flex: 0.5, justifyContent: 'center' }}>
                   إلغاء
@@ -156,7 +155,7 @@ export default function BranchesPage() {
 
       {/* Error outside form */}
       {error && !showForm && (
-        <div style={{ color: '#FCA5A5', fontSize: '0.88rem', padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius)', marginBottom: '20px' }}>
+        <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '12px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)', marginBottom: '20px' }}>
           {error}
         </div>
       )}
@@ -166,9 +165,9 @@ export default function BranchesPage() {
         <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '40px' }}>جاري التحميل...</div>
       ) : branches.length === 0 ? (
         <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--gold-border)',
-          borderRadius: 'var(--radius-lg)',
+          background: 'var(--bg-raised)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
           padding: '60px 40px',
           textAlign: 'center',
           color: 'var(--text-muted)',
@@ -177,7 +176,7 @@ export default function BranchesPage() {
           لا توجد فروع بعد — أنشئ أول فرع
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <AnimatePresence>
             {branches.map((branch, idx) => (
               <motion.div
@@ -186,36 +185,35 @@ export default function BranchesPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--gold-border)',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '18px 24px',
+                  background: 'var(--bg-raised)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '16px 20px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: '16px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                  {/* Branch icon */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                   <div style={{
-                    width: '46px', height: '46px', borderRadius: '12px',
-                    background: 'rgba(201,151,58,0.1)',
-                    border: '1px solid var(--gold-border)',
+                    width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                    background: 'var(--primary-soft)',
+                    border: '1px solid var(--border)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '1.3rem', color: 'var(--gold)', flexShrink: 0,
+                    flexShrink: 0,
                   }}>
-                    ⊛
+                    <Icons.Branch size={18} stroke="var(--primary)" />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.97rem' }}>
                       {branch.name}
                     </div>
                     {branch.username && (
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      <div style={{ fontSize: '0.80rem', color: 'var(--text-muted)', marginTop: '3px' }}>
                         مستخدم:{' '}
-                        <span style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--gold)' }}>
+                        <span style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--primary)' }}>
                           {branch.username}
                         </span>
                       </div>
@@ -223,15 +221,13 @@ export default function BranchesPage() {
                   </div>
                 </div>
 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <button
                   className="btn-ghost-sm"
                   onClick={() => handleDelete(branch.id, branch.name)}
-                  style={{ color: '#F87171', borderColor: 'rgba(248,113,113,0.3)', padding: '6px 16px' }}
+                  style={{ color: '#DC2626', borderColor: 'rgba(220,38,38,0.25)', padding: '6px 16px' }}
                 >
                   حذف
-                </motion.button>
+                </button>
               </motion.div>
             ))}
           </AnimatePresence>
