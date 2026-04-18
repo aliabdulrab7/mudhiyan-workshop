@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { updateOrderStatus, updateCost, getComments, addComment, getOrderHistory, confirmPayment } from '../api/orders';
 import { getRole } from '../api/auth';
 import StatusPill from './StatusPill';
+import { Icons } from './icons';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 
-// Workshop-triggered transitions (shop transitions handled via separate actions)
 const NEXT_STATUS = {
   new:              'received',
   received:         'inspection',
@@ -15,8 +14,6 @@ const NEXT_STATUS = {
   approved:         'in_repair',
   in_repair:        'quality_check',
   quality_check:    'ready_for_return',
-  // ready_for_return → returned_to_shop: shop employee only (separate action)
-  // returned_to_shop → delivered: shop employee only with payment (separate action)
   delivered:        'closed',
 };
 
@@ -32,20 +29,20 @@ const NEXT_LABEL = {
 };
 
 export default function OrderDetail({ order: initial, onClose, onUpdated }) {
-  const [order, setOrder]         = useState(initial);
-  const [comments, setComments]   = useState([]);
-  const [history, setHistory]     = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const [cost, setCost]           = useState(String(initial.cost ?? 0));
-  const [paymentMethod, setPaymentMethod]   = useState(null);
-  const [savingCost, setSavingCost]         = useState(false);
-  const [savingStatus, setSavingStatus]     = useState(false);
-  const [savingDelivery, setSavingDelivery] = useState(false);
-  const [savingComment, setSavingComment]   = useState(false);
+  const [order, setOrder]           = useState(initial);
+  const [comments, setComments]     = useState([]);
+  const [history, setHistory]       = useState([]);
+  const [newComment, setNewComment]  = useState('');
+  const [cost, setCost]             = useState(String(initial.cost ?? 0));
+  const [paymentMethod, setPaymentMethod]     = useState(null);
+  const [savingCost, setSavingCost]           = useState(false);
+  const [savingStatus, setSavingStatus]       = useState(false);
+  const [savingDelivery, setSavingDelivery]   = useState(false);
+  const [savingComment, setSavingComment]     = useState(false);
   const [justMarkedReady, setJustMarkedReady] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [savingCancel, setSavingCancel]         = useState(false);
-  const [error, setError]         = useState('');
+  const [error, setError]           = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
@@ -57,106 +54,82 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     });
   }
 
-  useEffect(() => {
-    loadComments();
-    loadHistory();
-  }, [order.id]);
+  useEffect(() => { loadComments(); loadHistory(); }, [order.id]);
   useEffect(() => { commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [comments]);
 
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   async function loadComments() {
-    try { setComments(await getComments(order.id)); }
-    catch { /* non-critical */ }
+    try { setComments(await getComments(order.id)); } catch { /* non-critical */ }
   }
-
   async function loadHistory() {
-    try { setHistory(await getOrderHistory(order.id)); }
-    catch { /* non-critical */ }
+    try { setHistory(await getOrderHistory(order.id)); } catch { /* non-critical */ }
   }
-
-  function update(updated) {
-    setOrder(updated);
-    onUpdated?.(updated);
-  }
+  function update(updated) { setOrder(updated); onUpdated?.(updated); }
 
   async function handleStatusAdvance() {
     const next = NEXT_STATUS[order.status];
     if (!next) return;
-    setSavingStatus(true);
-    setError('');
+    setSavingStatus(true); setError('');
     try {
       const updated = await updateOrderStatus(order.id, next);
-      update(updated);
-      loadHistory();
+      update(updated); loadHistory();
       if (updated.status === 'ready_for_return') setJustMarkedReady(true);
-    }
-    catch (e) { setError(e.message); }
+    } catch (e) { setError(e.message); }
     finally { setSavingStatus(false); }
   }
 
   async function handleDelivery() {
     if (!paymentMethod) return;
-    setSavingDelivery(true);
-    setError('');
+    setSavingDelivery(true); setError('');
     try {
       await confirmPayment(order.id);
       const updated = await updateOrderStatus(order.id, 'delivered');
-      update(updated);
-      loadHistory();
-      onClose();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setSavingDelivery(false);
-    }
+      update(updated); loadHistory(); onClose();
+    } catch (e) { setError(e.message); }
+    finally { setSavingDelivery(false); }
   }
 
   async function handleSaveCost() {
     const c = parseInt(cost, 10);
     if (isNaN(c) || c < 0) { setError('أدخل مبلغاً صحيحاً'); return; }
-    setSavingCost(true);
-    setError('');
+    setSavingCost(true); setError('');
     try {
       const updated = await updateCost(order.id, c);
       update(updated);
       if (updated.status === 'waiting_approval') {
         window.open(buildApprovalWaUrl(updated.phone, updated.customer_name, updated.cost, buildTrackingUrl(updated.customer_token)), '_blank', 'noopener,noreferrer');
       }
-    }
-    catch (e) { setError(e.message); }
+    } catch (e) { setError(e.message); }
     finally { setSavingCost(false); }
   }
 
   async function handleConfirmReturnedToShop() {
-    setSavingStatus(true);
-    setError('');
+    setSavingStatus(true); setError('');
     try {
       const updated = await updateOrderStatus(order.id, 'returned_to_shop');
-      update(updated);
-      loadHistory();
+      update(updated); loadHistory();
     } catch (e) { setError(e.message); }
     finally { setSavingStatus(false); }
   }
 
   async function handleCancel() {
-    setError('');
-    setSavingCancel(true);
+    setError(''); setSavingCancel(true);
     try {
       const updated = await updateOrderStatus(order.id, 'cancelled');
-      onUpdated?.(updated);
-      onClose();
-    } catch (e) {
-      setError(e.message);
-      setConfirmingCancel(false);
-    } finally {
-      setSavingCancel(false);
-    }
+      onUpdated?.(updated); onClose();
+    } catch (e) { setError(e.message); setConfirmingCancel(false); }
+    finally { setSavingCancel(false); }
   }
 
   async function handleAddComment(e) {
     e.preventDefault();
     if (!newComment.trim()) return;
-    setSavingComment(true);
-    setError('');
+    setSavingComment(true); setError('');
     try {
       const c = await addComment(order.id, newComment.trim());
       setComments(prev => [...prev, c]);
@@ -171,519 +144,320 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 
   return (
     <>
-      {/* Overlay */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)',
-          zIndex: 300, backdropFilter: 'blur(4px)',
-        }}
-      />
-
-      {/* Panel */}
-      <motion.div
-        initial={{ x: -300, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: -300, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        style={{
-          position: 'fixed', top: 0, left: 0, bottom: 0,
-          width: 'min(480px, 100vw)',
-          background: '#FFFFFF',
-          boxShadow: '4px 0 32px rgba(0,0,0,0.12)',
-          zIndex: 301,
-          display: 'flex', flexDirection: 'column',
-          overflowY: 'auto',
-          borderLeft: '1px solid #E5E7EB',
-        }}
-      >
+      <div className="drawer-backdrop" onClick={onClose} />
+      <div className="drawer">
         {/* Header */}
-        <div style={{
-          background: 'var(--primary)',
-          color: '#fff',
-          padding: '24px 28px', flexShrink: 0,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)', marginBottom: '6px' }}>تفاصيل الطلب</div>
-              <div style={{
-                fontFamily: 'JetBrains Mono, monospace', fontSize: '1.05rem', fontWeight: 700,
-                color: '#FFFFFF',
-                letterSpacing: '0.04em',
-              }}>
-                {order.order_number}
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
-                color: 'rgba(255,255,255,0.8)', fontSize: '1.1rem', cursor: 'pointer',
-                lineHeight: 1, padding: '6px 10px', borderRadius: '8px',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.25)'; e.target.style.color = '#fff'; }}
-              onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.15)'; e.target.style.color = 'rgba(255,255,255,0.8)'; }}
-            >×</button>
-          </div>
-          <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <StatusPill status={order.status} />
-            <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)' }}>{dateStr}</span>
-          </div>
+        <div className="drawer-head">
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}>
+            <Icons.X size={14} />
+          </button>
+          <span className="stamp" style={{ fontSize: 12 }}>{order.order_number}</span>
+          <StatusPill status={order.status} />
+          <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{dateStr}</span>
+          <div style={{ flex: 1 }} />
+          {NEXT_STATUS[order.status] && isWorkshop && (
+            <button className="btn btn-sm btn-primary" disabled={savingStatus} onClick={handleStatusAdvance}>
+              <Icons.Check size={12} />
+              {savingStatus ? '...' : NEXT_LABEL[order.status]}
+            </button>
+          )}
+          <button className="btn btn-sm" onClick={() => window.open('/orders/' + order.id + '/label', '_blank', 'noopener,noreferrer')}>
+            <Icons.Printer size={12} /> طباعة
+          </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 24px' }}>
-          {/* Order info */}
-          <section style={{ padding: '24px 28px 0' }}>
-            <InfoRow label="العميل" value={order.customer_name} bold />
-            <InfoRow label="الجوال" value={'+' + order.phone} mono />
-            {order.cost > 0 && <InfoRow label="التكلفة" value={`${order.cost} ريال`} bold />}
+        {/* Body */}
+        <div className="drawer-body">
 
-            {/* Copy tracking link */}
-            {order.customer_token && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #F3F4F6' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>رابط المتابعة</span>
-                <button
-                  onClick={copyTrackingLink}
-                  style={{
-                    background: linkCopied ? 'rgba(22,163,74,0.08)' : 'rgba(41,128,185,0.08)',
-                    border: `1px solid ${linkCopied ? 'rgba(22,163,74,0.25)' : 'rgba(41,128,185,0.25)'}`,
-                    color: linkCopied ? '#16A34A' : '#2980B9',
-                    borderRadius: '6px',
-                    padding: '4px 12px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'Almarai, sans-serif',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                  }}
-                >
-                  {linkCopied ? '✓ تم النسخ' : '⎘ نسخ الرابط'}
-                </button>
-              </div>
-            )}
-
-            {/* Items table */}
-            {order.items && order.items.length > 0 ? (
-              <div style={{ marginTop: '14px' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
-                  الأصناف
-                </div>
-                <div style={{ border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden' }}>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1.2fr 48px 1.5fr 2fr',
-                    padding: '8px 10px',
-                    background: '#F9FAFB',
-                    borderBottom: '1px solid #E5E7EB',
-                    fontSize: '0.68rem',
-                    color: 'var(--text-muted)',
-                    fontWeight: 700,
-                    letterSpacing: '0.06em',
-                    gap: '10px',
-                  }}>
-                    <span>النوع</span>
-                    <span style={{ textAlign: 'center' }}>العدد</span>
-                    <span>عام</span>
-                    <span>فني</span>
-                  </div>
-                  {order.items.map((item, i) => (
-                    <div key={item.id ?? i} style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1.2fr 48px 1.5fr 2fr',
-                      padding: '10px 10px',
-                      borderBottom: i < order.items.length - 1 ? '1px solid #F3F4F6' : 'none',
-                      alignItems: 'start',
-                      gap: '10px',
-                      fontSize: '0.82rem',
-                    }}>
-                      <div>
-                        <div style={{ color: 'var(--text)', fontWeight: 700 }}>{item.item_name || item.item_type}</div>
-                        {(item.brand || item.model) && (
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                            {item.brand} {item.model}
-                          </div>
-                        )}
-                        {item.serial_number && (
-                          <div style={{ fontSize: '0.65rem', fontFamily: 'JetBrains Mono, monospace', color: '#2980B9' }}>
-                            {item.serial_number}
-                          </div>
-                        )}
-                      </div>
-                      <span style={{ textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', color: '#2980B9', fontWeight: 700 }}>{item.quantity}</span>
-                      <span style={{ color: item.notes ? 'var(--text-soft)' : 'var(--text-muted)', fontSize: '0.78rem' }}>
-                        {item.notes || '—'}
-                      </span>
-                      <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 500 }}>
-                        {item.workshop_comment || '—'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <>
-                <InfoRow label="القطعة" value={order.piece_type} />
-                {order.notes && <InfoRow label="ملاحظات" value={order.notes} />}
-              </>
-            )}
-          </section>
-
-          <Divider />
-
-          {/* Locked order banner */}
-          {order.locked_at && (
-            <section style={{ padding: '0 28px 0' }}>
-              <div style={{
-                padding: '12px 16px',
-                background: 'rgba(30,41,59,0.06)',
-                border: '1px solid rgba(30,41,59,0.15)',
-                borderRadius: 'var(--radius)',
-                display: 'flex', alignItems: 'center', gap: '10px',
-                fontSize: '0.85rem', color: '#1E293B',
-              }}>
-                <span style={{ fontSize: '1rem' }}>🔒</span>
-                <span>هذا الطلب مغلق ولا يمكن تعديله</span>
-              </div>
-            </section>
-          )}
-
-          {/* Actions — hidden when order is locked */}
-          {!order.locked_at && (isWorkshop || ['ready_for_return', 'returned_to_shop'].includes(order.status)) && (
-            <section style={{ padding: '0 28px' }}>
-              <SectionTitle>الإجراءات</SectionTitle>
-
-              {/* Print labels button — all non-terminal statuses */}
-              {!['cancelled', 'closed', 'delivered'].includes(order.status) && (
-                <div style={{ marginBottom: '12px' }}>
-                  <button
-                    className="btn-ghost"
-                    style={{ width: '100%', justifyContent: 'center', minHeight: '44px' }}
-                    onClick={() => window.open('/orders/' + order.id + '/label', '_blank', 'noopener,noreferrer')}
-                  >
-                    🖨 طباعة الملصقات
-                  </button>
-                </div>
-              )}
-
-              {/* Shop employee: WhatsApp notification + confirm received from workshop */}
-              {!isWorkshop && order.status === 'ready_for_return' && (
+          {/* Customer info */}
+          <div className="detail-section">
+            <div className="detail-section-label">بيانات العميل</div>
+            <div className="kv-grid">
+              <div className="kv-key">الاسم</div>
+              <div className="kv-val" style={{ fontWeight: 600 }}>{order.customer_name}</div>
+              <div className="kv-key">الجوال</div>
+              <div className="kv-val mono" style={{ direction: 'ltr', justifyContent: 'flex-end' }}>+{order.phone}</div>
+              {order.cost > 0 && <>
+                <div className="kv-key">التكلفة</div>
+                <div className="kv-val mono">{order.cost} ريال</div>
+              </>}
+              {order.customer_token && (
                 <>
-                  <div style={{ marginBottom: '12px' }}>
+                  <div className="kv-key">رابط المتابعة</div>
+                  <div className="kv-val">
                     <button
-                      className="btn-ghost"
-                      style={{ width: '100%', justifyContent: 'center', minHeight: '44px' }}
-                      onClick={() => window.open(buildReadyWaUrl(order.phone, order.customer_name, order.order_number), '_blank', 'noopener,noreferrer')}
+                      className={`btn btn-sm${linkCopied ? '' : ''}`}
+                      onClick={copyTrackingLink}
+                      style={linkCopied ? { color: 'var(--success)', borderColor: 'var(--success)' } : {}}
                     >
-                      📲 إرسال رسالة الاستلام (WhatsApp) ↗
-                    </button>
-                  </div>
-                  <div style={{ marginBottom: '12px' }}>
-                    <button
-                      className="btn-gold"
-                      style={{ width: '100%', justifyContent: 'center', minHeight: '44px', background: '#059669', borderColor: 'rgba(5,150,105,0.4)' }}
-                      disabled={savingStatus}
-                      onClick={handleConfirmReturnedToShop}
-                    >
-                      {savingStatus ? 'جاري التحديث...' : '✓ تأكيد وصول القطعة من الورشة'}
+                      {linkCopied ? <><Icons.Check size={11} /> تم النسخ</> : <><Icons.Link size={11} /> نسخ الرابط</>}
                     </button>
                   </div>
                 </>
               )}
+            </div>
+          </div>
 
-              {/* Shop employee: payment + delivery to customer */}
+          {/* Items */}
+          <div className="detail-section">
+            <div className="detail-section-label">الأصناف</div>
+            {order.items && order.items.length > 0 ? (
+              <div className="card" style={{ overflow: 'hidden' }}>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1.2fr 44px 1.5fr 2fr',
+                  padding: '7px 12px', background: 'var(--bg-soft)',
+                  borderBottom: '1px solid var(--border)',
+                  fontSize: 11, color: 'var(--text-muted)', fontWeight: 500,
+                  textTransform: 'uppercase', letterSpacing: '0.04em', gap: 10,
+                }}>
+                  <span>النوع</span><span style={{ textAlign: 'center' }}>العدد</span><span>ملاحظات</span><span>تقني</span>
+                </div>
+                {order.items.map((item, i) => (
+                  <div key={item.id ?? i} style={{
+                    display: 'grid', gridTemplateColumns: '1.2fr 44px 1.5fr 2fr',
+                    padding: '10px 12px',
+                    borderBottom: i < order.items.length - 1 ? '1px solid var(--border)' : 'none',
+                    alignItems: 'start', gap: 10, fontSize: 12.5,
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{item.item_name || item.item_type}</div>
+                      {item.serial_number && <div className="mono text-xs text-mute">{item.serial_number}</div>}
+                    </div>
+                    <span className="mono" style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: 600 }}>{item.quantity}</span>
+                    <span style={{ color: item.notes ? 'var(--text-soft)' : 'var(--text-faint)', fontSize: 12 }}>{item.notes || '—'}</span>
+                    <span style={{ color: 'var(--success)', fontSize: 12 }}>{item.workshop_comment || '—'}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="kv-grid">
+                <div className="kv-key">القطعة</div>
+                <div className="kv-val">{order.piece_type}</div>
+                {order.notes && <>
+                  <div className="kv-key">ملاحظات</div>
+                  <div className="kv-val text-sm" style={{ color: 'var(--text-soft)' }}>{order.notes}</div>
+                </>}
+              </div>
+            )}
+          </div>
+
+          {/* Locked banner */}
+          {order.locked_at && (
+            <div className="detail-section">
+              <div style={{
+                padding: '12px 14px', background: 'var(--bg-soft)',
+                border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+                fontSize: 12.5, color: 'var(--text-muted)',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <Icons.Archive size={13} />
+                هذا الطلب مغلق ولا يمكن تعديله
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          {!order.locked_at && (isWorkshop || ['ready_for_return', 'returned_to_shop'].includes(order.status)) && (
+            <div className="detail-section">
+              <div className="detail-section-label">الإجراءات</div>
+
+              {/* Shop employee: WhatsApp + confirm received */}
+              {!isWorkshop && order.status === 'ready_for_return' && (
+                <>
+                  <button
+                    className="btn" style={{ width: '100%', justifyContent: 'center', marginBottom: 8, height: 36 }}
+                    onClick={() => window.open(buildReadyWaUrl(order.phone, order.customer_name, order.order_number), '_blank', 'noopener,noreferrer')}
+                  >
+                    <Icons.Phone size={13} /> إرسال رسالة الاستلام (WhatsApp) ↗
+                  </button>
+                  <button
+                    className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 36 }}
+                    disabled={savingStatus} onClick={handleConfirmReturnedToShop}
+                  >
+                    <Icons.Check size={13} /> {savingStatus ? 'جاري التحديث...' : 'تأكيد وصول القطعة من الورشة'}
+                  </button>
+                </>
+              )}
+
+              {/* Shop employee: payment + delivery */}
               {!isWorkshop && order.status === 'returned_to_shop' && (
-                <div style={{ marginBottom: '20px', padding: '16px', background: '#FFFBF0', border: '1px solid rgba(212,168,67,0.3)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
-                    تأكيد الدفع والتسليم
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                    طريقة الدفع
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                    {[
-                      { value: 'cash', label: 'نقداً' },
-                      { value: 'card', label: 'بطاقة' },
-                      { value: 'transfer', label: 'تحويل' },
-                    ].map(({ value, label }) => (
+                <div style={{
+                  padding: 16, background: 'var(--bg-soft)',
+                  border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+                }}>
+                  <div className="detail-section-label" style={{ marginBottom: 12 }}>تأكيد الدفع والتسليم</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>طريقة الدفع</div>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                    {[{ value: 'cash', label: 'نقداً' }, { value: 'card', label: 'بطاقة' }, { value: 'transfer', label: 'تحويل' }].map(({ value, label }) => (
                       <button
                         key={value}
                         onClick={() => setPaymentMethod(value)}
-                        style={{
-                          flex: 1,
-                          padding: '10px 6px',
-                          border: paymentMethod === value ? '2px solid #D4A843' : '1px solid #D1D5DB',
-                          borderRadius: '8px',
-                          background: paymentMethod === value ? 'rgba(212,168,67,0.1)' : '#FFFFFF',
-                          color: paymentMethod === value ? '#92700A' : 'var(--text-soft)',
-                          fontWeight: paymentMethod === value ? 700 : 400,
-                          fontSize: '0.88rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s',
-                          fontFamily: 'Almarai, sans-serif',
-                        }}
-                      >
-                        {label}
-                      </button>
+                        className={`btn btn-sm${paymentMethod === value ? ' btn-primary' : ''}`}
+                        style={{ flex: 1, justifyContent: 'center' }}
+                      >{label}</button>
                     ))}
                   </div>
                   <button
-                    className="btn-gold"
-                    style={{ width: '100%', justifyContent: 'center', minHeight: '44px', opacity: paymentMethod ? 1 : 0.5 }}
-                    disabled={!paymentMethod || savingDelivery}
-                    onClick={handleDelivery}
+                    className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 36, opacity: paymentMethod ? 1 : 0.5 }}
+                    disabled={!paymentMethod || savingDelivery} onClick={handleDelivery}
                   >
-                    {savingDelivery ? 'جاري التأكيد...' : '✓ تأكيد التسليم والدفع'}
+                    <Icons.Check size={13} /> {savingDelivery ? 'جاري التأكيد...' : 'تأكيد التسليم والدفع'}
                   </button>
                 </div>
               )}
 
+              {/* Workshop actions */}
               {isWorkshop && (
                 <>
-                  {/* Auto-advance button — workshop transitions only */}
                   {NEXT_STATUS[order.status] && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <button
-                        className="btn-primary"
-                        style={{ width: '100%', justifyContent: 'center', minHeight: '44px' }}
-                        disabled={savingStatus}
-                        onClick={handleStatusAdvance}
-                      >
-                        {savingStatus ? 'جاري التحديث...' : `← ${NEXT_LABEL[order.status]}`}
-                      </button>
-                    </div>
+                    <button
+                      className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 36, marginBottom: 12 }}
+                      disabled={savingStatus} onClick={handleStatusAdvance}
+                    >
+                      <Icons.Check size={13} /> {savingStatus ? 'جاري التحديث...' : NEXT_LABEL[order.status]}
+                    </button>
                   )}
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                      تكلفة الإصلاح (ريال)
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input className="input-base" type="number" min="0" value={cost} onChange={e => setCost(e.target.value)} style={{ flex: 1 }} />
-                      <button className="btn-primary" onClick={handleSaveCost} disabled={savingCost} style={{ flexShrink: 0 }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <label className="field-label">تكلفة الإصلاح (ريال)</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input className="input" type="number" min="0" value={cost} onChange={e => setCost(e.target.value)} style={{ flex: 1 }} />
+                      <button className="btn btn-primary btn-sm" onClick={handleSaveCost} disabled={savingCost}>
                         {savingCost ? '...' : 'حفظ'}
                       </button>
                     </div>
                     {order.status === 'inspection' && (
-                      <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 4 }}>
                         تحديد التكلفة سينقل الطلب إلى "بانتظار الموافقة" تلقائياً
                       </div>
                     )}
                   </div>
 
                   {error && (
-                    <div style={{ marginTop: '12px', color: '#DC2626', fontSize: '0.83rem', padding: '10px 14px', background: 'rgba(220,38,38,0.06)', borderRadius: 'var(--radius)', border: '1px solid rgba(220,38,38,0.15)' }}>
+                    <div style={{
+                      padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)',
+                      border: '1px solid oklch(0.58 0.21 25 / 0.2)',
+                      borderRadius: 'var(--radius)', color: 'var(--danger)', fontSize: 12.5, marginBottom: 12,
+                    }}>
                       {error}
                     </div>
                   )}
 
                   {order.status === 'ready_for_return' && (
-                    <div style={{ marginTop: '24px' }}>
-                      <SectionTitle>ملصق الجاهزية</SectionTitle>
+                    <div style={{ marginTop: 16 }}>
+                      <div className="detail-section-label">ملصق الجاهزية</div>
                       <ReadyLabelCanvas order={order} autoPrint={justMarkedReady} />
                     </div>
                   )}
 
                   {!['delivered', 'closed', 'cancelled'].includes(order.status) && (
-                    <>
-                      <div style={{ margin: '20px 0 16px', height: '1px', background: '#F3F4F6' }} />
+                    <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
                       {!confirmingCancel ? (
                         <button
                           onClick={() => setConfirmingCancel(true)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 16px',
-                            border: '1px solid rgba(220,38,38,0.3)',
-                            borderRadius: 'var(--radius)',
-                            background: '#FFFFFF',
-                            color: '#DC2626',
-                            fontSize: '0.88rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            fontFamily: 'Almarai, sans-serif',
-                            transition: 'all 0.15s',
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.06)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; }}
+                          className="btn btn-sm btn-danger"
+                          style={{ width: '100%', justifyContent: 'center', height: 32, borderColor: 'oklch(0.58 0.21 25 / 0.3)', color: 'var(--danger)' }}
                         >
                           إلغاء الطلب
                         </button>
                       ) : (
                         <div style={{
-                          padding: '14px 16px',
-                          background: 'rgba(220,38,38,0.06)',
-                          border: '1px solid rgba(220,38,38,0.2)',
-                          borderRadius: 'var(--radius)',
+                          padding: 14, background: 'oklch(0.58 0.21 25 / 0.05)',
+                          border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius)',
                         }}>
-                          <div style={{ fontSize: '0.85rem', color: '#DC2626', fontWeight: 600, marginBottom: '12px' }}>
+                          <div style={{ fontSize: 12.5, color: 'var(--danger)', fontWeight: 600, marginBottom: 10 }}>
                             هل أنت متأكد من إلغاء هذا الطلب؟
                           </div>
-                          <div style={{ display: 'flex', gap: '8px' }}>
+                          <div style={{ display: 'flex', gap: 8 }}>
                             <button
-                              onClick={handleCancel}
-                              disabled={savingCancel}
-                              style={{
-                                flex: 1,
-                                padding: '9px 12px',
-                                border: '1px solid rgba(220,38,38,0.4)',
-                                borderRadius: 'var(--radius)',
-                                background: '#DC2626',
-                                color: '#FFFFFF',
-                                fontSize: '0.85rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                fontFamily: 'Almarai, sans-serif',
-                              }}
+                              onClick={handleCancel} disabled={savingCancel}
+                              className="btn btn-sm"
+                              style={{ flex: 1, justifyContent: 'center', background: 'var(--danger)', borderColor: 'var(--danger)', color: '#fff' }}
                             >
                               {savingCancel ? 'جاري الإلغاء...' : 'نعم، إلغاء'}
                             </button>
                             <button
                               onClick={() => setConfirmingCancel(false)}
-                              style={{
-                                flex: 1,
-                                padding: '9px 12px',
-                                border: '1px solid #D1D5DB',
-                                borderRadius: 'var(--radius)',
-                                background: '#FFFFFF',
-                                color: 'var(--text-soft)',
-                                fontSize: '0.85rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                fontFamily: 'Almarai, sans-serif',
-                              }}
+                              className="btn btn-sm"
+                              style={{ flex: 1, justifyContent: 'center' }}
                             >
                               لا، تراجع
                             </button>
                           </div>
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
                 </>
               )}
-            </section>
+            </div>
           )}
 
-          <Divider />
-
           {/* Status History */}
-          <section style={{ padding: '0 28px' }}>
-            <SectionTitle>سجل العمليات</SectionTitle>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="detail-section">
+            <div className="detail-section-label">سجل العمليات</div>
+            <div className="timeline">
               {history.map((h, i) => (
-                <div key={h.id} style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: i === 0 ? '#16A34A' : '#E5E7EB', marginTop: '6px' }} />
-                    {i < history.length - 1 && <div style={{ width: '1px', flex: 1, background: '#F3F4F6' }} />}
+                <div key={h.id} className="tl-item">
+                  <span className={`tl-dot ${i === 0 ? 'current' : 'done'}`} />
+                  <div className="tl-title">
+                    <StatusPill status={h.to_status} size="sm" />
                   </div>
-                  <div style={{ paddingBottom: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <StatusPill status={h.to_status} size="sm" />
-                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                        {new Date(h.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)' }}>
-                      بواسطة: <span style={{ fontWeight: 600 }}>{h.changed_by}</span>
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      {new Date(h.created_at).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' })}
-                    </div>
+                  <div className="tl-meta mono">
+                    {new Date(h.created_at).toLocaleString('ar-SA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    &nbsp;· {h.changed_by}
                   </div>
                 </div>
               ))}
             </div>
-          </section>
-
-          <Divider />
+          </div>
 
           {/* Comments */}
-          <section style={{ padding: '0 28px' }}>
-            <SectionTitle>التعليقات {comments.length > 0 && `(${comments.length})`}</SectionTitle>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+          <div className="detail-section">
+            <div className="detail-section-label">التعليقات {comments.length > 0 && `(${comments.length})`}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
               {comments.length === 0 ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                  لا توجد تعليقات بعد
-                </div>
-              ) : (
-                comments.map(c => (
-                  <div key={c.id} style={{
-                    background: '#F9FAFB',
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    borderRight: '3px solid rgba(41,128,185,0.20)',
-                    border: '1px solid #E5E7EB',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#2980B9', fontFamily: 'JetBrains Mono, monospace' }}>
-                        {c.author}
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        {new Date(c.created_at).toLocaleString('ar-SA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.6 }}>
-                      {c.body}
-                    </div>
+                <div style={{ color: 'var(--text-faint)', fontSize: 12.5, fontStyle: 'italic' }}>لا توجد تعليقات بعد</div>
+              ) : comments.map(c => (
+                <div key={c.id} style={{
+                  background: 'var(--bg-soft)', borderRadius: 'var(--radius-sm)',
+                  padding: '10px 12px',
+                  borderRight: '3px solid var(--primary-ring)',
+                  border: '1px solid var(--border)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span className="mono" style={{ fontSize: 11.5, color: 'var(--primary)', fontWeight: 600 }}>{c.author}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                      {new Date(c.created_at).toLocaleString('ar-SA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                ))
-              )}
+                  <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>{c.body}</div>
+                </div>
+              ))}
               <div ref={commentsEndRef} />
             </div>
 
             {isWorkshop && (
-              <form onSubmit={handleAddComment} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <form onSubmit={handleAddComment} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <textarea
-                  className="input-base"
+                  className="textarea"
                   rows={3}
                   placeholder="أضف تعليقاً..."
                   value={newComment}
                   onChange={e => setNewComment(e.target.value)}
-                  style={{ resize: 'vertical', minHeight: '72px' }}
                 />
-                <button className="btn-ghost" type="submit" disabled={savingComment || !newComment.trim()}>
+                <button className="btn btn-sm" type="submit" disabled={savingComment || !newComment.trim()}>
                   {savingComment ? 'جاري الإرسال...' : 'إضافة تعليق'}
                 </button>
               </form>
             )}
-          </section>
+          </div>
+
+          <div style={{ fontSize: 11, color: 'var(--text-faint)', display: 'flex', gap: 10, marginTop: 8 }}>
+            <span><span className="kbd">esc</span> إغلاق</span>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </>
   );
-}
-
-function InfoRow({ label, value, bold, mono }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #F3F4F6' }}>
-      <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{label}</span>
-      <span style={{
-        fontWeight: bold ? 700 : 400,
-        fontFamily: mono ? 'JetBrains Mono, monospace' : 'inherit',
-        fontSize: mono ? '0.82rem' : '0.9rem',
-        color: 'var(--text)',
-        textAlign: 'left',
-        direction: mono ? 'ltr' : 'inherit',
-      }}>{value}</span>
-    </div>
-  );
-}
-
-function SectionTitle({ children }) {
-  return (
-    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
-      {children}
-    </div>
-  );
-}
-
-function Divider() {
-  return <div className="gold-line" style={{ margin: '24px 0' }} />;
 }

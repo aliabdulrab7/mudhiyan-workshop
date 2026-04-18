@@ -1,38 +1,50 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { clearAuth, getRole } from '../api/auth';
 import { getOrders } from '../api/orders';
 import CommandPalette from './CommandPalette';
 import { Icons } from './icons';
 
-const nav = [
-  { to: '/',            Icon: Icons.Orders,       label: 'الطلبات' },
-  { to: '/new',         Icon: Icons.Plus,          label: 'صيانة جديدة', roles: ['shop_employee'] },
-  { to: '/scan',        Icon: Icons.Scan,          label: 'مسح' },
-  { to: '/branches',    Icon: Icons.Branch,        label: 'الفروع',    roles: ['workshop'] },
-  { to: '/reports',     Icon: Icons.Chart,         label: 'التقارير',  roles: ['workshop'] },
-  { to: '/technicians', Icon: Icons.User,          label: 'الفنيون',   roles: ['workshop'] },
-  { to: '/inventory',   Icon: Icons.Box,           label: 'المخزون',   roles: ['workshop'] },
-  { to: '/services',    Icon: Icons.Tag,           label: 'الخدمات',   roles: ['workshop'] },
+const navItems = [
+  { to: '/',            icon: Icons.Orders,    label: 'الطلبات',      badge: null },
+  { to: '/new',         icon: Icons.Plus,      label: 'صيانة جديدة', roles: ['shop_employee'] },
+  { to: '/scan',        icon: Icons.Scan,      label: 'مسح' },
+  { to: '/branches',    icon: Icons.Branch,    label: 'الفروع',      roles: ['workshop'] },
+  { to: '/reports',     icon: Icons.Chart,     label: 'التقارير',    roles: ['workshop'] },
+  { to: '/technicians', icon: Icons.User,      label: 'الفنيون',     roles: ['workshop'] },
+  { to: '/inventory',   icon: Icons.Box,       label: 'المخزون',     roles: ['workshop'] },
+  { to: '/services',    icon: Icons.Tag,       label: 'الخدمات',     roles: ['workshop'] },
 ];
 
-// Mobile tab bar shows a condensed set
 const mobileNav = [
-  { to: '/',      Icon: Icons.Orders, label: 'الطلبات' },
-  { to: '/new',   Icon: Icons.Plus,   label: 'جديد',   roles: ['shop_employee'] },
-  { to: '/scan',  Icon: Icons.Scan,   label: 'مسح' },
+  { to: '/',     icon: Icons.Orders, label: 'الطلبات' },
+  { to: '/new',  icon: Icons.Plus,   label: 'جديد',   roles: ['shop_employee'] },
+  { to: '/scan', icon: Icons.Scan,   label: 'مسح' },
 ];
+
+const PAGE_LABELS = {
+  '/':            'الطلبات',
+  '/new':         'صيانة جديدة',
+  '/scan':        'مسح الباركود',
+  '/branches':    'الفروع',
+  '/reports':     'التقارير',
+  '/technicians': 'الفنيون',
+  '/inventory':   'المخزون',
+  '/services':    'الخدمات',
+};
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const role = getRole();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [orders, setOrders] = useState([]);
 
-  const visibleNav       = nav.filter(n => !n.roles || n.roles.includes(role));
-  const visibleMobileNav = mobileNav.filter(n => !n.roles || n.roles.includes(role));
+  const visible       = navItems.filter(n => !n.roles || n.roles.includes(role));
+  const visibleMobile = mobileNav.filter(n => !n.roles || n.roles.includes(role));
 
-  // Lightweight order list for palette search
+  const currentLabel = PAGE_LABELS[location.pathname] ?? '';
+
   useEffect(() => {
     let cancelled = false;
     getOrders({ status: 'all' })
@@ -41,7 +53,6 @@ export default function Layout({ children }) {
     return () => { cancelled = true; };
   }, []);
 
-  // ⌘K / Ctrl+K keyboard shortcut
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -59,160 +70,101 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="main-layout" style={{ display: 'flex', height: '100%', minHeight: '100vh' }}>
-
-      {/* Sidebar — desktop */}
-      <aside className="sidebar" style={{
-        width: '240px',
-        minWidth: '240px',
-        background: 'var(--bg-sidebar)',
-        display: 'flex',
-        flexDirection: 'column',
-        borderLeft: '1px solid var(--border)',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
+    <div className="app-shell">
+      {/* ── Sidebar ── */}
+      <aside className="sidebar">
         {/* Brand */}
-        <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <div style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '6px',
-              background: 'var(--primary)',
-              display: 'grid',
-              placeItems: 'center',
-              flexShrink: 0,
-            }}>
-              <Icons.Diamond size={14} stroke="#fff" sw={2} />
-            </div>
-            <div style={{
-              fontFamily: 'Almarai, sans-serif',
-              fontWeight: 700,
-              fontSize: '0.88rem',
-              color: 'var(--text)',
-              lineHeight: 1.3,
-            }}>
-              مجوهرات سليمان المضيان
-            </div>
+        <div className="sidebar-brand">
+          <div className="brand-mark">
+            <Icons.Diamond size={12} stroke="#fff" sw={2} />
           </div>
-          <div style={{ color: 'var(--text-faint)', fontSize: '0.68rem', marginTop: '4px', paddingRight: '40px' }}>
-            إدارة صيانة المجوهرات
+          <div>
+            <div className="brand-name">المضيان</div>
+            <div className="brand-sub">إدارة الصيانة</div>
           </div>
-        </div>
-
-        {/* Search / palette button */}
-        <div style={{ padding: '10px 10px 0' }}>
-          <button
-            onClick={() => setPaletteOpen(true)}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '7px 10px',
-              background: 'var(--bg-soft)',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              color: 'var(--text-muted)',
-              fontSize: '0.80rem',
-              fontFamily: 'Almarai, sans-serif',
-              cursor: 'pointer',
-              transition: 'border-color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <Icons.Search size={13} stroke="var(--text-muted)" />
-            <span style={{ flex: 1, textAlign: 'right' }}>بحث سريع…</span>
-            <kbd style={{
-              fontSize: '10px',
-              fontFamily: 'JetBrains Mono, monospace',
-              padding: '1px 5px',
-              background: 'var(--bg-raised)',
-              border: '1px solid var(--border)',
-              borderRadius: '3px',
-              color: 'var(--text-faint)',
-            }}>⌘K</kbd>
-          </button>
         </div>
 
         {/* Nav */}
-        <nav style={{ padding: '8px', flex: 1 }}>
-          {visibleNav.map(({ to, Icon: NavIcon, label }) => (
+        <nav style={{ padding: '8px', flex: 1, overflowY: 'auto' }}>
+          {visible.map(({ to, icon: NavIcon, label, badge }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: '9px',
-                padding: '8px 10px',
-                borderRadius: '6px',
-                marginBottom: '2px',
-                color: isActive ? 'var(--primary)' : 'var(--text-soft)',
-                background: isActive ? 'var(--primary-soft)' : 'transparent',
-                textDecoration: 'none',
-                fontSize: '0.875rem',
-                fontWeight: isActive ? 600 : 400,
-                transition: 'all 0.15s ease',
-              })}
+              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
             >
-              <NavIcon size={15} />
-              {label}
+              <NavIcon size={14} />
+              <span style={{ flex: 1 }}>{label}</span>
+              {badge != null && <span className="badge">{badge}</span>}
             </NavLink>
           ))}
         </nav>
 
-        {/* Logout */}
-        <div style={{ padding: '12px 8px', borderTop: '1px solid var(--border)' }}>
+        {/* Bottom: search hint + user */}
+        <div style={{ padding: '8px', borderTop: '1px solid var(--border)' }}>
+          <button
+            onClick={() => setPaletteOpen(true)}
+            className="nav-item"
+            style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 5, background: 'var(--bg-soft)' }}
+          >
+            <Icons.Search size={13} />
+            <span style={{ flex: 1, color: 'var(--text-faint)', fontSize: 12 }}>بحث سريع…</span>
+            <span className="kbd">⌘K</span>
+          </button>
           <button
             onClick={handleLogout}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              color: 'var(--text-faint)',
-              borderRadius: '6px',
-              padding: '7px 10px',
-              fontSize: '0.80rem',
-              fontFamily: 'Almarai, sans-serif',
-              cursor: 'pointer',
-              textAlign: 'right',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.color = '#DC2626';
-              e.currentTarget.style.borderColor = 'rgba(220,38,38,0.3)';
-              e.currentTarget.style.background = 'rgba(220,38,38,0.04)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.color = 'var(--text-faint)';
-              e.currentTarget.style.borderColor = 'var(--border)';
-              e.currentTarget.style.background = 'transparent';
-            }}
+            className="nav-item"
+            style={{ width: '100%', marginTop: 2 }}
           >
-            <Icons.Logout size={13} />
-            تسجيل الخروج
+            <Icons.Logout size={14} />
+            <span style={{ flex: 1 }}>تسجيل الخروج</span>
           </button>
-          <div style={{ color: 'var(--text-faint)', fontSize: '0.60rem', marginTop: '8px', textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-faint)', textAlign: 'center', padding: '6px 0 2px' }}>
             يتطلب Chrome أو Edge للطباعة
           </div>
         </div>
       </aside>
 
-      {/* Main content */}
-      <main style={{ flex: 1, overflow: 'auto', background: 'transparent' }}>
-        {children}
-      </main>
+      {/* ── Main column ── */}
+      <div className="main-col">
+        {/* Topbar */}
+        <div className="topbar">
+          <div className="topbar-crumbs">
+            <span>المضيان</span>
+            {currentLabel && <><span className="sep">/</span><span className="current">{currentLabel}</span></>}
+          </div>
 
-      {/* Bottom tab bar — mobile */}
+          <button
+            className="topbar-search"
+            onClick={() => setPaletteOpen(true)}
+          >
+            <Icons.Search size={13} style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>بحث أو تنقل…</span>
+            <span className="hint"><span className="kbd">⌘</span><span className="kbd">K</span></span>
+          </button>
+
+          <div className="topbar-actions">
+            <NavLink to="/new" className="btn btn-sm btn-primary">
+              <Icons.Plus size={12} /> صيانة جديدة
+            </NavLink>
+            <button className="btn btn-sm btn-ghost btn-icon">
+              <Icons.Bell size={13} />
+            </button>
+            <button className="btn btn-sm btn-ghost btn-icon">
+              <Icons.Settings size={13} />
+            </button>
+          </div>
+        </div>
+
+        {/* Page content */}
+        <main className="page">
+          {children}
+        </main>
+      </div>
+
+      {/* ── Mobile bottom tab bar ── */}
       <nav className="bottom-tab-bar">
-        {visibleMobileNav.map(({ to, Icon: TabIcon, label }) => (
+        {visibleMobile.map(({ to, icon: TabIcon, label }) => (
           <NavLink
             key={to}
             to={to}

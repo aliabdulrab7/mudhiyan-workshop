@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getRole } from '../api/auth';
+import { Icons } from './icons';
+
+function Kbd({ children }) {
+  return <span className="kbd">{children}</span>;
+}
 
 export default function CommandPalette({ open, onClose, orders = [] }) {
   const navigate = useNavigate();
@@ -17,14 +22,14 @@ export default function CommandPalette({ open, onClose, orders = [] }) {
       {
         group: 'انتقال',
         items: [
-          { id: 'go:home',        label: 'الطلبات',      hint: 'G H', fn: () => go('/') },
-          { id: 'go:new',         label: 'صيانة جديدة',  hint: 'N',   fn: () => go('/new') },
-          { id: 'go:scan',        label: 'مسح الباركود', hint: 'G S', fn: () => go('/scan') },
-          isWorkshop && { id: 'go:branches',    label: 'الفروع',    fn: () => go('/branches') },
-          isWorkshop && { id: 'go:reports',     label: 'التقارير',  fn: () => go('/reports') },
-          isWorkshop && { id: 'go:technicians', label: 'الفنيون',   fn: () => go('/technicians') },
-          isWorkshop && { id: 'go:inventory',   label: 'المخزون',   fn: () => go('/inventory') },
-          isWorkshop && { id: 'go:services',    label: 'الخدمات',   fn: () => go('/services') },
+          { id: 'go:home',        label: 'الطلبات',      icon: <Icons.Orders size={14}/>,      hint: 'G H', fn: () => go('/') },
+          { id: 'go:new',         label: 'صيانة جديدة',  icon: <Icons.Plus size={14}/>,        hint: 'N',   fn: () => go('/new') },
+          { id: 'go:scan',        label: 'مسح الباركود', icon: <Icons.Scan size={14}/>,        hint: 'G S', fn: () => go('/scan') },
+          isWorkshop && { id: 'go:branches',    label: 'الفروع',    icon: <Icons.Branch size={14}/>,    fn: () => go('/branches') },
+          isWorkshop && { id: 'go:reports',     label: 'التقارير',  icon: <Icons.Chart size={14}/>,     fn: () => go('/reports') },
+          isWorkshop && { id: 'go:technicians', label: 'الفنيون',   icon: <Icons.User size={14}/>,      fn: () => go('/technicians') },
+          isWorkshop && { id: 'go:inventory',   label: 'المخزون',   icon: <Icons.Box size={14}/>,       fn: () => go('/inventory') },
+          isWorkshop && { id: 'go:services',    label: 'الخدمات',   icon: <Icons.Tag size={14}/>,       fn: () => go('/services') },
         ].filter(Boolean),
       },
       {
@@ -32,6 +37,7 @@ export default function CommandPalette({ open, onClose, orders = [] }) {
         items: orders.slice(0, 8).map(o => ({
           id: 'ord:' + o.id,
           label: `${o.order_number} — ${o.customer_name}`,
+          icon: <Icons.Diamond size={14}/>,
           hint: o.piece_type,
           fn: () => { navigate('/'); onClose(); },
         })),
@@ -66,73 +72,48 @@ export default function CommandPalette({ open, onClose, orders = [] }) {
 
   let idx = -1;
   return (
-    <div
-      className="fixed inset-0 z-[300] flex items-start justify-center pt-[15vh]"
-      style={{ background: 'rgba(10,12,15,0.35)', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}
-    >
-      <div
-        className="w-[90vw] max-w-[560px] bg-bg-raised border border-border rounded-lg shadow-lg overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Search input */}
-        <div className="flex items-center border-b border-border px-4">
-          <svg className="w-4 h-4 text-text-muted flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
-          </svg>
-          <input
-            ref={inputRef}
-            className="flex-1 px-3 py-3.5 text-[15px] border-0 outline-none bg-transparent placeholder:text-text-muted"
-            placeholder="اكتب للبحث أو التنقل…"
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            onKeyDown={onKey}
-            dir="rtl"
-          />
-          <kbd className="text-[10px] font-mono px-1.5 py-0.5 bg-bg-soft border border-border rounded text-text-faint">ESC</kbd>
-        </div>
-
-        {/* Results */}
-        <div className="max-h-[55vh] overflow-y-auto">
-          {filtered.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-text-muted">لا توجد نتائج</div>
-          ) : (
-            Object.entries(groups).map(([g, items]) => (
-              <div key={g}>
-                <div className="px-4 pt-3 pb-1 text-[10px] uppercase tracking-wider text-text-faint font-medium">
-                  {g}
-                </div>
-                {items.map(it => {
-                  idx += 1;
-                  const isFocused = idx === focus;
-                  return (
-                    <div
-                      key={it.id}
-                      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer text-sm transition-colors ${
-                        isFocused ? 'bg-[var(--primary-soft)] text-primary' : 'text-text hover:bg-bg-soft'
-                      }`}
-                      onClick={it.fn}
-                      onMouseEnter={() => setFocus(flat.findIndex(x => x.id === it.id))}
-                    >
-                      <span className="flex-1">{it.label}</span>
-                      {it.hint && (
-                        <kbd className="text-[10px] font-mono px-1.5 py-0.5 bg-bg-soft border border-border rounded text-text-faint">
-                          {it.hint}
-                        </kbd>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))
+    <div className="palette-backdrop" onClick={onClose}>
+      <div className="palette" onClick={e => e.stopPropagation()}>
+        <input
+          ref={inputRef}
+          className="palette-input"
+          placeholder="اكتب للبحث أو التنقل…"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          onKeyDown={onKey}
+        />
+        <div className="palette-list">
+          {filtered.length === 0 && (
+            <div style={{ padding: '20px 16px', color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
+              لا توجد نتائج
+            </div>
           )}
+          {Object.entries(groups).map(([g, items]) => (
+            <div key={g}>
+              <div className="palette-group">{g}</div>
+              {items.map(it => {
+                idx += 1;
+                const isFocused = idx === focus;
+                return (
+                  <div
+                    key={it.id}
+                    className={`palette-item${isFocused ? ' focused' : ''}`}
+                    onClick={it.fn}
+                    onMouseEnter={() => setFocus(flat.findIndex(x => x.id === it.id))}
+                  >
+                    <span className="icon">{it.icon}</span>
+                    <span style={{ flex: 1 }}>{it.label}</span>
+                    {it.hint && <span className="tail"><Kbd>{it.hint}</Kbd></span>}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
-
-        {/* Footer hints */}
-        <div className="flex gap-4 px-4 py-2 border-t border-border text-[11px] text-text-faint">
-          <span>↑↓ تنقل</span>
-          <span>↵ اختيار</span>
-          <span>esc إغلاق</span>
+        <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-faint)', display: 'flex', gap: 12 }}>
+          <span><Kbd>↑</Kbd><Kbd>↓</Kbd> تنقل</span>
+          <span><Kbd>↵</Kbd> اختيار</span>
+          <span><Kbd>esc</Kbd> إغلاق</span>
         </div>
       </div>
     </div>
