@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { login } from '../api/auth';
+import { Icons } from '../components/icons';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -28,7 +29,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#F3F4F6',
+      background: 'var(--bg)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -39,14 +40,13 @@ export default function LoginPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         style={{
-          background: '#FFFFFF',
-          border: '1px solid #E5E7EB',
-          borderRadius: '14px',
+          background: 'var(--bg-raised)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
           padding: '40px 32px 32px',
           width: '100%',
           maxWidth: '360px',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
-          position: 'relative',
+          boxShadow: 'var(--shadow-md)',
         }}
       >
         {/* Brand */}
@@ -54,26 +54,24 @@ export default function LoginPage() {
           <div style={{
             width: '48px',
             height: '48px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #2980B9, #1A6EA0)',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--primary)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 16px',
-            fontSize: '1.4rem',
-            color: '#ffffff',
           }}>
-            ◈
+            <Icons.Diamond size={22} stroke="#ffffff" sw={2} />
           </div>
           <div style={{
-            fontSize: '1.25rem',
+            fontSize: '1.15rem',
             fontWeight: 700,
-            color: '#222222',
+            color: 'var(--text)',
             marginBottom: '4px',
           }}>
             مجوهرات سليمان المضيان
           </div>
-          <div style={{ color: '#9CA3AF', fontSize: '0.82rem' }}>
+          <div style={{ color: 'var(--text-faint)', fontSize: '0.82rem' }}>
             تسجيل الدخول إلى حسابك
           </div>
         </div>
@@ -82,7 +80,7 @@ export default function LoginPage() {
           <div>
             <label style={{
               fontSize: '0.82rem',
-              color: focused === 'user' ? '#2980B9' : 'var(--text-secondary)',
+              color: focused === 'user' ? 'var(--primary)' : 'var(--text-soft)',
               display: 'block',
               marginBottom: '8px',
               transition: 'color 0.2s',
@@ -104,7 +102,7 @@ export default function LoginPage() {
           <div>
             <label style={{
               fontSize: '0.82rem',
-              color: focused === 'pass' ? '#2980B9' : 'var(--text-secondary)',
+              color: focused === 'pass' ? 'var(--primary)' : 'var(--text-soft)',
               display: 'block',
               marginBottom: '8px',
               transition: 'color 0.2s',
@@ -131,7 +129,7 @@ export default function LoginPage() {
               style={{
                 background: 'rgba(220,38,38,0.06)',
                 border: '1px solid rgba(220,38,38,0.20)',
-                borderRadius: '10px',
+                borderRadius: 'var(--radius)',
                 padding: '12px 16px',
                 color: '#DC2626',
                 fontSize: '0.85rem',
@@ -143,16 +141,16 @@ export default function LoginPage() {
 
           <motion.button
             type="submit"
-            className="btn-gold"
+            className="btn-primary"
             disabled={loading}
             whileTap={{ scale: 0.97 }}
             style={{
               width: '100%',
               justifyContent: 'center',
               padding: '14px 0',
-              fontSize: '1.05rem',
+              fontSize: '1rem',
               marginTop: '4px',
-              borderRadius: '12px',
+              borderRadius: 'var(--radius-md)',
             }}
           >
             {loading ? (

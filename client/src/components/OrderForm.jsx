@@ -76,7 +76,7 @@ export default function OrderForm({ onSuccess }) {
 
       {/* Customer name */}
       <div>
-        <label style={{ display: 'block', marginBottom: '7px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+        <label style={{ display: 'block', marginBottom: '7px', color: 'var(--text-soft)', fontSize: '0.85rem' }}>
           اسم العميل
         </label>
         <input
@@ -99,7 +99,7 @@ export default function OrderForm({ onSuccess }) {
 
       {/* Phone */}
       <div>
-        <label style={{ display: 'block', marginBottom: '7px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+        <label style={{ display: 'block', marginBottom: '7px', color: 'var(--text-soft)', fontSize: '0.85rem' }}>
           رقم الجوال
         </label>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
@@ -140,7 +140,7 @@ export default function OrderForm({ onSuccess }) {
 
       {/* Items table */}
       <div>
-        <label style={{ display: 'block', marginBottom: '10px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+        <label style={{ display: 'block', marginBottom: '10px', color: 'var(--text-soft)', fontSize: '0.85rem' }}>
           الأصناف
         </label>
 

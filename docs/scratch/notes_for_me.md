@@ -7,7 +7,10 @@ ARCHITECTURE_DECISIONS.md
 SYSTEM_INVARIANTS.md
 CLAUDE_PLAYBOOK.md
 
-i'm concedring to implement aws sns to send notifications to customers when their job status changes and use aws, can you create a plan for it? with complete details, complexity and cost estimation
+Fetch this design file, read its readme, and implement the relevant aspects of the design. https://api.anthropic.com/v1/design/h/YOSytWL_5aY951Vaw2C-3g?open_file=index.html
+Implement: index.html
+
+create missing features and implemnethem correctly and ensure that the system is working as expected.
 
 # Github commit
 

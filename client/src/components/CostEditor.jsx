@@ -26,13 +26,14 @@ export default function CostEditor({ order, onUpdated }) {
 
   return (
     <div style={{
-      background: 'rgba(201,151,58,0.06)',
-      border: '1px solid var(--gold-border)',
+      background: 'var(--primary-soft)',
+      border: '1px solid var(--border)',
+      borderRight: '3px solid var(--primary)',
       borderRadius: 'var(--radius)',
       padding: '14px',
       marginBottom: '16px',
     }}>
-      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '10px', fontWeight: 600 }}>
+      <div style={{ fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '10px', fontWeight: 600 }}>
         تحديد تكلفة الإصلاح
       </div>
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
@@ -53,7 +54,7 @@ export default function CostEditor({ order, onUpdated }) {
         </div>
         <button
           type="submit"
-          className="btn-gold"
+          className="btn-primary"
           disabled={loading || cost === ''}
           style={{ padding: '10px 16px', fontSize: '0.88rem', flexShrink: 0 }}
         >
