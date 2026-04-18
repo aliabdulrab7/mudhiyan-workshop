@@ -3,41 +3,33 @@ import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTrackOrder, approveOrder, rejectOrder } from '../api/orders';
 import SkeletonLoader from '../components/SkeletonLoader';
+import { Icons } from '../components/icons';
 
-// Customer-facing progress steps (simplified from full internal workflow)
-const STEPS = ['received', 'inspection', 'in_repair', 'ready_for_return', 'delivered'];
+// 6-stage customer-facing timeline
+const STAGES = [
+  { key: 'received',         label: 'استُلم' },
+  { key: 'inspection',       label: 'الفحص' },
+  { key: 'in_repair',        label: 'التنفيذ' },
+  { key: 'quality_check',    label: 'الجودة' },
+  { key: 'ready_for_return', label: 'جاهز' },
+  { key: 'delivered',        label: 'سُلِّم' },
+];
 
-const STEP_LABELS = {
-  received:         'استُلم',
-  inspection:       'قيد الفحص',
-  in_repair:        'قيد التنفيذ',
-  ready_for_return: 'جاهز',
-  delivered:        'سُلِّم',
-};
-
-const STEP_COLORS = {
-  received:         '#2980B9',
-  inspection:       '#D97706',
-  in_repair:        '#1A6EA0',
-  ready_for_return: '#16A34A',
-  delivered:        '#7C3AED',
-};
-
-// Map all backend statuses to a customer-facing progress step
-const STATUS_TO_STEP = {
-  new:              'received',        // order created, not yet at workshop
+// Map all backend statuses to a customer-facing stage
+const STATUS_TO_STAGE = {
+  new:              'received',
   received:         'received',
   inspection:       'inspection',
-  waiting_approval: 'inspection',      // inspection done, awaiting customer
+  waiting_approval: 'inspection',     // inspection done, awaiting customer
   approved:         'in_repair',
-  rejected:         null,              // terminal — shown separately
+  rejected:         null,             // terminal
   in_repair:        'in_repair',
-  quality_check:    'in_repair',       // internal QC, customer sees "in repair"
+  quality_check:    'quality_check',
   ready_for_return: 'ready_for_return',
-  returned_to_shop: 'ready_for_return', // at branch — still "ready" from customer view
+  returned_to_shop: 'ready_for_return', // at branch, still "ready" from customer view
   delivered:        'delivered',
   closed:           'delivered',
-  cancelled:        null,              // terminal — shown separately
+  cancelled:        null,             // terminal
 };
 
 const STATUS_MESSAGES = {
@@ -47,7 +39,7 @@ const STATUS_MESSAGES = {
   waiting_approval: 'يرجى الموافقة على تكلفة الإصلاح أدناه',
   approved:         'تمت الموافقة، بدأ التنفيذ',
   in_repair:        'قطعتك قيد التنفيذ',
-  quality_check:    'قطعتك قيد التنفيذ',
+  quality_check:    'قطعتك قيد فحص الجودة النهائي',
   ready_for_return: 'قطعتك جاهزة وفي طريقها للفرع',
   returned_to_shop: '✓ قطعتك جاهزة للاستلام من الفرع!',
   delivered:        'تم التسليم، شكراً لثقتك',
@@ -56,22 +48,24 @@ const STATUS_MESSAGES = {
   cancelled:        'تم إلغاء الطلب',
 };
 
-// Statuses that are still in-progress (keep auto-refreshing)
+// Statuses that keep auto-refreshing
 const ACTIVE_STATUSES = new Set([
   'new', 'received', 'inspection', 'waiting_approval', 'approved',
   'in_repair', 'quality_check', 'ready_for_return',
 ]);
 
+const PRIMARY = '#2980B9';
+
 export default function TrackPage() {
   const { token } = useParams();
-  const [order,    setOrder]    = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [approving,   setApproving]   = useState(false);
-  const [approved,    setApproved]    = useState(false);
-  const [rejecting,   setRejecting]   = useState(false);
-  const [rejected,    setRejected]    = useState(false);
-  const [rejectError, setRejectError] = useState(null);
+  const [order,      setOrder]      = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [notFound,   setNotFound]   = useState(false);
+  const [approving,  setApproving]  = useState(false);
+  const [approved,   setApproved]   = useState(false);
+  const [rejecting,  setRejecting]  = useState(false);
+  const [rejected,   setRejected]   = useState(false);
+  const [rejectError,setRejectError] = useState(null);
 
   useEffect(() => {
     let timeoutId;
@@ -121,155 +115,173 @@ export default function TrackPage() {
   if (loading) return <SkeletonLoader type="track" />;
 
   if (notFound) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F3F4F6', padding: '20px' }}>
-      <div style={{ textAlign: 'center', fontFamily: 'Almarai, sans-serif' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '16px', opacity: 0.2, color: '#2980B9' }}>◈</div>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#222222', marginBottom: '8px' }}>الطلب غير موجود</div>
-        <div style={{ color: '#9CA3AF', fontSize: '0.9rem' }}>تأكد من الرابط أو المسح مجدداً</div>
+    <div className="min-h-screen flex items-center justify-center bg-bg p-5" dir="rtl" style={{ fontFamily: 'Almarai, sans-serif' }}>
+      <div className="text-center">
+        <div className="w-12 h-12 rounded-xl bg-[var(--primary-soft)] border border-[var(--primary-ring)] grid place-items-center mx-auto mb-4">
+          <Icons.Diamond size={20} stroke={PRIMARY} />
+        </div>
+        <div className="font-bold text-lg text-text mb-2">الطلب غير موجود</div>
+        <div className="text-text-muted text-sm">تأكد من الرابط أو المسح مجدداً</div>
       </div>
     </div>
   );
 
-  const stepKey    = STATUS_TO_STEP[order.status] ?? 'received';
-  const activeColor = STEP_COLORS[stepKey] || '#2980B9';
-  const currentIdx  = STEPS.indexOf(stepKey);
+  const stageKey    = STATUS_TO_STAGE[order.status] ?? 'received';
+  const currentIdx  = STAGES.findIndex(s => s.key === stageKey);
   const isTerminal  = order.status === 'cancelled' || order.status === 'rejected';
 
   return (
-    <AnimatePresence>
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      style={{
-        minHeight: '100vh',
-        background: '#F3F4F6',
-        fontFamily: 'Almarai, sans-serif',
-        direction: 'rtl',
-        padding: '24px 16px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Subtle background glow */}
-      <div style={{
-        position: 'absolute',
-        top: '-100px',
-        right: '50%',
-        transform: 'translateX(50%)',
-        width: '400px',
-        height: '400px',
-        borderRadius: '50%',
-        background: `radial-gradient(circle, ${activeColor}08 0%, transparent 60%)`,
-        pointerEvents: 'none',
-        filter: 'blur(60px)',
-      }} />
-
-      <div style={{ width: '100%', maxWidth: '480px', position: 'relative' }}>
+    <div className="min-h-screen bg-bg flex justify-center items-start py-6 px-4" dir="rtl" style={{ fontFamily: 'Almarai, sans-serif' }}>
+      <div className="w-full" style={{ maxWidth: '480px' }}>
 
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '14px',
-              background: 'rgba(41,128,185,0.08)',
-              border: '1px solid rgba(41,128,185,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 12px',
-              fontSize: '1.2rem',
-              color: '#2980B9',
-            }}
-          >
-            ◈
-          </motion.div>
-          <div style={{
-            fontSize: '1.3rem',
-            fontWeight: 800,
-            background: 'linear-gradient(135deg, #2980B9, #1A6EA0)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '4px',
-          }}>
-            مجوهرات سليمان المضيان
+        <div className="text-center mb-6">
+          <div className="w-10 h-10 rounded-xl grid place-items-center mx-auto mb-3" style={{ background: 'var(--primary)', }}>
+            <Icons.Diamond size={16} stroke="#fff" sw={2} />
           </div>
-          <div style={{ color: '#9CA3AF', fontSize: '0.75rem' }}>إدارة صيانة المجوهرات</div>
+          <div className="font-bold text-lg text-text mb-1">مجوهرات سليمان المضيان</div>
+          <div className="text-xs text-text-faint">إدارة صيانة المجوهرات</div>
         </div>
 
+        {/* Main card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.4 }}
-          style={{
-            background: '#FFFFFF',
-            border: '1px solid #E5E7EB',
-            borderRadius: '18px',
-            padding: '28px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-          }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className="bg-bg-raised border border-border rounded-2xl shadow-md overflow-hidden"
         >
-          {/* Order number + piece type */}
-          <div style={{ marginBottom: '22px' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '6px' }}>رقم الطلب</div>
-            <span className="order-stamp" style={{ fontSize: '0.88rem', padding: '5px 14px' }}>
-              {order.tracking_number}
-            </span>
+          {/* Order header */}
+          <div className="px-6 pt-6 pb-5 border-b border-border">
+            <div className="text-[10px] text-text-faint uppercase tracking-wider mb-2">رقم الطلب</div>
+            <span className="order-stamp text-[0.88rem] px-3.5 py-1.5">{order.tracking_number}</span>
+            {order.piece_type && (
+              <div className="mt-3">
+                <div className="text-[10px] text-text-faint uppercase tracking-wider mb-1">نوع القطعة</div>
+                <div className="font-semibold text-text text-sm">{order.piece_type}</div>
+              </div>
+            )}
           </div>
 
-          <div style={{ marginBottom: order.items && order.items.length > 0 ? '14px' : '28px' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '4px' }}>نوع القطعة</div>
-            <div style={{ fontWeight: 600, color: '#222222' }}>{order.piece_type}</div>
+          {/* 6-stage timeline */}
+          {!isTerminal && (
+            <div className="px-6 py-5 border-b border-border">
+              <div className="flex items-start mb-1">
+                {/* RTL: start label on right (first item), end label on left (last item) */}
+                <span className="text-[10px] text-text-faint flex-1 text-right">بدأ</span>
+                <span className="text-[10px] text-text-faint flex-1 text-left">
+                  {order.eta ? `متوقّع: ${new Date(order.eta).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' })}` : 'قيد التنفيذ'}
+                </span>
+              </div>
+
+              {/* Stage dots + connectors */}
+              <div className="flex items-center">
+                {STAGES.map((stage, i) => {
+                  const done    = i < currentIdx;
+                  const current = i === currentIdx;
+                  return (
+                    <React.Fragment key={stage.key}>
+                      {i > 0 && (
+                        <div className="flex-1 h-0.5 mx-0.5" style={{ background: done ? PRIMARY : 'var(--border-strong)' }} />
+                      )}
+                      <div
+                        className="flex-shrink-0 grid place-items-center"
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          background: done ? PRIMARY : current ? '#fff' : 'var(--bg-soft)',
+                          border: done
+                            ? `2px solid ${PRIMARY}`
+                            : current
+                              ? `2px solid ${PRIMARY}`
+                              : '2px solid var(--border-strong)',
+                          boxShadow: current ? `0 0 0 4px var(--primary-ring)` : 'none',
+                        }}
+                      >
+                        {done && (
+                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="2,6.5 5,9 10,3.5" />
+                          </svg>
+                        )}
+                        {current && (
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ background: PRIMARY }} />
+                        )}
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+
+              {/* Stage labels */}
+              <div className="flex mt-1.5">
+                {STAGES.map((stage, i) => (
+                  <div
+                    key={stage.key}
+                    className="text-center"
+                    style={{
+                      flex: i === 0 || i === STAGES.length - 1 ? '0 0 20px' : 1,
+                      fontSize: '0.56rem',
+                      color: i === currentIdx ? PRIMARY : 'var(--text-faint)',
+                      fontWeight: i === currentIdx ? 700 : 400,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {stage.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Status message */}
+          <div className="px-6 py-4">
+            <motion.div
+              key={order.status}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="rounded-xl px-4 py-3 text-sm font-medium"
+              style={{
+                background: order.status === 'returned_to_shop' ? 'rgba(22,163,74,0.06)'
+                          : order.status === 'cancelled'        ? 'rgba(107,114,128,0.06)'
+                          : order.status === 'rejected'         ? 'rgba(220,38,38,0.06)'
+                          : 'var(--primary-soft)',
+                border: `1px solid ${
+                  order.status === 'returned_to_shop' ? 'rgba(22,163,74,0.20)'
+                  : order.status === 'cancelled'      ? 'rgba(107,114,128,0.20)'
+                  : order.status === 'rejected'       ? 'rgba(220,38,38,0.20)'
+                  : 'var(--primary-ring)'
+                }`,
+                color: order.status === 'returned_to_shop' ? '#16A34A'
+                     : order.status === 'cancelled'        ? '#6B7280'
+                     : order.status === 'rejected'         ? '#DC2626'
+                     : PRIMARY,
+              }}
+            >
+              {STATUS_MESSAGES[order.status] ?? order.status_label}
+            </motion.div>
           </div>
 
-          {/* Item breakdown — shown when items exist */}
+          {/* Item breakdown */}
           {order.items && order.items.length > 0 && (
-            <div style={{ marginBottom: '28px' }}>
-              <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '8px' }}>الأصناف</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div className="px-6 pb-5 border-t border-border pt-4">
+              <div className="text-[10px] text-text-faint uppercase tracking-wider mb-3">الأصناف</div>
+              <div className="flex flex-col gap-2">
                 {order.items.map((item, i) => (
-                  <div key={i} style={{
-                    background: '#F9FAFB',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '10px',
-                    padding: '10px 14px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    gap: '8px',
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: '#222222', fontSize: '0.88rem' }}>
+                  <div key={i} className="bg-bg-soft border border-border rounded-lg px-4 py-3 flex justify-between items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-text text-sm">
                         {item.item_name}
                         {item.quantity > 1 && (
-                          <span style={{ color: '#9CA3AF', fontWeight: 400, marginRight: '4px', fontSize: '0.78rem' }}>
-                            × {item.quantity}
-                          </span>
+                          <span className="text-text-muted font-normal text-xs mr-1">× {item.quantity}</span>
                         )}
                       </div>
                       {item.repair_description && (
-                        <div style={{ color: '#6B7280', fontSize: '0.78rem', marginTop: '3px' }}>
-                          {item.repair_description}
-                        </div>
+                        <div className="text-text-muted text-xs mt-0.5">{item.repair_description}</div>
                       )}
                     </div>
                     {item.estimated_cost > 0 && (
-                      <div style={{
-                        fontFamily: 'JetBrains Mono, monospace',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        color: '#D97706',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                      }}>
+                      <div className="font-mono text-xs font-bold flex-shrink-0" style={{ color: '#D97706' }}>
                         {item.estimated_cost} ر.س
                       </div>
                     )}
@@ -279,211 +291,62 @@ export default function TrackPage() {
             </div>
           )}
 
-          {/* Progress tracker — hidden for terminal statuses */}
-          {!isTerminal && (
-            <div style={{ marginBottom: '28px' }}>
-              <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '14px' }}>مراحل الطلب</div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                {STEPS.map((step, i) => {
-                  const completed = i < currentIdx;
-                  const active    = i === currentIdx;
-                  const stepColor = STEP_COLORS[step] || '#2980B9';
-                  return (
-                    <React.Fragment key={step}>
-                      {i > 0 && (
-                        <motion.div
-                          initial={{ scaleX: 0 }}
-                          animate={{ scaleX: 1 }}
-                          transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
-                          style={{
-                            flex: 1,
-                            height: '2px',
-                            background: completed ? stepColor : '#E5E7EB',
-                            transformOrigin: 'right',
-                          }}
-                        />
-                      )}
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2 + i * 0.1, type: 'spring', stiffness: 200 }}
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '50%',
-                          flexShrink: 0,
-                          background: completed ? stepColor : active ? `${stepColor}15` : '#F3F4F6',
-                          border: active ? `2px solid ${stepColor}` : completed ? 'none' : '1px solid #E5E7EB',
-                          color: completed ? '#FFFFFF' : active ? stepColor : '#9CA3AF',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          ...(active ? { boxShadow: `0 0 12px ${stepColor}30` } : {}),
-                        }}
-                      >
-                        {completed ? '✓' : i + 1}
-                      </motion.div>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-              <div style={{ display: 'flex', marginTop: '10px' }}>
-                {STEPS.map((step, i) => (
-                  <div key={step} style={{
-                    flex: i === 0 ? '0 0 32px' : 1,
-                    fontSize: '0.55rem',
-                    color: step === stepKey ? (STEP_COLORS[step] || '#222222') : '#9CA3AF',
-                    fontWeight: step === stepKey ? 700 : 400,
-                    textAlign: i === 0 ? 'right' : i === STEPS.length - 1 ? 'left' : 'center',
-                    marginLeft: i > 0 ? '-14px' : 0,
-                    marginRight: i > 0 ? '-14px' : 0,
-                    paddingLeft: i > 0 ? '14px' : 0,
-                    paddingRight: i > 0 ? '14px' : 0,
-                  }}>
-                    {STEP_LABELS[step]}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Status message */}
-          <motion.div
-            key={order.status}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            style={{
-              background: order.status === 'returned_to_shop' ? 'rgba(22,163,74,0.06)'
-                        : order.status === 'cancelled'        ? 'rgba(107,114,128,0.06)'
-                        : order.status === 'rejected'         ? 'rgba(220,38,38,0.06)'
-                        : `${activeColor}08`,
-              border: `1px solid ${
-                order.status === 'returned_to_shop' ? 'rgba(22,163,74,0.20)'
-                : order.status === 'cancelled'      ? 'rgba(107,114,128,0.20)'
-                : order.status === 'rejected'       ? 'rgba(220,38,38,0.20)'
-                : `${activeColor}20`
-              }`,
-              borderRadius: '12px',
-              padding: '14px 18px',
-              marginBottom: order.status === 'waiting_approval' ? '18px' : '0',
-              color: order.status === 'returned_to_shop' ? '#16A34A'
-                   : order.status === 'cancelled'        ? '#6B7280'
-                   : order.status === 'rejected'         ? '#DC2626'
-                   : activeColor,
-              fontSize: '0.9rem',
-              fontWeight: 500,
-            }}
-          >
-            {STATUS_MESSAGES[order.status] ?? order.status_label}
-          </motion.div>
-
-          {/* Cost approval — only when waiting_approval and not yet acted */}
+          {/* Cost approval panel */}
           {order.status === 'waiting_approval' && !approved && !rejected && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              style={{
-                background: 'rgba(217,119,6,0.05)',
-                border: '1px solid rgba(217,119,6,0.20)',
-                borderRadius: '14px',
-                padding: '20px',
-              }}
+              className="mx-6 mb-6 rounded-xl p-5"
+              style={{ background: 'rgba(217,119,6,0.05)', border: '1px solid rgba(217,119,6,0.20)' }}
             >
-              <div style={{ fontSize: '0.82rem', color: '#D97706', marginBottom: '12px' }}>رسوم الإصلاح</div>
+              <div className="text-xs font-medium mb-3" style={{ color: '#D97706' }}>رسوم الإصلاح</div>
 
-              {/* Per-item cost breakdown */}
+              {/* Per-item breakdown */}
               {order.items && order.items.some(it => it.estimated_cost > 0) && (
-                <div style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div className="mb-3 flex flex-col gap-1.5">
                   {order.items.filter(it => it.estimated_cost > 0).map((item, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                    <div key={i} className="flex justify-between items-center text-sm">
                       <span style={{ color: '#92400E' }}>
                         {item.item_name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}
                       </span>
-                      <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#D97706', fontWeight: 600 }}>
+                      <span className="font-mono font-semibold" style={{ color: '#D97706' }}>
                         {item.estimated_cost} ر.س
                       </span>
                     </div>
                   ))}
                   {order.items.filter(it => it.estimated_cost > 0).length > 1 && (
-                    <div style={{
-                      borderTop: '1px solid rgba(217,119,6,0.20)',
-                      paddingTop: '6px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '0.82rem',
-                      color: '#9CA3AF',
-                    }}>
+                    <div className="flex justify-between items-center text-xs pt-1.5 border-t" style={{ borderColor: 'rgba(217,119,6,0.20)', color: 'var(--text-muted)' }}>
                       <span>المجموع</span>
-                      <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#B45309' }}>
-                        {order.estimated_cost} ر.س
-                      </span>
+                      <span className="font-mono font-bold" style={{ color: '#B45309' }}>{order.estimated_cost} ر.س</span>
                     </div>
                   )}
                 </div>
               )}
 
-              <div style={{
-                fontSize: '1.8rem',
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #D97706, #B45309)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                marginBottom: '18px',
-                fontFamily: 'JetBrains Mono, monospace',
-              }}>
-                {order.estimated_cost} <span style={{ fontSize: '0.9rem' }}>ريال</span>
+              <div className="font-mono text-3xl font-bold mb-5" style={{ color: '#D97706' }}>
+                {order.estimated_cost} <span className="text-base font-normal">ريال</span>
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <motion.button
+
+              <div className="flex gap-2.5">
+                <button
                   onClick={handleApprove}
                   disabled={approving || rejecting}
-                  whileTap={{ scale: 0.97 }}
-                  style={{
-                    flex: 1,
-                    padding: '14px 0',
-                    background: 'linear-gradient(135deg, #D97706, #B45309)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    fontWeight: 700,
-                    fontFamily: 'Almarai, sans-serif',
-                    cursor: (approving || rejecting) ? 'not-allowed' : 'pointer',
-                    opacity: (approving || rejecting) ? 0.6 : 1,
-                    boxShadow: '0 4px 16px rgba(217,119,6,0.25)',
-                  }}
+                  className="flex-1 py-3.5 rounded-xl text-white font-bold text-[0.95rem] transition-opacity disabled:opacity-50"
+                  style={{ background: '#D97706', fontFamily: 'Almarai, sans-serif' }}
                 >
                   {approving ? '...' : 'أوافق على السعر'}
-                </motion.button>
-                <motion.button
+                </button>
+                <button
                   onClick={handleReject}
                   disabled={approving || rejecting}
-                  whileTap={{ scale: 0.97 }}
-                  style={{
-                    flex: 1,
-                    padding: '14px 0',
-                    background: 'linear-gradient(135deg, #DC2626, #B91C1C)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    fontWeight: 700,
-                    fontFamily: 'Almarai, sans-serif',
-                    cursor: (approving || rejecting) ? 'not-allowed' : 'pointer',
-                    opacity: (approving || rejecting) ? 0.6 : 1,
-                    boxShadow: '0 4px 16px rgba(220,38,38,0.25)',
-                  }}
+                  className="flex-1 py-3.5 rounded-xl text-white font-bold text-[0.95rem] transition-opacity disabled:opacity-50"
+                  style={{ background: '#DC2626', fontFamily: 'Almarai, sans-serif' }}
                 >
                   {rejecting ? '...' : 'أرفض'}
-                </motion.button>
+                </button>
               </div>
               {rejectError && (
-                <div style={{ marginTop: '10px', fontSize: '0.82rem', color: '#DC2626', textAlign: 'center' }}>
-                  {rejectError}
-                </div>
+                <div className="mt-2.5 text-xs text-center" style={{ color: '#DC2626' }}>{rejectError}</div>
               )}
             </motion.div>
           )}
@@ -492,15 +355,8 @@ export default function TrackPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              style={{
-                background: 'rgba(22,163,74,0.06)',
-                border: '1px solid rgba(22,163,74,0.20)',
-                borderRadius: '12px',
-                padding: '16px',
-                color: '#16A34A',
-                textAlign: 'center',
-                fontWeight: 600,
-              }}
+              className="mx-6 mb-6 rounded-xl p-4 text-center font-semibold text-sm"
+              style={{ background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.20)', color: '#16A34A' }}
             >
               ✓ تمت الموافقة، جارٍ التنفيذ
             </motion.div>
@@ -510,31 +366,21 @@ export default function TrackPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              style={{
-                background: 'rgba(220,38,38,0.05)',
-                border: '1px solid rgba(220,38,38,0.20)',
-                borderRadius: '12px',
-                padding: '20px',
-                textAlign: 'center',
-              }}
+              className="mx-6 mb-6 rounded-xl p-5 text-center"
+              style={{ background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.20)' }}
             >
-              <div style={{ fontSize: '1.5rem', marginBottom: '8px', color: '#DC2626' }}>✕</div>
-              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#DC2626', marginBottom: '6px' }}>
-                تم رفض الطلب
-              </div>
-              <div style={{ fontSize: '0.85rem', color: '#EF4444', opacity: 0.8 }}>
-                سيتواصل معك الفريق قريباً
-              </div>
+              <div className="text-2xl mb-2" style={{ color: '#DC2626' }}>✕</div>
+              <div className="font-bold text-base mb-1.5" style={{ color: '#DC2626' }}>تم رفض الطلب</div>
+              <div className="text-sm" style={{ color: '#EF4444', opacity: 0.8 }}>سيتواصل معك الفريق قريباً</div>
             </motion.div>
           )}
         </motion.div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '28px', color: '#9CA3AF', fontSize: '0.68rem', opacity: 0.7 }}>
-          هذه الصفحة للاستخدام الشخصي فقط
+        <div className="text-center mt-6 text-[11px] text-text-faint opacity-70">
+          يُحدَّث تلقائيًا · لا يتطلب إنشاء حساب
         </div>
       </div>
-    </motion.div>
-    </AnimatePresence>
+    </div>
   );
 }
