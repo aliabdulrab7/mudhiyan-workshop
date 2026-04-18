@@ -20,9 +20,12 @@ function useMobile() {
 
 const FILTERS = [
   { value: 'all',              label: 'الكل' },
+  { value: 'new',              label: 'جديد' },
   { value: 'received',         label: 'مستلمة' },
   { value: 'inspection',       label: 'قيد الفحص' },
   { value: 'waiting_approval', label: 'بانتظار الموافقة' },
+  { value: 'approved',         label: 'موافق عليها' },
+  { value: 'rejected',         label: 'مرفوضة' },
   { value: 'in_repair',        label: 'قيد الإصلاح' },
   { value: 'quality_check',    label: 'فحص الجودة' },
   { value: 'ready_for_return', label: 'جاهزة للإرجاع' },
@@ -84,12 +87,14 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
 
   // Workshop quick-advance shortcuts (subset of full state machine)
   const nextStatus = {
+    new:           'received',
     received:      'inspection',
     in_repair:     'quality_check',
     quality_check: 'ready_for_return',
   };
 
   const nextLabel = {
+    new:           'استلام في الورشة',
     received:      'بدء الفحص',
     in_repair:     'فحص الجودة',
     quality_check: 'جاهز للإرجاع',

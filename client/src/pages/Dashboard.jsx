@@ -19,16 +19,18 @@ function useMobile() {
 }
 
 const STAT_CARDS = [
-  { key: 'received',         label: 'مستلمة',           icon: '◈', gradient: 'linear-gradient(135deg, rgba(41,128,185,0.06), rgba(41,128,185,0.01))' },
-  { key: 'inspection',       label: 'قيد الفحص',         icon: '⚲', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.01))' },
-  { key: 'waiting_approval', label: 'بانتظار الموافقة',  icon: '⏳', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.06), rgba(217,119,6,0.01))' },
-  { key: 'in_repair',        label: 'قيد الإصلاح',       icon: '⟳', gradient: 'linear-gradient(135deg, rgba(26,110,160,0.06), rgba(26,110,160,0.01))' },
-  { key: 'quality_check',    label: 'فحص الجودة',        icon: '✓', gradient: 'linear-gradient(135deg, rgba(107,114,128,0.06), rgba(107,114,128,0.01))' },
-  { key: 'ready_for_return', label: 'جاهزة للإرجاع',     icon: '✦', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01))' },
-  { key: 'returned_to_shop', label: 'وصلت للفرع',        icon: '◎', gradient: 'linear-gradient(135deg, rgba(5,150,105,0.06), rgba(5,150,105,0.01))' },
+  { key: 'new',              label: 'استلامات جديدة',    icon: '✦', gradient: 'linear-gradient(135deg, rgba(100,116,139,0.06), rgba(100,116,139,0.01))' },
+  { key: 'received',         label: 'مستلمة',            icon: '◈', gradient: 'linear-gradient(135deg, rgba(41,128,185,0.06), rgba(41,128,185,0.01))' },
+  { key: 'inspection',       label: 'قيد الفحص',          icon: '⚲', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.01))' },
+  { key: 'waiting_approval', label: 'بانتظار الموافقة',   icon: '⏳', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.06), rgba(217,119,6,0.01))' },
+  { key: 'in_repair',        label: 'قيد الإصلاح',        icon: '⟳', gradient: 'linear-gradient(135deg, rgba(26,110,160,0.06), rgba(26,110,160,0.01))' },
+  { key: 'quality_check',    label: 'فحص الجودة',         icon: '✓', gradient: 'linear-gradient(135deg, rgba(107,114,128,0.06), rgba(107,114,128,0.01))' },
+  { key: 'ready_for_return', label: 'جاهزة للإرجاع',      icon: '◉', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01))' },
+  { key: 'returned_to_shop', label: 'وصلت للفرع',         icon: '◎', gradient: 'linear-gradient(135deg, rgba(5,150,105,0.06), rgba(5,150,105,0.01))' },
 ];
 
 const STATUS_COLORS = {
+  new:              '#64748B',
   received:         '#2980B9',
   inspection:       '#7C3AED',
   waiting_approval: '#D97706',
@@ -38,11 +40,12 @@ const STATUS_COLORS = {
   returned_to_shop: '#059669',
   delivered:        '#1E293B',
   closed:           '#64748B',
+  rejected:         '#DC2626',
 };
 
 export default function Dashboard() {
   const [stats, setStats]             = useState(null);
-  const [actionOrders, setActionOrders] = useState({ received: [], pending: [] });
+  const [actionOrders, setActionOrders] = useState({ received: [], pending: [], rejected: [] });
   const [branchStats, setBranchStats] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -53,14 +56,15 @@ export default function Dashboard() {
   const isWorkshop = getRole() === 'workshop';
 
   async function loadData() {
-    const [s, received, pending, branches] = await Promise.all([
+    const [s, received, pending, rejected, branches] = await Promise.all([
       getStats().catch(() => null),
       isWorkshop ? getOrders({ status: 'received' })         : Promise.resolve([]),
       isWorkshop ? getOrders({ status: 'waiting_approval' }) : Promise.resolve([]),
+      isWorkshop ? getOrders({ status: 'rejected' })         : Promise.resolve([]),
       isWorkshop ? getBranchStats().catch(() => [])          : Promise.resolve([]),
     ]);
     if (s) setStats(s);
-    setActionOrders({ received, pending });
+    setActionOrders({ received, pending, rejected });
     setBranchStats(branches);
   }
 
@@ -140,6 +144,59 @@ export default function Dashboard() {
             onFilterClick={() => applyFilter(filterStatus === 'waiting_approval' ? 'all' : 'waiting_approval')}
             highlight={actionOrders.pending.length > 0}
           />
+        </div>
+      )}
+
+      {/* Rejected alert — workshop only, shown when rejections exist */}
+      {isWorkshop && actionOrders.rejected.length > 0 && (
+        <div style={{
+          marginBottom: '20px',
+          border: '1px solid rgba(220,38,38,0.25)',
+          borderTop: '3px solid #DC2626',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          background: '#FFFFFF',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 16px',
+            borderBottom: '1px solid rgba(220,38,38,0.12)',
+            background: 'rgba(220,38,38,0.03)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: '#DC2626', fontSize: '0.9rem' }}>⚠</span>
+              <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#DC2626' }}>
+                طلبات مرفوضة — يجب إعادتها للفرع
+              </span>
+              <span style={{
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: '0.75rem',
+                color: '#DC2626',
+                background: 'rgba(220,38,38,0.10)',
+                border: '1px solid rgba(220,38,38,0.20)',
+                borderRadius: '20px',
+                padding: '1px 8px',
+              }}>{actionOrders.rejected.length}</span>
+            </div>
+            <button
+              onClick={() => applyFilter('rejected')}
+              style={{ background: 'transparent', border: 'none', color: '#DC2626', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Almarai, sans-serif' }}
+            >
+              عرض الكل ←
+            </button>
+          </div>
+          {actionOrders.rejected.slice(0, 3).map(o => (
+            <div key={o.id} style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '10px 16px',
+              borderBottom: '1px solid #F9FAFB',
+              fontSize: '0.82rem',
+            }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem', color: '#DC2626' }}>{o.order_number}</span>
+              <span style={{ fontWeight: 600, flex: 1 }}>{o.customer_name}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{o.piece_type}</span>
+            </div>
+          ))}
         </div>
       )}
 
