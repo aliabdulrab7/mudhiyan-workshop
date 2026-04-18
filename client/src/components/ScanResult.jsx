@@ -112,7 +112,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           padding: '12px 14px',
           marginBottom: '16px',
         }}>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)', marginBottom: '10px' }}>
             أرسل رابط الموافقة للعميل ({order.cost} ريال)
           </div>
           <a href={approvalWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
@@ -133,7 +133,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           padding: '12px 14px',
           marginBottom: '16px',
         }}>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)', marginBottom: '10px' }}>
             هل الصيانة جاهزة للإرجاع للفرع؟
           </div>
           <button
@@ -179,7 +179,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           padding: '12px 14px',
           marginBottom: '16px',
         }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '10px' }}>
             ملصق الجاهزية (للطباعة والإرفاق بالقطعة)
           </div>
           <ReadyLabelCanvas order={order} autoPrint={justMarkedReady} />

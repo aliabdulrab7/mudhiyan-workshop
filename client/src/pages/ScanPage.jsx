@@ -80,7 +80,7 @@ export default function ScanPage() {
                 display: 'inline-block',
                 ...(state === 'scanning' ? { animation: 'pulse-gold 1.5s infinite' } : {}),
               }} />
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+              <span style={{ color: 'var(--text-soft)', fontSize: '0.85rem' }}>
                 {state === 'scanning' ? 'الكاميرا جاهزة' :
                  state === 'loading'  ? 'جاري البحث...' : 'جاهز'}
               </span>
@@ -123,7 +123,7 @@ export default function ScanPage() {
         )}
 
         {viaMobile && state === 'loading' && (
-          <div style={{ color: 'var(--text-secondary)', padding: '40px', textAlign: 'center' }}>
+          <div style={{ color: 'var(--text-soft)', padding: '40px', textAlign: 'center' }}>
             ⟳ جاري البحث...
           </div>
         )}

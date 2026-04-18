@@ -304,7 +304,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                       fontSize: '0.82rem',
                     }}>
                       <div>
-                        <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{item.item_name || item.item_type}</div>
+                        <div style={{ color: 'var(--text)', fontWeight: 700 }}>{item.item_name || item.item_type}</div>
                         {(item.brand || item.model) && (
                           <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                             {item.brand} {item.model}
@@ -317,7 +317,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                         )}
                       </div>
                       <span style={{ textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', color: '#2980B9', fontWeight: 700 }}>{item.quantity}</span>
-                      <span style={{ color: item.notes ? 'var(--text-secondary)' : 'var(--text-muted)', fontSize: '0.78rem' }}>
+                      <span style={{ color: item.notes ? 'var(--text-soft)' : 'var(--text-muted)', fontSize: '0.78rem' }}>
                         {item.notes || '—'}
                       </span>
                       <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 500 }}>
@@ -421,7 +421,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                           border: paymentMethod === value ? '2px solid #D4A843' : '1px solid #D1D5DB',
                           borderRadius: '8px',
                           background: paymentMethod === value ? 'rgba(212,168,67,0.1)' : '#FFFFFF',
-                          color: paymentMethod === value ? '#92700A' : 'var(--text-secondary)',
+                          color: paymentMethod === value ? '#92700A' : 'var(--text-soft)',
                           fontWeight: paymentMethod === value ? 700 : 400,
                           fontSize: '0.88rem',
                           cursor: 'pointer',
@@ -551,7 +551,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                                 border: '1px solid #D1D5DB',
                                 borderRadius: 'var(--radius)',
                                 background: '#FFFFFF',
-                                color: 'var(--text-secondary)',
+                                color: 'var(--text-soft)',
                                 fontSize: '0.85rem',
                                 fontWeight: 600,
                                 cursor: 'pointer',
@@ -589,7 +589,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                         {new Date(h.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)' }}>
                       بواسطة: <span style={{ fontWeight: 600 }}>{h.changed_by}</span>
                     </div>
                     <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -629,7 +629,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                         {new Date(c.created_at).toLocaleString('ar-SA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: '0.88rem', color: 'var(--text)', lineHeight: 1.6 }}>
                       {c.body}
                     </div>
                   </div>
@@ -668,7 +668,7 @@ function InfoRow({ label, value, bold, mono }) {
         fontWeight: bold ? 700 : 400,
         fontFamily: mono ? 'JetBrains Mono, monospace' : 'inherit',
         fontSize: mono ? '0.82rem' : '0.9rem',
-        color: 'var(--text-primary)',
+        color: 'var(--text)',
         textAlign: 'left',
         direction: mono ? 'ltr' : 'inherit',
       }}>{value}</span>
