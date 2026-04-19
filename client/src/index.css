@@ -102,9 +102,9 @@
   --blur: blur(20px);
 
   /* Fonts */
-  --font-ui:   'Almarai', 'Inter', sans-serif;
+  --font-ui:   'Inter', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --font-ar:   'Almarai', sans-serif;
+  --font-ar:   'Noto Sans Arabic', 'Inter', sans-serif;
 
   /* Layout */
   --row-h:     36px;

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getOrders, updateOrderStatus } from '../api/orders';
-import StatusPill, { PriorityDot } from './StatusPill';
+import StatusPill, { PriorityDot, Avatar } from './StatusPill';
 import OrderDetail from './OrderDetail';
 import { getRole } from '../api/auth';
 import { buildTrackingUrl } from '../utils/whatsapp';
