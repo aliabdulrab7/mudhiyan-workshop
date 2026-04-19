@@ -13,6 +13,7 @@ import TechniciansPage from './pages/TechniciansPage';
 import InventoryPage   from './pages/InventoryPage';
 import ServicesPage    from './pages/ServicesPage';
 import LabelPrintPage from './pages/LabelPrintPage';
+import OrdersPage     from './pages/OrdersPage';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
                 <Route path="/"     element={<Dashboard />} />
                 <Route path="/new"  element={<NewOrder />} />
                 <Route path="/scan"     element={<ScanPage />} />
+                <Route path="/orders"  element={<OrdersPage />} />
                 <Route path="/branches"    element={<RoleRoute roles={["workshop"]}><BranchesPage /></RoleRoute>} />
                 <Route path="/reports"     element={<RoleRoute roles={["workshop"]}><ReportsPage /></RoleRoute>} />
                 <Route path="/technicians" element={<RoleRoute roles={["workshop"]}><TechniciansPage /></RoleRoute>} />
