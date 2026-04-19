@@ -7,18 +7,16 @@ import { buildTrackingUrl } from '../utils/whatsapp';
 import SkeletonLoader from './SkeletonLoader';
 import { Icons } from './icons';
 
-const FILTERS = [
-  { value: 'all',              label: 'الكل' },
-  { value: 'new',              label: 'جديد' },
-  { value: 'received',         label: 'مستلمة' },
-  { value: 'inspection',       label: 'قيد الفحص' },
-  { value: 'waiting_approval', label: 'بانتظار الموافقة' },
-  { value: 'approved',         label: 'موافق عليها' },
-  { value: 'in_repair',        label: 'قيد الإصلاح' },
-  { value: 'quality_check',    label: 'فحص الجودة' },
-  { value: 'ready_for_return', label: 'جاهزة للإرجاع' },
-  { value: 'returned_to_shop', label: 'وصلت للفرع' },
-  { value: 'delivered',        label: 'تم التسليم' },
+const FILTER_DEFS = [
+  { value: 'all',              label: 'الكل',             statusKeys: null },
+  { value: 'received',         label: 'مستلمة',           statusKeys: ['received'] },
+  { value: 'inspection',       label: 'قيد الفحص',        statusKeys: ['inspection'] },
+  { value: 'waiting_approval', label: 'بانتظار الموافقة', statusKeys: ['waiting_approval'] },
+  { value: 'in_repair',        label: 'قيد الإصلاح',      statusKeys: ['in_repair'] },
+  { value: 'quality_check',    label: 'فحص الجودة',       statusKeys: ['quality_check'] },
+  { value: 'ready_for_return', label: 'جاهزة للإرجاع',    statusKeys: ['ready_for_return'] },
+  { value: 'returned_to_shop', label: 'وصلت للفرع',       statusKeys: ['returned_to_shop'] },
+  { value: 'delivered',        label: 'تم التسليم',        statusKeys: ['delivered'] },
 ];
 
 const NEXT_STATUS = {
@@ -42,6 +40,7 @@ function formatDate(str) {
 
 export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, shopId = null }) {
   const [orders, setOrders]       = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [status, setStatus]       = useState(defaultStatus);
   const [search, setSearch]       = useState('');
   const [loading, setLoading]     = useState(true);
@@ -53,6 +52,13 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   const [sortCol, setSortCol]     = useState('created_at');
   const [sortDir, setSortDir]     = useState('desc');
   const isWorkshop = getRole() === 'workshop';
+
+  // Counts for filter chips — computed from the full unfiltered list
+  const counts = useMemo(() => {
+    const c = {};
+    for (const o of allOrders) c[o.status] = (c[o.status] || 0) + 1;
+    return c;
+  }, [allOrders]);
 
   function copyTrackingLink(order, e) {
     e.stopPropagation();
@@ -68,6 +74,11 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
     setSelected(updated);
     onRefresh?.();
   }
+
+  // Fetch all orders once (no filter) for accurate status counts in chips
+  useEffect(() => {
+    getOrders({ shop_id: shopId }).then(setAllOrders).catch(() => {});
+  }, [refresh, shopId]);
 
   useEffect(() => {
     setLoading(true);
@@ -131,15 +142,21 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
     <div>
       {/* Filter chips */}
       <div style={{ padding: '0 24px 10px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {FILTERS.map(f => (
-          <button
-            key={f.value}
-            className={`chip${status === f.value ? ' active' : ''}`}
-            onClick={() => setStatus(f.value)}
-          >
-            {f.label}
-          </button>
-        ))}
+        {FILTER_DEFS.map(f => {
+          const chipCount = f.statusKeys === null
+            ? allOrders.length
+            : f.statusKeys.reduce((s, k) => s + (counts[k] || 0), 0);
+          return (
+            <button
+              key={f.value}
+              className={`chip${status === f.value ? ' active' : ''}`}
+              onClick={() => setStatus(f.value)}
+            >
+              {f.label}
+              {chipCount > 0 && <span className="count">{chipCount}</span>}
+            </button>
+          );
+        })}
       </div>
 
       {/* Error */}
@@ -187,13 +204,12 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
             <table className="table">
               <colgroup>
                 <col style={{ width: 36 }} />
-                <col style={{ width: 140 }} />
                 <col style={{ width: 130 }} />
-                <col style={{ width: 190 }} />
-                <col style={{ width: 160 }} />
-                <col style={{ width: 120 }} />
+                <col style={{ width: 130 }} />
+                <col style={{ width: 210 }} />
+                <col style={{ width: 170 }} />
                 <col style={{ width: 110 }} />
-                <col style={{ width: 90 }} />
+                <col style={{ width: 130 }} />
                 <col style={{ width: 36 }} />
               </colgroup>
               <thead>
@@ -210,7 +226,6 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                   <th className="sortable" onClick={() => toggleSort('customer_name')}>العميل <SortIcon col="customer_name" /></th>
                   <th>القطعة / الملاحظات</th>
                   <th className="sortable" onClick={() => toggleSort('created_at')}>التاريخ <SortIcon col="created_at" /></th>
-                  <th>الجوال</th>
                   <th style={{ textAlign: 'left' }}>إجراء</th>
                   <th />
                 </tr>
@@ -218,7 +233,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
               <tbody>
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-faint)' }}>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-faint)' }}>
                       {status === 'all' && !search ? 'لا توجد طلبات بعد' : 'لا توجد طلبات تطابق هذا الفلتر'}
                     </td>
                   </tr>
@@ -244,14 +259,19 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                         </td>
                         <td><StatusPill status={o.status} size="sm" /></td>
                         <td>
-                          <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.customer_name}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Avatar name={o.customer_name} size={20} />
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_name}</div>
+                              {o.phone && <div className="mono" style={{ fontSize: 11, color: 'var(--text-faint)', direction: 'ltr', textAlign: 'left' }}>+{o.phone.slice(0,3)} {o.phone.slice(3)}</div>}
+                            </div>
+                          </div>
                         </td>
                         <td>
                           <div style={{ fontWeight: 500 }}>{o.piece_type}</div>
                           {o.notes && <div className="subline">{o.notes.slice(0, 35)}</div>}
                         </td>
                         <td className="mono text-sm text-mute">{formatDate(o.created_at)}</td>
-                        <td className="mono text-sm text-mute" style={{ direction: 'ltr' }}>{o.phone.slice(-9)}</td>
                         <td onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             {isWorkshop && NEXT_STATUS[o.status] && (
