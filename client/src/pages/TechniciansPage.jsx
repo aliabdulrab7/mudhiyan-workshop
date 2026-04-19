@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { getTechnicians, createTechnician } from '../api/technicians';
 import { Icons } from '../components/icons';
 
@@ -20,12 +19,6 @@ export default function TechniciansPage() {
 
   useEffect(() => { load(); }, []);
 
-  function handleShowForm() {
-    setForm({ specialization: '' });
-    setError('');
-    setShowForm(true);
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
@@ -43,148 +36,89 @@ export default function TechniciansPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={{ padding: '28px', maxWidth: '700px' }}
-    >
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+    <div>
+      <div className="page-head">
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>الفنيون</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-            إدارة فنيي الورشة وتخصصاتهم
-          </p>
+          <h1 className="page-title">الفنيون</h1>
+          <div className="page-sub">إدارة فنيي الورشة وتخصصاتهم</div>
         </div>
-        {!showForm && (
-          <button className="btn-primary" onClick={handleShowForm}>+ إضافة فني</button>
-        )}
+        <div className="page-actions">
+          {!showForm && (
+            <button className="btn btn-sm btn-primary" onClick={() => { setForm({ specialization: '' }); setError(''); setShowForm(true); }}>
+              <Icons.Plus size={12} /> إضافة فني
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Create form */}
-      <AnimatePresence>
+      <div style={{ padding: '0 24px 24px', maxWidth: 680 }}>
+        {/* Create form */}
         {showForm && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            style={{
-              background: 'var(--bg-raised)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              padding: '24px',
-              marginBottom: '24px',
-              boxShadow: 'var(--shadow-md)',
-            }}
-          >
-            <h2 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
-              إضافة فني جديد
-            </h2>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <div className="card" style={{ padding: '20px 24px', marginBottom: 16 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة فني جديد</div>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
-                  التخصص
-                </label>
-                <input
-                  className="input-base"
-                  value={form.specialization}
+                <label className="field-label">التخصص</label>
+                <input className="input" value={form.specialization}
                   onChange={e => setForm(f => ({ ...f, specialization: e.target.value }))}
-                  placeholder="مثال: تصليح ذهب، تركيب أحجار"
-                  required
-                />
+                  placeholder="مثال: تصليح ذهب، تركيب أحجار" required autoFocus />
               </div>
-
               {error && (
-                <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '10px 14px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)' }}>
+                <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
                   {error}
                 </div>
               )}
-
-              <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-                <button className="btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
-                  {submitting ? '...' : 'حفظ'}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
+                  {submitting ? 'جاري الحفظ...' : 'حفظ'}
                 </button>
-                <button className="btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} style={{ flex: 0.5, justifyContent: 'center' }}>
+                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }}>
                   إلغاء
                 </button>
               </div>
             </form>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
-      {/* Error outside form */}
-      {error && !showForm && (
-        <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '12px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)', marginBottom: '20px' }}>
-          {error}
-        </div>
-      )}
+        {/* Error outside form */}
+        {error && !showForm && (
+          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 12 }}>
+            {error}
+          </div>
+        )}
 
-      {/* Technicians list */}
-      {loading ? (
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '40px' }}>جاري التحميل...</div>
-      ) : technicians.length === 0 ? (
-        <div style={{
-          background: 'var(--bg-raised)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding: '60px 40px',
-          textAlign: 'center',
-          color: 'var(--text-muted)',
-          fontSize: '0.95rem',
-        }}>
-          لا يوجد فنيون مسجلون
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <AnimatePresence>
-            {technicians.map((tech, idx) => (
-              <motion.div
-                key={tech.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                style={{
-                  background: 'var(--bg-raised)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '16px 20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                  boxShadow: 'var(--shadow-sm)',
-                }}
-              >
+        {/* Technicians list */}
+        {loading ? (
+          <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
+        ) : technicians.length === 0 ? (
+          <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+            لا يوجد فنيون مسجلون
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {technicians.map(tech => (
+              <div key={tech.id} className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
-                  width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
-                  background: 'var(--primary-soft)',
-                  border: '1px solid var(--border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
+                  width: 36, height: 36, borderRadius: 'var(--radius-sm)',
+                  background: 'var(--primary-soft)', border: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <Icons.User size={18} stroke="var(--primary)" />
+                  <Icons.User size={16} stroke="var(--primary)" />
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.97rem' }}>
-                    {tech.specialization}
-                  </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{tech.specialization}</div>
                   {tech.username && (
-                    <div style={{ fontSize: '0.80rem', color: 'var(--text-muted)', marginTop: '3px' }}>
-                      اسم المستخدم:{' '}
-                      <span style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--primary)' }}>
-                        {tech.username}
-                      </span>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                      <span className="mono" style={{ color: 'var(--text-faint)' }}>#{tech.id}</span>
+                      {' · '}{tech.username}
                     </div>
                   )}
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)', marginTop: '2px', fontFamily: 'JetBrains Mono, monospace' }}>
-                    #{tech.id}
-                  </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
-          </AnimatePresence>
-        </div>
-      )}
-    </motion.div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

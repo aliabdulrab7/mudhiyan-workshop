@@ -1,34 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { getStats, getOrders, getBranchStats } from '../api/orders';
 import { getRole } from '../api/auth';
 import OrderList from '../components/OrderList';
-import StatusPill from '../components/StatusPill';
+import StatusPill, { Sparkline } from '../components/StatusPill';
 import { useApprovalNotifications } from '../hooks/useApprovalNotifications';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
 import { useToast } from '../components/ToastProvider';
 
-function useMobile() {
-  const [mobile, setMobile] = useState(window.innerWidth < 768);
-  useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768);
-    window.addEventListener('resize', fn);
-    return () => window.removeEventListener('resize', fn);
-  }, []);
-  return mobile;
-}
-
 const STAT_CARDS = [
-  { key: 'new',              label: 'جديد',              color: '#64748B' },
-  { key: 'received',         label: 'مستلمة',            color: '#2980B9' },
-  { key: 'inspection',       label: 'قيد الفحص',          color: '#7C3AED' },
-  { key: 'waiting_approval', label: 'بانتظار الموافقة',   color: '#D97706' },
-  { key: 'in_repair',        label: 'قيد الإصلاح',        color: '#1A6EA0' },
-  { key: 'quality_check',    label: 'فحص الجودة',         color: '#6B7280' },
-  { key: 'ready_for_return', label: 'جاهزة للإرجاع',      color: '#16A34A' },
-  { key: 'returned_to_shop', label: 'وصلت للفرع',         color: '#059669' },
+  { key: 'new',              label: 'جديد',              color: 'var(--status-closed)',   spark: [2,3,2,4,3,4,3] },
+  { key: 'received',         label: 'مستلمة',            color: 'var(--status-received)', spark: [3,4,2,5,6,4,7] },
+  { key: 'inspection',       label: 'قيد الفحص',          color: 'var(--status-inspection)', spark: [2,3,3,4,2,3,2] },
+  { key: 'waiting_approval', label: 'بانتظار الموافقة',   color: 'var(--status-waiting)', spark: [1,2,2,3,2,2,2] },
+  { key: 'in_repair',        label: 'قيد الإصلاح',        color: 'var(--status-repair)',  spark: [4,5,4,5,4,4,4] },
+  { key: 'quality_check',    label: 'فحص الجودة',         color: 'var(--status-quality)', spark: [1,2,1,2,2,2,2] },
+  { key: 'ready_for_return', label: 'جاهزة للإرجاع',      color: 'var(--status-ready)',   spark: [2,2,3,3,3,3,3] },
+  { key: 'returned_to_shop', label: 'وصلت للفرع',         color: 'var(--status-delivered)', spark: [1,1,2,2,2,2,2] },
 ];
 
 export default function Dashboard() {
@@ -38,7 +27,6 @@ export default function Dashboard() {
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [refresh, setRefresh]           = useState(0);
-  const isMobile   = useMobile();
   const navigate   = useNavigate();
   const isWorkshop = getRole() === 'workshop';
   const toast      = useToast();
@@ -69,215 +57,175 @@ export default function Dashboard() {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
-  const branchMax = Math.max(...branchStats.map(b => (b.received || 0) + (b.in_progress || 0) + (b.ready || 0) + (b.pending_approval || 0)), 1);
+  const branchMax = Math.max(...branchStats.map(b =>
+    (b.received || 0) + (b.in_progress || 0) + (b.ready || 0) + (b.pending_approval || 0)
+  ), 1);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.35 }}
-      style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)' }}
-    >
-      {/* ── Page header ── */}
-      <div className="flex items-start justify-between mb-6">
+    <div>
+      {/* Page header */}
+      <div className="page-head">
         <div>
-          <h1 className="text-xl font-bold text-text m-0 mb-1">لوحة الطلبات</h1>
-          <div className="text-xs text-text-muted">{dateStr}</div>
+          <h1 className="page-title">لوحة الطلبات</h1>
+          <div className="page-sub">{dateStr}</div>
         </div>
-        <div className="flex gap-2">
-          <button
-            className="btn-ghost-sm flex items-center gap-1.5"
-            onClick={() => setRefresh(r => r + 1)}
-          >
-            <Icons.Refresh size={11} />
-            تحديث
+        <div className="page-actions">
+          <button className="btn btn-sm" onClick={() => setRefresh(r => r + 1)}>
+            <Icons.Refresh size={12} /> تحديث
+          </button>
+          <button className="btn btn-sm">
+            <Icons.Download size={12} /> تصدير
           </button>
         </div>
       </div>
 
-      {/* ── Stat cards ── */}
-      {stats ? (
-        <div
-          className={isMobile ? 'scroll-row' : ''}
-          style={isMobile ? {
-            display: 'flex', gap: '10px', marginBottom: '20px',
-          } : {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-            gap: '10px',
-            marginBottom: '20px',
-          }}
-        >
-          {STAT_CARDS.map(({ key, label, color }, i) => (
-            <motion.button
-              key={key}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.25 }}
-              onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
-              className="stat-card text-right transition-all"
-              style={{
-                background: filterStatus === key
-                  ? `color-mix(in oklch, ${color} 9%, var(--bg-raised))`
-                  : 'var(--bg-raised)',
-                border: `1px solid ${filterStatus === key
-                  ? `color-mix(in oklch, ${color} 30%, var(--border))`
-                  : 'var(--border)'}`,
-                borderRadius: 'var(--radius)',
-                padding: '14px 14px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-sm)',
-                ...(isMobile ? { minWidth: '118px', flexShrink: 0 } : {}),
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                <span className="text-[11px] text-text-muted leading-tight">{label}</span>
-              </div>
-              <div className="font-mono text-3xl font-semibold leading-none" style={{ color }}>
-                {stats[key] ?? 0}
-              </div>
-            </motion.button>
-          ))}
-        </div>
-      ) : (
-        <SkeletonLoader type="stats" isMobile={isMobile} />
-      )}
+      <div className="dash">
+        {/* Stat cards */}
+        {stats ? (
+          <div className="grid-stats">
+            {STAT_CARDS.map(({ key, label, color, spark }) => (
+              <button
+                key={key}
+                onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
+                className={`stat-card card${filterStatus === key ? ' active' : ''}`}
+                style={filterStatus === key ? { borderColor: color, background: `color-mix(in oklch, ${color} 9%, var(--bg-raised))` } : {}}
+              >
+                <div className="stat-label">
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                  {label}
+                </div>
+                <div className="stat-value" style={{ color }}>{stats[key] ?? 0}</div>
+                <Sparkline data={spark} color={color} />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <SkeletonLoader type="stats" />
+        )}
 
-      {/* ── Action panels — workshop only ── */}
-      {isWorkshop && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-          gap: '12px',
-          marginBottom: '16px',
-        }}>
-          <ActionPanel
-            icon={<Icons.Inbox size={14} />}
-            title="تنتظر التقييم"
-            count={actionOrders.received.length}
-            color="#2980B9"
-            emptyText="لا توجد طلبات جديدة"
-            orders={actionOrders.received}
-            active={filterStatus === 'received'}
-            onFilterClick={() => setFilterStatus(filterStatus === 'received' ? 'all' : 'received')}
-          />
-          <ActionPanel
-            icon={<Icons.Orders size={14} />}
-            title="بانتظار موافقة العميل"
-            count={actionOrders.pending.length}
-            color="#D97706"
-            emptyText="لا توجد طلبات بانتظار الموافقة"
-            orders={actionOrders.pending}
-            active={filterStatus === 'waiting_approval'}
-            onFilterClick={() => setFilterStatus(filterStatus === 'waiting_approval' ? 'all' : 'waiting_approval')}
-            highlight={actionOrders.pending.length > 0}
-          />
-        </div>
-      )}
+        {/* Action panels — workshop only */}
+        {isWorkshop && (
+          <div className="grid-two">
+            <ActionPanel
+              icon={<Icons.Inbox size={14} />}
+              title="تنتظر التقييم"
+              count={actionOrders.received.length}
+              color="var(--status-received)"
+              emptyText="لا توجد طلبات جديدة"
+              orders={actionOrders.received}
+              active={filterStatus === 'received'}
+              onFilterClick={() => setFilterStatus(filterStatus === 'received' ? 'all' : 'received')}
+            />
+            <ActionPanel
+              icon={<Icons.Clock size={14} />}
+              title="بانتظار موافقة العميل"
+              count={actionOrders.pending.length}
+              color="var(--status-waiting)"
+              emptyText="لا شيء معلّق"
+              orders={actionOrders.pending}
+              active={filterStatus === 'waiting_approval'}
+              onFilterClick={() => setFilterStatus(filterStatus === 'waiting_approval' ? 'all' : 'waiting_approval')}
+              highlight={actionOrders.pending.length > 0}
+            />
+          </div>
+        )}
 
-      {/* ── Rejected alert ── */}
-      <AnimatePresence>
+        {/* Rejected alert */}
         {isWorkshop && actionOrders.rejected.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="mb-4 rounded-lg overflow-hidden"
-            style={{ border: '1px solid rgba(220,38,38,0.25)', borderTop: '2px solid #DC2626' }}
-          >
-            <div className="flex items-center justify-between px-4 py-3 bg-bg-raised border-b" style={{ borderColor: 'rgba(220,38,38,0.12)' }}>
-              <div className="flex items-center gap-2">
-                <Icons.Warn size={14} stroke="#DC2626" />
-                <span className="font-bold text-sm" style={{ color: '#DC2626' }}>طلبات مرفوضة — يجب إعادتها للفرع</span>
-                <span className="font-mono text-xs px-2 py-0.5 rounded-full" style={{ color: '#DC2626', background: 'rgba(220,38,38,0.10)', border: '1px solid rgba(220,38,38,0.20)' }}>
+          <div className="card" style={{ borderTop: '2px solid var(--danger)', overflow: 'hidden' }}>
+            <div className="sec-head">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icons.Warn size={14} stroke="var(--danger)" />
+                <span className="sec-title" style={{ color: 'var(--danger)' }}>طلبات مرفوضة — يجب إعادتها للفرع</span>
+                <span className="mono" style={{
+                  fontSize: 11, padding: '1px 7px', borderRadius: 999,
+                  color: 'var(--danger)',
+                  background: 'oklch(0.58 0.21 25 / 0.1)',
+                  border: '1px solid oklch(0.58 0.21 25 / 0.2)',
+                }}>
                   {actionOrders.rejected.length}
                 </span>
               </div>
               <button
+                className="btn btn-sm btn-ghost"
                 onClick={() => setFilterStatus('rejected')}
-                className="text-xs cursor-pointer"
-                style={{ background: 'transparent', border: 'none', color: '#DC2626', fontFamily: 'Almarai, sans-serif' }}
+                style={{ color: 'var(--danger)' }}
               >
-                عرض الكل ←
+                عرض الكل
               </button>
             </div>
             {actionOrders.rejected.slice(0, 3).map(o => (
-              <div key={o.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border-faint last:border-0 bg-bg-raised text-sm">
-                <span className="font-mono text-xs" style={{ color: '#DC2626' }}>{o.order_number}</span>
-                <span className="font-semibold flex-1 text-text">{o.customer_name}</span>
-                <span className="text-text-muted">{o.piece_type}</span>
+              <div key={o.id} className="mini-row">
+                <span className="stamp" style={{ fontSize: 11 }}>{o.order_number}</span>
+                <span style={{ fontWeight: 500, flex: 1 }}>{o.customer_name}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{o.piece_type}</span>
               </div>
             ))}
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
-      {/* ── Branch load — workshop only ── */}
-      {isWorkshop && branchStats.length > 0 && (
-        <div className="bg-bg-raised border border-border rounded-lg mb-4 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Icons.Branch size={13} stroke="var(--text-muted)" />
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">الفروع</span>
+        {/* Branch load — workshop only */}
+        {isWorkshop && branchStats.length > 0 && (
+          <div className="card">
+            <div className="sec-head">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icons.Branch size={13} />
+                <span className="sec-title">الفروع</span>
+              </div>
+              {selectedBranch && (
+                <button className="btn btn-sm btn-ghost" onClick={() => setSelectedBranch(null)}>
+                  عرض الكل
+                </button>
+              )}
             </div>
-            {selectedBranch && (
-              <button
-                onClick={() => setSelectedBranch(null)}
-                className="text-xs cursor-pointer"
-                style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontFamily: 'Almarai, sans-serif' }}
-              >
-                ← عرض الكل
-              </button>
-            )}
-          </div>
-          <div className="px-4 py-3 flex flex-col gap-2">
-            {branchStats.map(branch => {
-              const total = (branch.received || 0) + (branch.in_progress || 0) + (branch.ready || 0) + (branch.pending_approval || 0);
-              const ready = branch.ready || 0;
-              const isActive = selectedBranch === branch.shop_id;
-              return (
-                <div
-                  key={branch.shop_id}
-                  className={`grid items-center gap-3 cursor-pointer py-1 px-2 rounded transition-colors ${isActive ? 'bg-[var(--primary-soft)]' : 'hover:bg-bg-soft'}`}
-                  style={{ gridTemplateColumns: '1fr 120px 40px' }}
-                  onClick={() => setSelectedBranch(isActive ? null : branch.shop_id)}
-                >
-                  <span className="text-sm text-text truncate">{branch.shop_name}</span>
-                  <div className="h-2 bg-bg-soft rounded overflow-hidden relative">
-                    <div className="h-full rounded transition-all" style={{ width: `${(total / branchMax) * 100}%`, background: 'var(--primary)' }} />
-                    {ready > 0 && (
-                      <div className="absolute inset-y-0 rounded transition-all" style={{ width: `${(ready / branchMax) * 100}%`, background: '#16A34A', left: 0 }} />
-                    )}
+            <div style={{ padding: '8px 14px' }}>
+              {branchStats.map(branch => {
+                const total = (branch.received || 0) + (branch.in_progress || 0) + (branch.ready || 0) + (branch.pending_approval || 0);
+                const ready = branch.ready || 0;
+                const isActive = selectedBranch === branch.shop_id;
+                return (
+                  <div
+                    key={branch.shop_id}
+                    style={{
+                      display: 'grid', gridTemplateColumns: '1fr 120px 36px',
+                      alignItems: 'center', gap: 10, padding: '6px 4px',
+                      borderRadius: 4, cursor: 'pointer',
+                      background: isActive ? 'var(--primary-soft)' : 'transparent',
+                    }}
+                    onClick={() => setSelectedBranch(isActive ? null : branch.shop_id)}
+                  >
+                    <span style={{ fontSize: 12.5 }}>{branch.shop_name}</span>
+                    <div style={{ height: 8, background: 'var(--bg-soft)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                      <div style={{ height: '100%', width: `${(total / branchMax) * 100}%`, background: 'var(--primary)', borderRadius: 4 }} />
+                      {ready > 0 && (
+                        <div style={{ position: 'absolute', inset: 0, width: `${(ready / branchMax) * 100}%`, background: 'var(--status-ready)', borderRadius: 4 }} />
+                      )}
+                    </div>
+                    <span className="mono" style={{ fontSize: 11.5, color: 'var(--text-muted)', textAlign: 'left' }}>{total}</span>
                   </div>
-                  <span className="font-mono text-xs text-text-muted text-left">{total}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
+        )}
+
+        {/* Orders table */}
+        <div style={{ marginTop: 4 }}>
+          <OrderList
+            key={`${filterStatus}-${selectedBranch}`}
+            defaultStatus={filterStatus}
+            shopId={selectedBranch}
+            refresh={refresh}
+            onRefresh={() => setRefresh(r => r + 1)}
+          />
         </div>
-      )}
+      </div>
 
-      <div className="gold-line mb-5" />
-
-      {/* ── Orders table ── */}
-      <OrderList
-        key={`${filterStatus}-${selectedBranch}`}
-        defaultStatus={filterStatus}
-        shopId={selectedBranch}
-        refresh={refresh}
-        onRefresh={() => setRefresh(r => r + 1)}
-      />
-
-      {isMobile && (
-        <button className="fab-new-order" onClick={() => navigate('/new')} aria-label="صيانة جديدة">
-          +
-        </button>
-      )}
-    </motion.div>
+      {/* Mobile FAB */}
+      <button className="fab-new-order" onClick={() => navigate('/new')} aria-label="صيانة جديدة">
+        +
+      </button>
+    </div>
   );
 }
 
@@ -285,45 +233,42 @@ function ActionPanel({ icon, title, count, color, emptyText, orders, active, onF
   return (
     <div
       onClick={onFilterClick}
-      className="bg-bg-raised border rounded-lg overflow-hidden cursor-pointer transition-all"
+      className="card"
       style={{
-        borderColor: highlight && count > 0 ? `color-mix(in oklch, ${color} 30%, var(--border))` : 'var(--border)',
-        borderTop: highlight && count > 0 ? `2px solid ${color}` : undefined,
-        boxShadow: active ? `0 0 0 2px ${color}` : 'var(--shadow-sm)',
+        cursor: 'pointer',
+        borderTopWidth: highlight && count > 0 ? 2 : 1,
+        borderTopColor: highlight && count > 0 ? color : 'var(--border)',
+        outline: active ? `2px solid ${color}` : 'none',
+        outlineOffset: -1,
       }}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <div className="flex items-center gap-2">
+      <div className="sec-head">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color }}>{icon}</span>
-          <span className="text-sm font-semibold text-text">{title}</span>
+          <span className="sec-title">{title}</span>
         </div>
-        <span
-          className="font-mono text-sm font-bold px-2.5 py-0.5 rounded-full"
-          style={{
-            color,
-            background: `color-mix(in oklch, ${color} 9%, var(--bg-raised))`,
-            border: `1px solid color-mix(in oklch, ${color} 20%, var(--border))`,
-          }}
-        >
-          {count}
-        </span>
+        <span className="mono" style={{
+          fontSize: 11.5, padding: '1px 8px', borderRadius: 999,
+          color, background: `color-mix(in oklch, ${color} 9%, var(--bg-raised))`,
+          border: `1px solid color-mix(in oklch, ${color} 20%, var(--border))`,
+        }}>{count}</span>
       </div>
       {count === 0 ? (
-        <div className="px-4 py-5 text-xs text-text-faint text-center italic">{emptyText}</div>
+        <div style={{ padding: '24px 14px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 12.5 }}>
+          {emptyText}
+        </div>
       ) : (
-        <div className="flex flex-col">
-          {orders.slice(0, 4).map(o => (
-            <div key={o.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border-faint last:border-0 text-sm hover:bg-bg-soft transition-colors">
-              <span className="order-stamp text-[11px] px-2 py-0.5">{o.order_number}</span>
-              <span className="font-medium text-text flex-1 truncate">{o.customer_name}</span>
-              <span className="text-xs text-text-muted">{o.piece_type}</span>
-            </div>
-          ))}
-          {count > 4 && (
-            <div className="px-4 py-2 text-xs text-text-faint text-center">
-              +{count - 4} أخرى
-            </div>
-          )}
+        orders.slice(0, 4).map(o => (
+          <div key={o.id} className="mini-row" onClick={e => e.stopPropagation()}>
+            <span className="stamp" style={{ fontSize: 11 }}>{o.order_number}</span>
+            <span className="name">{o.customer_name}</span>
+            <span className="meta">{o.piece_type}</span>
+          </div>
+        ))
+      )}
+      {count > 4 && (
+        <div style={{ padding: '8px 14px', fontSize: 11.5, color: 'var(--text-faint)', textAlign: 'center' }}>
+          +{count - 4} أخرى
         </div>
       )}
     </div>

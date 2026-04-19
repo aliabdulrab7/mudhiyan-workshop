@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { getInventory, createInventoryItem, adjustInventoryStock } from '../api/inventory';
+import { Icons } from '../components/icons';
 
 export default function InventoryPage() {
   const [items, setItems]           = useState([]);
@@ -8,14 +8,8 @@ export default function InventoryPage() {
   const [showForm, setShowForm]     = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
-  const [adjusting, setAdjusting]   = useState({}); // { [id]: true }
-  const [form, setForm]             = useState({
-    name: '',
-    category: '',
-    stock_qty: 0,
-    unit: 'قطعة',
-    cost_per_unit: 0,
-  });
+  const [adjusting, setAdjusting]   = useState({});
+  const [form, setForm]             = useState({ name: '', category: '', stock_qty: 0, unit: 'قطعة', cost_per_unit: 0 });
 
   async function load() {
     setLoading(true);
@@ -26,16 +20,9 @@ export default function InventoryPage() {
 
   useEffect(() => { load(); }, []);
 
-  function handleShowForm() {
-    setForm({ name: '', category: '', stock_qty: 0, unit: 'قطعة', cost_per_unit: 0 });
-    setError('');
-    setShowForm(true);
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
-    setSubmitting(true);
-    setError('');
+    setSubmitting(true); setError('');
     try {
       await createInventoryItem({
         name: form.name,
@@ -47,296 +34,154 @@ export default function InventoryPage() {
       setShowForm(false);
       setForm({ name: '', category: '', stock_qty: 0, unit: 'قطعة', cost_per_unit: 0 });
       await load();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (e) { setError(e.message); }
+    finally { setSubmitting(false); }
   }
 
   async function handleAdjust(id, delta) {
     setAdjusting(a => ({ ...a, [id]: true }));
-    try {
-      await adjustInventoryStock(id, delta);
-      await load();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setAdjusting(a => ({ ...a, [id]: false }));
-    }
+    try { await adjustInventoryStock(id, delta); await load(); }
+    catch (e) { setError(e.message); }
+    finally { setAdjusting(a => ({ ...a, [id]: false })); }
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={{ padding: '28px', maxWidth: '800px', direction: 'rtl' }}
-    >
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+    <div>
+      <div className="page-head">
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>المخزون</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-            إدارة مواد وكميات المخزون
-          </p>
+          <h1 className="page-title">المخزون</h1>
+          <div className="page-sub">إدارة مواد وكميات المخزون</div>
         </div>
-        {!showForm && (
-          <button className="btn-primary" onClick={handleShowForm}>+ إضافة مادة</button>
-        )}
+        <div className="page-actions">
+          {!showForm && (
+            <button className="btn btn-sm btn-primary"
+              onClick={() => { setForm({ name: '', category: '', stock_qty: 0, unit: 'قطعة', cost_per_unit: 0 }); setError(''); setShowForm(true); }}>
+              <Icons.Plus size={12} /> إضافة مادة
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Create form */}
-      <AnimatePresence>
+      <div style={{ padding: '0 24px 24px' }}>
+        {/* Create form */}
         {showForm && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            style={{
-              background: 'var(--bg-raised)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              padding: '24px',
-              marginBottom: '24px',
-              boxShadow: 'var(--shadow-md)',
-            }}
-          >
-            <h2 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>
-              إضافة مادة جديدة
-            </h2>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              {/* Name */}
+          <div className="card" style={{ padding: '20px 24px', marginBottom: 16, maxWidth: 680 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة مادة جديدة</div>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
-                  اسم المادة <span style={{ color: 'var(--primary)' }}>*</span>
-                </label>
-                <input
-                  className="input-base"
-                  value={form.name}
+                <label className="field-label">اسم المادة <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <input className="input" value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="مثال: ذهب عيار 18"
-                  required
-                />
+                  placeholder="مثال: ذهب عيار 18" required autoFocus />
               </div>
-
-              {/* Category */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
-                  الفئة <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>(اختياري)</span>
-                </label>
-                <input
-                  className="input-base"
-                  value={form.category}
+                <label className="field-label">الفئة <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>(اختياري)</span></label>
+                <input className="input" value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                  placeholder="مثال: معادن، أحجار"
-                />
+                  placeholder="مثال: معادن، أحجار" />
               </div>
-
-              {/* Qty + Unit + Price row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
-                    الكمية
-                  </label>
-                  <input
-                    className="input-base"
-                    type="number"
-                    min="0"
-                    value={form.stock_qty}
+                  <label className="field-label">الكمية</label>
+                  <input className="input mono" type="number" min="0" value={form.stock_qty}
                     onChange={e => setForm(f => ({ ...f, stock_qty: e.target.value }))}
-                    style={{ fontFamily: 'JetBrains Mono, monospace', direction: 'ltr', textAlign: 'left' }}
-                  />
+                    style={{ direction: 'ltr', textAlign: 'left' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
-                    الوحدة
-                  </label>
-                  <input
-                    className="input-base"
-                    value={form.unit}
+                  <label className="field-label">الوحدة</label>
+                  <input className="input" value={form.unit}
                     onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-                    placeholder="قطعة"
-                  />
+                    placeholder="قطعة" />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '8px' }}>
-                    سعر الوحدة (ريال)
-                  </label>
-                  <input
-                    className="input-base"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.cost_per_unit}
+                  <label className="field-label">سعر الوحدة (ريال)</label>
+                  <input className="input mono" type="number" min="0" step="0.01" value={form.cost_per_unit}
                     onChange={e => setForm(f => ({ ...f, cost_per_unit: e.target.value }))}
-                    style={{ fontFamily: 'JetBrains Mono, monospace', direction: 'ltr', textAlign: 'left' }}
-                  />
+                    style={{ direction: 'ltr', textAlign: 'left' }} />
                 </div>
               </div>
-
               {error && (
-                <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '10px 14px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)' }}>
+                <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
                   {error}
                 </div>
               )}
-
-              <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-                <button className="btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
-                  {submitting ? '...' : 'حفظ'}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
+                  {submitting ? 'جاري الحفظ...' : 'حفظ'}
                 </button>
-                <button className="btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} style={{ flex: 0.5, justifyContent: 'center' }}>
+                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }}>
                   إلغاء
                 </button>
               </div>
             </form>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
-      {/* Error outside form */}
-      {error && !showForm && (
-        <div style={{ color: '#DC2626', fontSize: '0.88rem', padding: '12px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 'var(--radius)', marginBottom: '20px' }}>
-          {error}
-        </div>
-      )}
-
-      {/* Inventory list */}
-      {loading ? (
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '40px' }}>جاري التحميل...</div>
-      ) : items.length === 0 ? (
-        <div style={{
-          background: 'var(--bg-raised)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding: '60px 40px',
-          textAlign: 'center',
-          color: 'var(--text-muted)',
-          fontSize: '0.95rem',
-        }}>
-          لا يوجد مواد في المخزون
-        </div>
-      ) : (
-        <>
-          {/* Table header */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '2fr 1fr 1.2fr 0.8fr 1fr 100px',
-            gap: '8px',
-            padding: '8px 16px',
-            fontSize: '0.72rem',
-            color: 'var(--text-muted)',
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            marginBottom: '4px',
-          }}>
-            <span>المادة</span>
-            <span>الفئة</span>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>الكمية</span>
-            <span>الوحدة</span>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>السعر</span>
-            <span style={{ textAlign: 'center' }}>تعديل</span>
+        {/* Error */}
+        {error && !showForm && (
+          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 12 }}>
+            {error}
           </div>
+        )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <AnimatePresence>
-              {items.map((item, idx) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.04 }}
-                  style={{
-                    background: 'var(--bg-raised)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius)',
-                    padding: '14px 16px',
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1fr 1.2fr 0.8fr 1fr 100px',
-                    alignItems: 'center',
-                    gap: '8px',
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
-                >
-                  {/* Name */}
-                  <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.92rem' }}>
-                    {item.name}
-                  </div>
-
-                  {/* Category */}
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                    {item.category || '—'}
-                  </div>
-
-                  {/* Stock qty */}
-                  <div style={{
-                    fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    color: item.stock_qty <= 0 ? '#DC2626' : 'var(--text)',
-                  }}>
-                    {item.stock_qty}
-                  </div>
-
-                  {/* Unit */}
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)' }}>
-                    {item.unit}
-                  </div>
-
-                  {/* Cost per unit */}
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.9rem', color: 'var(--primary)' }}>
-                    {Number(item.cost_per_unit).toFixed(2)}
-                  </div>
-
-                  {/* Adjust +/- */}
-                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                    <button
-                      disabled={adjusting[item.id]}
-                      onClick={() => handleAdjust(item.id, -1)}
-                      style={{
-                        width: '28px', height: '28px',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-soft)',
-                        color: 'var(--text)',
-                        fontSize: '1rem',
-                        fontFamily: 'JetBrains Mono, monospace',
-                        cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: 0,
-                        lineHeight: 1,
-                        transition: 'border-color 0.15s',
-                      }}
-                    >
-                      −
-                    </button>
-                    <button
-                      disabled={adjusting[item.id]}
-                      onClick={() => handleAdjust(item.id, 1)}
-                      style={{
-                        width: '28px', height: '28px',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--primary-soft)',
-                        color: 'var(--primary)',
-                        fontSize: '1rem',
-                        fontFamily: 'JetBrains Mono, monospace',
-                        cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: 0,
-                        lineHeight: 1,
-                        transition: 'border-color 0.15s',
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+        {/* List */}
+        {loading ? (
+          <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
+        ) : items.length === 0 ? (
+          <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+            لا يوجد مواد في المخزون
           </div>
-        </>
-      )}
-    </motion.div>
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>المادة</th>
+                  <th>الفئة</th>
+                  <th>الكمية</th>
+                  <th>الوحدة</th>
+                  <th>سعر الوحدة</th>
+                  <th style={{ textAlign: 'center' }}>تعديل</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(item => (
+                  <tr key={item.id}>
+                    <td style={{ fontWeight: 600 }}>{item.name}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{item.category || '—'}</td>
+                    <td>
+                      <span className="mono" style={{
+                        fontWeight: 700, fontSize: 14,
+                        color: item.stock_qty <= 0 ? 'var(--danger)' : 'var(--text)',
+                      }}>
+                        {item.stock_qty}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{item.unit}</td>
+                    <td className="mono" style={{ color: 'var(--primary)' }}>{Number(item.cost_per_unit).toFixed(2)}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          disabled={adjusting[item.id]}
+                          onClick={() => handleAdjust(item.id, -1)}
+                          style={{ width: 28, padding: 0, justifyContent: 'center', fontFamily: 'var(--font-mono)' }}
+                        >−</button>
+                        <button
+                          className="btn btn-sm btn-primary"
+                          disabled={adjusting[item.id]}
+                          onClick={() => handleAdjust(item.id, 1)}
+                          style={{ width: 28, padding: 0, justifyContent: 'center', fontFamily: 'var(--font-mono)' }}
+                        >+</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

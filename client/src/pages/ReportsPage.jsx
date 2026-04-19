@@ -1,28 +1,17 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { getStats, getBranchStats } from '../api/orders';
 import SkeletonLoader from '../components/SkeletonLoader';
+import { Icons } from '../components/icons';
 
-function useMobile() {
-  const [mobile, setMobile] = useState(window.innerWidth < 768);
-  useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768);
-    window.addEventListener('resize', fn);
-    return () => window.removeEventListener('resize', fn);
-  }, []);
-  return mobile;
-}
-
-const ALL_STAT_CARDS = [
-  { key: 'received',         label: 'مستلمة في الورشة',     icon: '◈', color: '#2980B9', gradient: 'linear-gradient(135deg, rgba(41,128,185,0.06), rgba(41,128,185,0.01))' },
-  { key: 'inspection',       label: 'قيد الفحص',             icon: '⚲', color: '#7C3AED', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(124,58,237,0.01))' },
-  { key: 'waiting_approval', label: 'بانتظار الموافقة',       icon: '⏳', color: '#D97706', gradient: 'linear-gradient(135deg, rgba(217,119,6,0.06), rgba(217,119,6,0.01))' },
-  { key: 'in_repair',        label: 'قيد الإصلاح',            icon: '⟳', color: '#1A6EA0', gradient: 'linear-gradient(135deg, rgba(26,110,160,0.06), rgba(26,110,160,0.01))' },
-  { key: 'quality_check',    label: 'فحص الجودة',             icon: '✓', color: '#6B7280', gradient: 'linear-gradient(135deg, rgba(107,114,128,0.06), rgba(107,114,128,0.01))' },
-  { key: 'ready_for_return', label: 'جاهزة للإرجاع',         icon: '✦', color: '#16A34A', gradient: 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01))' },
-  { key: 'returned_to_shop', label: 'وصلت للفرع',             icon: '◎', color: '#059669', gradient: 'linear-gradient(135deg, rgba(5,150,105,0.06), rgba(5,150,105,0.01))' },
-  { key: 'delivered',        label: 'مُسلَّمة',                icon: '✔', color: '#1E293B', gradient: 'linear-gradient(135deg, rgba(30,41,59,0.06), rgba(30,41,59,0.01))' },
-  { key: 'closed',           label: 'مغلقة',                 icon: '⊗', color: '#64748B', gradient: 'linear-gradient(135deg, rgba(100,116,139,0.06), rgba(100,116,139,0.01))' },
+const STAT_CARDS = [
+  { key: 'received',         label: 'مستلمة في الورشة',   color: 'var(--status-received)' },
+  { key: 'inspection',       label: 'قيد الفحص',           color: 'var(--status-inspection)' },
+  { key: 'waiting_approval', label: 'بانتظار الموافقة',    color: 'var(--status-waiting)' },
+  { key: 'in_repair',        label: 'قيد الإصلاح',         color: 'var(--status-repair)' },
+  { key: 'quality_check',    label: 'فحص الجودة',          color: 'var(--status-quality)' },
+  { key: 'ready_for_return', label: 'جاهزة للإرجاع',      color: 'var(--status-ready)' },
+  { key: 'returned_to_shop', label: 'وصلت للفرع',          color: 'var(--status-delivered)' },
+  { key: 'delivered',        label: 'مُسلَّمة',             color: 'var(--status-closed)' },
 ];
 
 export default function ReportsPage() {
@@ -30,12 +19,10 @@ export default function ReportsPage() {
   const [branchStats, setBranchStats] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
-  const isMobile = useMobile();
 
   useEffect(() => {
     async function loadData() {
-      setLoading(true);
-      setError(null);
+      setLoading(true); setError(null);
       try {
         const [s, branches] = await Promise.all([
           getStats().catch(() => null),
@@ -43,7 +30,7 @@ export default function ReportsPage() {
         ]);
         setStats(s);
         setBranchStats(branches);
-      } catch (e) {
+      } catch {
         setError('فشل تحميل البيانات');
       } finally {
         setLoading(false);
@@ -52,278 +39,135 @@ export default function ReportsPage() {
     loadData();
   }, []);
 
-  const pendingApprovalCount = stats?.waiting_approval ?? 0;
+  const pendingCount = stats?.waiting_approval ?? 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      style={{ padding: 'clamp(16px, 4vw, 32px) clamp(14px, 4vw, 36px)', direction: 'rtl' }}
-    >
-      {/* Header */}
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>
-          التقارير
-        </h1>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '6px' }}>
-          ملخص حالة الطلبات وتوزيع الفروع
+    <div>
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">التقارير</h1>
+          <div className="page-sub">ملخص حالة الطلبات وتوزيع الفروع</div>
+        </div>
+        <div className="page-actions">
+          <button className="btn btn-sm"><Icons.Download size={12} /> تصدير</button>
         </div>
       </div>
 
-      {/* Pending approvals alert banner */}
-      {pendingApprovalCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          style={{
-            background: 'rgba(217,119,6,0.05)',
-            border: '1px solid rgba(217,119,6,0.25)',
-            borderRight: '3px solid #D97706',
-            borderRadius: '8px',
-            padding: '12px 16px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.1rem' }}>⏳</span>
-            <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#92400E' }}>
+      <div style={{ padding: '0 24px 24px' }}>
+        {/* Pending approval alert */}
+        {pendingCount > 0 && (
+          <div style={{
+            background: 'oklch(0.80 0.12 80 / 0.08)',
+            border: '1px solid oklch(0.80 0.12 80 / 0.25)',
+            borderRight: '3px solid oklch(0.75 0.15 80)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '10px 16px',
+            marginBottom: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13, color: 'oklch(0.55 0.15 80)' }}>
+              <Icons.Clock size={14} stroke="oklch(0.75 0.15 80)" />
               طلبات بانتظار موافقة العميل
+            </div>
+            <span className="mono" style={{
+              fontWeight: 800, fontSize: 14, padding: '2px 10px', borderRadius: 999,
+              background: 'oklch(0.80 0.12 80 / 0.15)', color: 'oklch(0.60 0.15 80)',
+              border: '1px solid oklch(0.80 0.12 80 / 0.3)',
+            }}>
+              {pendingCount}
             </span>
           </div>
-          <span style={{
-            background: 'rgba(217,119,6,0.15)',
-            color: '#D97706',
-            fontFamily: 'JetBrains Mono, monospace',
-            fontWeight: 800,
-            fontSize: '1.1rem',
-            padding: '4px 14px',
-            borderRadius: '20px',
-            border: '1px solid rgba(217,119,6,0.30)',
-          }}>
-            {pendingApprovalCount}
-          </span>
-        </motion.div>
-      )}
+        )}
 
-      {/* Section: Order status totals */}
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{
-          fontSize: '0.72rem',
-          fontWeight: 700,
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          marginBottom: '12px',
-        }}>
+        {/* Stat cards */}
+        <div style={{ marginBottom: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
           ملخص الطلبات
         </div>
 
         {loading ? (
-          <SkeletonLoader type="stats" isMobile={isMobile} />
+          <SkeletonLoader type="stats" />
         ) : error ? (
-          <div style={{
-            color: '#DC2626',
-            fontSize: '0.85rem',
-            padding: '16px',
-            background: 'rgba(220,38,38,0.04)',
-            border: '1px solid rgba(220,38,38,0.15)',
-            borderRadius: '8px',
-          }}>
+          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 20 }}>
             {error}
           </div>
-        ) : stats ? (
-          <div style={isMobile ? {
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '10px',
-          } : {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-            gap: '10px',
-          }}>
-            {ALL_STAT_CARDS.map(({ key, label, icon, color, gradient }, i) => (
-              <motion.div
-                key={key}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05, duration: 0.3 }}
-                style={{
-                  background: '#FFFFFF',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '8px',
-                  padding: '14px 16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  textAlign: 'right',
-                  boxShadow: 'var(--shadow-sm)',
-                  ...(isMobile ? { minWidth: '120px', flex: '1 0 120px' } : {}),
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }}/>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{label}</span>
+        ) : stats && (
+          <div className="grid-stats" style={{ marginBottom: 28 }}>
+            {STAT_CARDS.map(({ key, label, color }) => (
+              <div key={key} className="stat-card card">
+                <div className="stat-label">
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                  {label}
                 </div>
-                <div style={{
-                  fontSize: '2rem',
-                  fontWeight: 800,
-                  color,
-                  fontFamily: 'JetBrains Mono, monospace',
-                  lineHeight: 1,
-                }}>
-                  {stats[key] ?? 0}
-                </div>
-              </motion.div>
+                <div className="stat-value" style={{ color }}>{stats[key] ?? 0}</div>
+              </div>
             ))}
           </div>
-        ) : null}
-      </div>
+        )}
 
-      <div className="gold-line" style={{ marginBottom: '28px' }} />
+        <hr className="hr" />
 
-      {/* Section: Branch breakdown */}
-      <div>
-        <div style={{
-          fontSize: '0.72rem',
-          fontWeight: 700,
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          marginBottom: '12px',
-        }}>
+        {/* Branch breakdown */}
+        <div style={{ marginBottom: 8, fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 20 }}>
           توزيع الفروع
         </div>
 
         {loading ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: '10px',
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
             {[1, 2, 3].map(n => (
-              <div key={n} style={{
-                height: '90px',
-                background: '#F3F4F6',
-                borderRadius: '8px',
-                animation: 'pulse 1.5s infinite',
-              }} />
+              <div key={n} className="skeleton" style={{ height: 90, borderRadius: 'var(--radius)' }} />
             ))}
           </div>
         ) : branchStats.length === 0 ? (
-          <div style={{
-            color: 'var(--text-muted)',
-            fontSize: '0.85rem',
-            fontStyle: 'italic',
-            padding: '16px',
-            background: '#F9FAFB',
-            borderRadius: '8px',
-            border: '1px solid #E5E7EB',
-            textAlign: 'center',
-          }}>
+          <div className="card" style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا توجد بيانات فروع
           </div>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: '10px',
-          }}>
-            {branchStats.map((branch, i) => (
-              <BranchReportCard key={branch.shop_id} branch={branch} index={i} />
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+            {branchStats.map(branch => {
+              const active = (branch.received ?? 0) + (branch.pending_approval ?? 0) + (branch.in_progress ?? 0) + (branch.ready ?? 0);
+              return (
+                <div key={branch.shop_id} className="card" style={{ padding: '14px 18px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>{branch.shop_name}</span>
+                    {branch.ready > 0 && (
+                      <span style={{
+                        background: 'oklch(0.60 0.15 150 / 0.10)',
+                        color: 'var(--success)',
+                        borderRadius: 999, padding: '1px 8px', fontSize: 11, fontWeight: 700,
+                        border: '1px solid oklch(0.60 0.15 150 / 0.25)',
+                      }}>
+                        {branch.ready} جاهز
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12, marginBottom: 10 }}>
+                    <span style={{ color: 'var(--status-received)' }}>
+                      <span className="mono" style={{ fontWeight: 700 }}>{branch.received ?? 0}</span> مستلمة
+                    </span>
+                    <span style={{ color: 'var(--status-repair)' }}>
+                      <span className="mono" style={{ fontWeight: 700 }}>{branch.in_progress ?? 0}</span> إصلاح
+                    </span>
+                    <span style={{ color: 'var(--status-ready)' }}>
+                      <span className="mono" style={{ fontWeight: 700 }}>{branch.ready ?? 0}</span> جاهزة
+                    </span>
+                    {(branch.pending_approval ?? 0) > 0 && (
+                      <span style={{ color: 'var(--status-waiting)' }}>
+                        <span className="mono" style={{ fontWeight: 700 }}>{branch.pending_approval}</span> موافقة
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>إجمالي النشطة</span>
+                    <span className="mono" style={{ fontWeight: 700, fontSize: 15, color: active > 0 ? 'var(--primary)' : 'var(--text-faint)' }}>
+                      {active}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-    </motion.div>
-  );
-}
-
-function BranchReportCard({ branch, index }) {
-  const activeCount = (branch.received ?? 0) + (branch.pending_approval ?? 0) + (branch.in_progress ?? 0) + (branch.ready ?? 0);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06, duration: 0.3 }}
-      style={{
-        background: '#FFFFFF',
-        border: '1px solid #E5E7EB',
-        borderRadius: '8px',
-        padding: '14px 16px',
-        boxShadow: 'var(--shadow-sm)',
-        textAlign: 'right',
-      }}
-    >
-      {/* Branch name + ready badge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-        <span style={{ fontWeight: 700, fontSize: '0.90rem', color: '#222222' }}>
-          {branch.shop_name}
-        </span>
-        {branch.ready > 0 && (
-          <span style={{
-            background: 'rgba(22,163,74,0.10)',
-            color: '#16A34A',
-            borderRadius: '12px',
-            padding: '2px 8px',
-            fontSize: '0.68rem',
-            fontWeight: 700,
-            border: '1px solid rgba(22,163,74,0.25)',
-          }}>
-            {branch.ready} جاهز
-          </span>
-        )}
-      </div>
-
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.78rem', marginBottom: '10px' }}>
-        <span style={{ color: '#2980B9', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span>◈</span>
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>{branch.received ?? 0}</span>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.70rem' }}>مستلمة</span>
-        </span>
-        <span style={{ color: '#1A6EA0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span>⟳</span>
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>{branch.in_progress ?? 0}</span>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.70rem' }}>قيد الإصلاح</span>
-        </span>
-        <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span>✦</span>
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>{branch.ready ?? 0}</span>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.70rem' }}>جاهزة</span>
-        </span>
-        {(branch.pending_approval ?? 0) > 0 && (
-          <span style={{ color: '#D97706', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>⏳</span>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>{branch.pending_approval}</span>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.70rem' }}>موافقة</span>
-          </span>
-        )}
-      </div>
-
-      {/* Total active */}
-      <div style={{
-        borderTop: '1px solid #F3F4F6',
-        paddingTop: '8px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}>
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>إجمالي النشطة</span>
-        <span style={{
-          fontFamily: 'JetBrains Mono, monospace',
-          fontWeight: 800,
-          fontSize: '1.1rem',
-          color: activeCount > 0 ? '#2980B9' : 'var(--text-muted)',
-        }}>
-          {activeCount}
-        </span>
-      </div>
-    </motion.div>
+    </div>
   );
 }

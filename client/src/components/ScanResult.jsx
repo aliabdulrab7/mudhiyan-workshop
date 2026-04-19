@@ -1,25 +1,14 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import StatusPill from './StatusPill';
 import CostEditor from './CostEditor';
 import { updateOrderStatus } from '../api/orders';
 import { getRole } from '../api/auth';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
-
-function useMobile() {
-  const [mobile, setMobile] = React.useState(window.innerWidth < 768);
-  React.useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768);
-    window.addEventListener('resize', fn);
-    return () => window.removeEventListener('resize', fn);
-  }, []);
-  return mobile;
-}
+import { Icons } from './icons';
 
 export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUpdated }) {
-  const isMobile   = useMobile();
-  const [order, setOrder] = useState(initialOrder);
+  const [order, setOrder]         = useState(initialOrder);
   const [promoting, setPromoting] = useState(false);
   const [justMarkedReady, setJustMarkedReady] = useState(false);
   const [scanError, setScanError] = useState('');
@@ -30,7 +19,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
     onOrderUpdated?.(updated);
   }
 
-  const trackingUrl = buildTrackingUrl(order.customer_token);
+  const trackingUrl   = buildTrackingUrl(order.customer_token);
   const approvalWaUrl = buildApprovalWaUrl(order.phone, order.customer_name, order.cost, trackingUrl);
   const readyWaUrl    = buildReadyWaUrl(order.phone, order.customer_name, order.order_number);
 
@@ -40,9 +29,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
     try {
       const updated = await updateOrderStatus(order.id, 'ready_for_return');
       handleOrderUpdate(updated);
-      if (updated.status === 'ready_for_return') {
-        setJustMarkedReady(true);
-      }
+      if (updated.status === 'ready_for_return') setJustMarkedReady(true);
     } catch (e) {
       setScanError(e.message || 'تعذّر تحديث الحالة');
     } finally {
@@ -50,74 +37,69 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
     }
   }
 
-  const cardStyle = {
-    background: 'var(--bg-raised)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-lg)',
-    padding: '28px',
-    maxWidth: isMobile ? '100%' : '440px',
-    width: '100%',
-  };
-
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      style={{
-        ...cardStyle,
-        boxShadow: 'var(--shadow-md)',
-      }}
-    >
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+    <div style={{ padding: '14px' }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
         <div style={{
-          width: '40px', height: '40px', borderRadius: '50%',
-          background: 'var(--status-ready-bg)',
-          border: '1px solid rgba(6,95,70,0.2)',
+          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+          background: 'oklch(0.60 0.15 150 / 0.12)',
+          border: '1px solid oklch(0.60 0.15 150 / 0.25)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1.2rem', color: 'var(--status-ready-fg)', flexShrink: 0,
         }}>
-          ✓
+          <Icons.Check size={14} stroke="var(--success)" />
         </div>
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--text)' }}>تم العثور على الطلب</div>
-          <span className="order-stamp">{order.order_number}</span>
+          <div style={{ fontWeight: 600, fontSize: 13 }}>تم العثور على الطلب</div>
+          <span className="stamp" style={{ fontSize: 11 }}>{order.order_number}</span>
+        </div>
+        <div style={{ marginRight: 'auto' }}>
+          <StatusPill status={order.status} size="sm" />
         </div>
       </div>
 
-      <div className="gold-line" style={{ marginBottom: '18px' }} />
+      {/* KV grid */}
+      <div className="kv-grid" style={{ marginBottom: 16 }}>
+        <span className="k">العميل</span>
+        <span className="v" style={{ fontWeight: 600 }}>{order.customer_name}</span>
 
-      {/* Order details */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-        <Row label="العميل" value={order.customer_name} bold />
-        <Row label="القطعة" value={order.piece_type} />
-        <Row label="الجوال" value={'+' + order.phone} mono />
-        <Row label="الحالة" value={<StatusPill status={order.status} />} />
-        {order.cost > 0 && <Row label="التكلفة" value={`${order.cost} ريال`} bold />}
-        {order.notes && <Row label="ملاحظات" value={order.notes} />}
+        <span className="k">القطعة</span>
+        <span className="v">{order.piece_type}</span>
+
+        <span className="k">الجوال</span>
+        <span className="v mono" style={{ direction: 'ltr', textAlign: 'right' }}>+{order.phone}</span>
+
+        {order.cost > 0 && <>
+          <span className="k">التكلفة</span>
+          <span className="v" style={{ fontWeight: 600 }}>{order.cost} ريال</span>
+        </>}
+
+        {order.notes && <>
+          <span className="k">ملاحظات</span>
+          <span className="v">{order.notes}</span>
+        </>}
       </div>
 
-      {/* Cost editor — workshop + received only, not locked */}
+      {/* Cost editor — workshop + received, not locked */}
       {isWorkshop && !order.locked_at && order.status === 'received' && (
         <CostEditor order={order} onUpdated={handleOrderUpdate} />
       )}
 
-      {/* Approval wa.me — waiting_approval */}
+      {/* Approval link — waiting_approval */}
       {!order.locked_at && order.status === 'waiting_approval' && (
         <div style={{
-          background: 'rgba(217,119,6,0.05)',
-          border: '1px solid rgba(217,119,6,0.20)',
-          borderRight: '3px solid #D97706',
-          borderRadius: 'var(--radius)',
-          padding: '12px 14px',
-          marginBottom: '16px',
+          background: 'oklch(0.80 0.12 80 / 0.08)',
+          border: '1px solid oklch(0.80 0.12 80 / 0.25)',
+          borderRight: '3px solid oklch(0.75 0.15 80)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 14px', marginBottom: 12,
         }}>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)', marginBottom: '10px' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             أرسل رابط الموافقة للعميل ({order.cost} ريال)
           </div>
           <a href={approvalWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <button className="btn-gold" style={{ fontSize: '0.85rem', minHeight: '44px', padding: '8px 16px' }}>
-              📲 أرسل رابط الموافقة ↗
+            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+              <Icons.Phone size={13} /> إرسال رابط الموافقة ↗
             </button>
           </a>
         </div>
@@ -127,25 +109,21 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       {isWorkshop && !order.locked_at && order.status === 'in_repair' && (
         <div style={{
           background: 'var(--primary-soft)',
-          border: '1px solid var(--border)',
+          border: '1px solid oklch(0.55 0.19 270 / 0.2)',
           borderRight: '3px solid var(--primary)',
-          borderRadius: 'var(--radius)',
-          padding: '12px 14px',
-          marginBottom: '16px',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 14px', marginBottom: 12,
         }}>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)', marginBottom: '10px' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             هل الصيانة جاهزة للإرجاع للفرع؟
           </div>
           <button
-            className="btn-gold"
+            className="btn btn-primary"
             onClick={markReady}
             disabled={promoting}
-            style={isMobile
-              ? { width: '100%', justifyContent: 'center', padding: '14px 0', fontSize: '1rem', minHeight: '44px' }
-              : { fontSize: '0.85rem', padding: '8px 16px', minHeight: '44px' }
-            }
+            style={{ width: '100%', justifyContent: 'center' }}
           >
-            {promoting ? '...' : '✓ تعيين جاهزة للإرجاع'}
+            <Icons.Check size={12} /> {promoting ? 'جاري...' : 'تعيين جاهزة للإرجاع'}
           </button>
         </div>
       )}
@@ -153,74 +131,54 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       {/* Pickup wa.me — ready_for_return */}
       {!order.locked_at && order.status === 'ready_for_return' && (
         <div style={{
-          background: 'rgba(6,95,70,0.06)',
-          border: '1px solid rgba(6,95,70,0.2)',
-          borderRadius: 'var(--radius)',
-          padding: '12px 14px',
-          marginBottom: '16px',
+          background: 'oklch(0.60 0.15 150 / 0.06)',
+          border: '1px solid oklch(0.60 0.15 150 / 0.2)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 14px', marginBottom: 12,
         }}>
-          <div style={{ fontSize: '0.82rem', color: 'var(--status-ready-fg)', marginBottom: '10px', fontWeight: 600 }}>
-            ✓ القطعة جاهزة — أبلغ الفرع بالاستلام
+          <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600, marginBottom: 8 }}>
+            القطعة جاهزة — أبلغ الفرع بالاستلام
           </div>
           <a href={readyWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <button className="btn-gold" style={{ fontSize: '0.85rem', padding: '8px 16px', width: '100%', justifyContent: 'center', minHeight: '44px' }}>
-              📲 إرسال رسالة الاستلام (WhatsApp) ↗
+            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+              <Icons.Phone size={13} /> إرسال رسالة الاستلام (WhatsApp) ↗
             </button>
           </a>
         </div>
       )}
 
-      {/* Ready Label — workshop + ready_for_return */}
+      {/* Ready label — workshop + ready_for_return */}
       {isWorkshop && !order.locked_at && order.status === 'ready_for_return' && (
         <div style={{
-          background: 'var(--bg-raised)',
+          background: 'var(--bg-soft)',
           border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)',
-          padding: '12px 14px',
-          marginBottom: '16px',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 14px', marginBottom: 12,
         }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '10px' }}>
-            ملصق الجاهزية (للطباعة والإرفاق بالقطعة)
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+            ملصق الجاهزية
           </div>
           <ReadyLabelCanvas order={order} autoPrint={justMarkedReady} />
         </div>
       )}
 
-      {/* Error display */}
+      {/* Error */}
       {scanError && (
         <div style={{
-          padding: '10px 14px', marginBottom: '12px',
-          background: 'rgba(220,38,38,0.06)',
-          border: '1px solid rgba(220,38,38,0.20)',
-          borderRadius: 'var(--radius)',
-          color: '#DC2626', fontSize: '0.85rem',
+          padding: '10px 14px', marginBottom: 12,
+          background: 'oklch(0.58 0.21 25 / 0.06)',
+          border: '1px solid oklch(0.58 0.21 25 / 0.2)',
+          borderRadius: 'var(--radius-sm)',
+          color: 'var(--danger)', fontSize: 12.5,
         }}>
           {scanError}
         </div>
       )}
 
       {/* Scan again */}
-      <div className="scan-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <button className="btn-ghost" onClick={onScanAgain}>
-          ⌖ مسح آخر
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
-function Row({ label, value, bold, mono }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{label}</span>
-      <span style={{
-        fontWeight: bold ? 700 : 400,
-        fontFamily: mono ? 'JetBrains Mono, monospace' : 'inherit',
-        fontSize: mono ? '0.82rem' : '0.92rem',
-        color: 'var(--text)',
-      }}>
-        {value}
-      </span>
+      <button className="btn btn-sm btn-ghost" onClick={onScanAgain} style={{ width: '100%', justifyContent: 'center' }}>
+        <Icons.Refresh size={12} /> مسح آخر
+      </button>
     </div>
   );
 }
