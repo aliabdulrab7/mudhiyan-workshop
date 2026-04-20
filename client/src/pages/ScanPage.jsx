@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import BarcodeScanner from '../components/BarcodeScanner';
+import ManualEntryInput from '../components/ManualEntryInput';
 import ScanResult from '../components/ScanResult';
 import { getOrderByBarcode } from '../api/orders';
 import StatusPill from '../components/StatusPill';
@@ -12,6 +13,7 @@ export default function ScanPage() {
   const [order, setOrder]     = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [lastScanned, setLastScanned] = useState('');
+  const [manualMode, setManualMode] = useState(false);
 
   const handleScan = useCallback(async (value) => {
     if (value === lastScanned && state === 'found') return;
@@ -38,6 +40,40 @@ export default function ScanPage() {
     setErrorMsg(''); setLastScanned('');
     setSearchParams({});
   }
+
+  const closeManualMode = useCallback(() => {
+    setManualMode(false);
+  }, []);
+
+  const toggleManualMode = useCallback(() => {
+    setManualMode(prev => {
+      if (prev) return false;
+      // opening: mirror resetScanner
+      setState('scanning');
+      setOrder(null);
+      setErrorMsg('');
+      setLastScanned('');
+      return true;
+    });
+    setSearchParams({});
+  }, [setSearchParams]);
+
+  useEffect(() => {
+    function onKey(e) {
+      const tag = document.activeElement?.tagName;
+      const typing = tag === 'INPUT' || tag === 'TEXTAREA';
+      if (e.key === 'Escape' && manualMode) {
+        setManualMode(false);
+        return;
+      }
+      if ((e.key === 'm' || e.key === 'M') && !typing) {
+        e.preventDefault();
+        toggleManualMode();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [manualMode, toggleManualMode]);
 
   const viaMobile = !!searchParams.get('code');
 
@@ -77,7 +113,13 @@ export default function ScanPage() {
           <div className="page-sub">امسح الباركود على الملصق لسحب الطلب فورًا</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-sm"><Icons.QR size={13} /> إدخال يدوي</button>
+          <button
+            className={`btn btn-sm${manualMode ? ' btn-primary' : ''}`}
+            onClick={toggleManualMode}
+            aria-pressed={manualMode}
+          >
+            <Icons.QR size={13} /> إدخال يدوي
+          </button>
           <button className="btn btn-sm btn-primary" onClick={resetScanner}>
             <Icons.Refresh size={12} /> مسح آخر
           </button>
@@ -87,7 +129,12 @@ export default function ScanPage() {
       <div style={{ padding: '0 24px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* Camera card */}
         <div className="card" style={{ padding: 16 }}>
-          {state === 'found' ? (
+          {manualMode ? (
+            <ManualEntryInput
+              onSubmit={(v) => { setManualMode(false); handleScan(v); }}
+              onCancel={closeManualMode}
+            />
+          ) : state === 'found' ? (
             <div className="scan-stage" style={{ opacity: 0.5 }}>
               <div className="reticle" />
               <div className="corner tl" /><div className="corner tr" />
