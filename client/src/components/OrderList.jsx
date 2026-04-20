@@ -51,6 +51,10 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   const [focusRow, setFocusRow]   = useState(0);
   const [sortCol, setSortCol]     = useState('created_at');
   const [sortDir, setSortDir]     = useState('desc');
+  const [menu, setMenu]           = useState(null); // 'sort' | 'filter' | 'group' | null
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [withPhoneOnly, setWithPhoneOnly] = useState(false);
+  const [groupBy, setGroupBy]     = useState('none'); // 'none' | 'status' | 'date'
   const isWorkshop = getRole() === 'workshop';
 
   // Counts for filter chips — computed from the full unfiltered list
@@ -116,27 +120,78 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
     else { setSortCol(col); setSortDir('desc'); }
   }
 
-  // Keyboard j/k navigation
-  useEffect(() => {
-    function onKey(e) {
-      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-      if (e.key === 'j') { e.preventDefault(); setFocusRow(f => Math.min(orders.length - 1, f + 1)); }
-      if (e.key === 'k') { e.preventDefault(); setFocusRow(f => Math.max(0, f - 1)); }
-      if (e.key === 'x' || e.key === ' ') {
-        if (orders[focusRow]) { e.preventDefault(); toggleBulk(orders[focusRow].id); }
-      }
-      if (e.key === 'Enter') {
-        if (orders[focusRow]) { e.preventDefault(); setSelected(orders[focusRow]); }
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [orders, focusRow]);
-
   const SortIcon = ({ col }) => {
     if (sortCol !== col) return <span className="sort">⇅</span>;
     return <span className="sort" style={{ opacity: 0.9, color: 'var(--primary)' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
+
+  // Close menu on outside click / Escape
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e) => {
+      if (e.type === 'keydown' && e.key !== 'Escape') return;
+      setMenu(null);
+    };
+    setTimeout(() => document.addEventListener('click', close), 0);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [menu]);
+
+  // Filter + sort pipeline (client-side refinement on top of server results)
+  const displayOrders = useMemo(() => {
+    let list = orders;
+    if (urgentOnly)    list = list.filter(o => o.is_urgent);
+    if (withPhoneOnly) list = list.filter(o => o.phone);
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const cmp = (a, b) => {
+      const av = a[sortCol], bv = b[sortCol];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv), 'ar') * dir;
+    };
+    return [...list].sort(cmp);
+  }, [orders, urgentOnly, withPhoneOnly, sortCol, sortDir]);
+
+  // Group rows for rendering
+  const orderGroups = useMemo(() => {
+    if (groupBy === 'none') return [{ key: '__all', label: null, rows: displayOrders }];
+    const statusLabels = FILTER_DEFS.reduce((m, f) => {
+      if (f.statusKeys) f.statusKeys.forEach(k => { m[k] = f.label; });
+      return m;
+    }, {});
+    const groups = new Map();
+    for (const o of displayOrders) {
+      const key = groupBy === 'status' ? o.status : formatDate(o.created_at);
+      const label = groupBy === 'status' ? (statusLabels[o.status] || o.status) : key;
+      if (!groups.has(key)) groups.set(key, { key, label, rows: [] });
+      groups.get(key).rows.push(o);
+    }
+    return Array.from(groups.values());
+  }, [displayOrders, groupBy]);
+
+  const activeExtraFilters = (urgentOnly ? 1 : 0) + (withPhoneOnly ? 1 : 0);
+
+  // Keyboard j/k navigation
+  useEffect(() => {
+    function onKey(e) {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      if (e.key === 'j') { e.preventDefault(); setFocusRow(f => Math.min(displayOrders.length - 1, f + 1)); }
+      if (e.key === 'k') { e.preventDefault(); setFocusRow(f => Math.max(0, f - 1)); }
+      if (e.key === 'x' || e.key === ' ') {
+        if (displayOrders[focusRow]) { e.preventDefault(); toggleBulk(displayOrders[focusRow].id); }
+      }
+      if (e.key === 'Enter') {
+        if (displayOrders[focusRow]) { e.preventDefault(); setSelected(displayOrders[focusRow]); }
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [displayOrders, focusRow]);
 
   return (
     <div>
@@ -187,9 +242,56 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
               onChange={e => setSearch(e.target.value)}
             />
             <div style={{ flex: 1 }} />
-            <button className="btn btn-sm btn-ghost"><Icons.Filter size={12} /> فلتر</button>
-            <button className="btn btn-sm btn-ghost"><Icons.Sort size={12} /> ترتيب</button>
-            <button className="btn btn-sm btn-ghost"><Icons.Group size={12} /> تجميع</button>
+
+            <MenuButton
+              open={menu === 'filter'}
+              onToggle={e => { e.stopPropagation(); setMenu(m => m === 'filter' ? null : 'filter'); }}
+              label={<><Icons.Filter size={12} /> فلتر{activeExtraFilters ? <span className="count" style={{ marginInlineStart: 4 }}>{activeExtraFilters}</span> : null}</>}
+              active={activeExtraFilters > 0}
+            >
+              <MenuCheck label="المستعجلة فقط" checked={urgentOnly} onChange={() => setUrgentOnly(v => !v)} />
+              <MenuCheck label="التي تحتوي على رقم هاتف" checked={withPhoneOnly} onChange={() => setWithPhoneOnly(v => !v)} />
+              {activeExtraFilters > 0 && (
+                <button className="menu-item reset" onClick={() => { setUrgentOnly(false); setWithPhoneOnly(false); }}>
+                  مسح الفلاتر
+                </button>
+              )}
+            </MenuButton>
+
+            <MenuButton
+              open={menu === 'sort'}
+              onToggle={e => { e.stopPropagation(); setMenu(m => m === 'sort' ? null : 'sort'); }}
+              label={<><Icons.Sort size={12} /> ترتيب</>}
+              active={sortCol !== 'created_at' || sortDir !== 'desc'}
+            >
+              {[
+                { col: 'created_at',   label: 'التاريخ' },
+                { col: 'order_number', label: 'رقم الطلب' },
+                { col: 'customer_name',label: 'العميل' },
+                { col: 'status',       label: 'الحالة' },
+              ].map(o => (
+                <MenuRadio
+                  key={o.col}
+                  label={o.label}
+                  checked={sortCol === o.col}
+                  onChange={() => setSortCol(o.col)}
+                />
+              ))}
+              <div className="menu-sep" />
+              <MenuRadio label="تنازلي ↓" checked={sortDir === 'desc'} onChange={() => setSortDir('desc')} />
+              <MenuRadio label="تصاعدي ↑" checked={sortDir === 'asc'}  onChange={() => setSortDir('asc')} />
+            </MenuButton>
+
+            <MenuButton
+              open={menu === 'group'}
+              onToggle={e => { e.stopPropagation(); setMenu(m => m === 'group' ? null : 'group'); }}
+              label={<><Icons.Group size={12} /> تجميع</>}
+              active={groupBy !== 'none'}
+            >
+              <MenuRadio label="بدون" checked={groupBy === 'none'}   onChange={() => setGroupBy('none')} />
+              <MenuRadio label="حسب الحالة"  checked={groupBy === 'status'} onChange={() => setGroupBy('status')} />
+              <MenuRadio label="حسب التاريخ" checked={groupBy === 'date'}   onChange={() => setGroupBy('date')} />
+            </MenuButton>
             <div className="divider" />
             <button className="btn btn-sm btn-ghost btn-icon" onClick={() => onRefresh?.()}>
               <Icons.Refresh size={13} />
@@ -231,22 +333,35 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                 </tr>
               </thead>
               <tbody>
-                {orders.length === 0 ? (
+                {displayOrders.length === 0 ? (
                   <tr>
                     <td colSpan={8} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-faint)' }}>
-                      {status === 'all' && !search ? 'لا توجد طلبات بعد' : 'لا توجد طلبات تطابق هذا الفلتر'}
+                      {status === 'all' && !search && !activeExtraFilters ? 'لا توجد طلبات بعد' : 'لا توجد طلبات تطابق هذا الفلتر'}
                     </td>
                   </tr>
                 ) : (
-                  orders.map((o, i) => {
+                  orderGroups.flatMap(g => [
+                    ...(g.label ? [(
+                      <tr key={`grp-${g.key}`} className="group-head">
+                        <td colSpan={8} style={{
+                          background: 'var(--bg-muted, #F9FAFB)', color: 'var(--text-muted)',
+                          fontSize: 11.5, fontWeight: 600, padding: '6px 14px',
+                          borderTop: '1px solid var(--border)', letterSpacing: 0.2,
+                        }}>
+                          {g.label} <span style={{ opacity: 0.6, marginInlineStart: 6 }}>({g.rows.length})</span>
+                        </td>
+                      </tr>
+                    )] : []),
+                    ...g.rows.map((o) => {
                     const isSel = bulkSelected.has(o.id);
-                    const isFoc = i === focusRow;
+                    const globalIdx = displayOrders.indexOf(o);
+                    const isFoc = globalIdx === focusRow;
                     return (
                       <tr
                         key={o.id}
                         className={`${isSel ? 'selected' : ''} ${isFoc ? 'focused' : ''}`}
                         onClick={() => setSelected(o)}
-                        onMouseEnter={() => setFocusRow(i)}
+                        onMouseEnter={() => setFocusRow(globalIdx)}
                       >
                         <td className="col-check" onClick={e => e.stopPropagation()}>
                           <Checkbox checked={isSel} onChange={() => toggleBulk(o.id)} />
@@ -313,7 +428,8 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                         </td>
                       </tr>
                     );
-                  })
+                  }),
+                  ])
                 )}
               </tbody>
             </table>
@@ -324,7 +440,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
             <span>تنقّل: <span className="kbd">J</span> <span className="kbd">K</span></span>
             <span>تحديد: <span className="kbd">X</span></span>
             <span>فتح: <span className="kbd">↵</span></span>
-            <span style={{ marginRight: 'auto', fontFamily: 'var(--font-mono)' }}>{orders.length} صف</span>
+            <span style={{ marginRight: 'auto', fontFamily: 'var(--font-mono)' }}>{displayOrders.length} صف</span>
           </div>
         </div>
       )}
@@ -385,5 +501,72 @@ function Checkbox({ checked, indeterminate, onChange }) {
         <svg viewBox="0 0 10 2"><line x1="1" y1="1" x2="9" y2="1" /></svg>
       )}
     </span>
+  );
+}
+
+function MenuButton({ open, onToggle, label, active, children }) {
+  return (
+    <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+      <button
+        className={`btn btn-sm btn-ghost${active ? ' active' : ''}`}
+        onClick={onToggle}
+        style={active ? { color: 'var(--primary)' } : undefined}
+      >
+        {label}
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', insetInlineEnd: 0,
+          minWidth: 200, zIndex: 60,
+          background: 'var(--surface, #fff)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-sm, 6px)',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.08)',
+          padding: 4,
+        }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const MENU_ITEM_STYLE = {
+  display: 'flex', alignItems: 'center', gap: 8,
+  width: '100%', padding: '7px 10px', fontSize: 12.5,
+  border: 0, background: 'transparent', cursor: 'pointer',
+  borderRadius: 4, textAlign: 'start', color: 'var(--text)',
+};
+
+function MenuCheck({ label, checked, onChange }) {
+  return (
+    <button type="button" className="menu-item" style={MENU_ITEM_STYLE} onClick={onChange}>
+      <span style={{
+        width: 14, height: 14, border: '1px solid var(--border)', borderRadius: 3,
+        background: checked ? 'var(--primary)' : 'transparent',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        {checked && <svg width="10" height="8" viewBox="0 0 10 8"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.6" fill="none"/></svg>}
+      </span>
+      {label}
+    </button>
+  );
+}
+
+function MenuRadio({ label, checked, onChange }) {
+  return (
+    <button type="button" className="menu-item" style={{
+      ...MENU_ITEM_STYLE,
+      background: checked ? 'var(--bg-muted, #F3F4F6)' : 'transparent',
+      fontWeight: checked ? 600 : 400,
+    }} onClick={onChange}>
+      <span style={{
+        width: 12, height: 12, borderRadius: '50%',
+        border: '1px solid var(--border)',
+        background: checked ? 'var(--primary)' : 'transparent',
+        boxShadow: checked ? 'inset 0 0 0 2px var(--surface, #fff)' : 'none',
+        flexShrink: 0,
+      }} />
+      {label}
+    </button>
   );
 }
