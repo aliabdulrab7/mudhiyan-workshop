@@ -159,7 +159,23 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             <Icons.X size={14} />
           </button>
           <span className="stamp" style={{ fontSize: 12 }}>{order.order_number}</span>
-          {order.is_urgent ? (
+          {isWorkshop ? (
+            <button
+              type="button"
+              onClick={handleToggleUrgent}
+              title={order.is_urgent ? 'إلغاء الأولوية' : 'تعليم كمستعجل'}
+              style={{
+                cursor: 'pointer', border: 0,
+                fontSize: 10, fontWeight: 700, letterSpacing: 0.3,
+                padding: '2px 7px', borderRadius: 3,
+                background: order.is_urgent ? 'var(--danger)' : 'transparent',
+                color: order.is_urgent ? '#fff' : 'var(--text-muted)',
+                boxShadow: order.is_urgent ? 'none' : 'inset 0 0 0 1px var(--border)',
+              }}
+            >
+              {order.is_urgent ? 'مستعجل' : 'عادي'}
+            </button>
+          ) : order.is_urgent ? (
             <span style={{
               fontSize: 10, fontWeight: 700,
               padding: '2px 7px', borderRadius: 3,
