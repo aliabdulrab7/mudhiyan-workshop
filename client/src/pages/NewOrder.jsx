@@ -8,19 +8,27 @@ import { Icons } from '../components/icons';
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 const COLOR_OPTIONS = ['أصفر', 'روز جولد', 'أبيض'];
 
-const newItem = () => ({ item_type: 'خاتم', quantity: 1, notes: '', repair_type: '', repair_detail: '' });
+const newRepair = () => ({ type: '', detail: '' });
+const newItem   = () => ({ item_type: 'خاتم', quantity: 1, notes: '', repairs: [newRepair()] });
 
 function migrateItem(it) {
   if (!it) return newItem();
-  if (it.repair_type !== undefined) return { repair_detail: '', ...it };
-  const wc = (it.workshop_comment || '').trim();
-  return {
-    item_type:     it.item_type || 'خاتم',
-    quantity:      it.quantity || 1,
-    notes:         it.notes || '',
-    repair_type:   wc ? 'أخرى' : '',
-    repair_detail: wc,
+  const base = {
+    item_type: it.item_type || 'خاتم',
+    quantity:  it.quantity  || 1,
+    notes:     it.notes     || '',
   };
+  if (Array.isArray(it.repairs)) {
+    const rs = it.repairs
+      .map(r => ({ type: r.type || '', detail: r.detail || '' }))
+      .filter(r => r.type || r.detail);
+    return { ...base, repairs: rs.length ? rs : [newRepair()] };
+  }
+  if (it.repair_type !== undefined) {
+    return { ...base, repairs: [{ type: it.repair_type || '', detail: it.repair_detail || '' }] };
+  }
+  const wc = (it.workshop_comment || '').trim();
+  return { ...base, repairs: [wc ? { type: 'أخرى', detail: wc } : newRepair()] };
 }
 
 const STORAGE_KEY = 'new_order_draft';
@@ -157,6 +165,35 @@ export default function NewOrder() {
     setForm(prev => ({ ...prev, items: prev.items.map((it, idx) => idx === i ? { ...it, [field]: value } : it) }));
   }
 
+  function updateRepair(i, j, field, value) {
+    setForm(prev => ({
+      ...prev,
+      items: prev.items.map((it, idx) => idx !== i ? it : {
+        ...it,
+        repairs: it.repairs.map((r, ri) => ri !== j ? r : { ...r, [field]: value }),
+      }),
+    }));
+    setErrors(prev => { const n = { ...prev }; delete n[`item_${i}_repair_${j}`]; return n; });
+  }
+
+  function addRepair(i) {
+    setForm(prev => ({
+      ...prev,
+      items: prev.items.map((it, idx) => idx !== i ? it : { ...it, repairs: [...it.repairs, newRepair()] }),
+    }));
+  }
+
+  function removeRepair(i, j) {
+    setForm(prev => ({
+      ...prev,
+      items: prev.items.map((it, idx) => {
+        if (idx !== i) return it;
+        const next = it.repairs.filter((_, ri) => ri !== j);
+        return { ...it, repairs: next.length ? next : [newRepair()] };
+      }),
+    }));
+  }
+
   function addItem() {
     setForm(prev => ({ ...prev, items: [...prev.items, newItem()] }));
   }
@@ -171,14 +208,18 @@ export default function NewOrder() {
     if (!form.customerName.trim()) errs.customerName = 'يرجى إدخال اسم العميل';
     if (form.phoneDigits.length !== 9) errs.phone = 'يرجى إدخال 9 أرقام بعد رمز الدولة';
     form.items.forEach((it, i) => {
-      if (!it.repair_type) {
-        errs[`item_${i}`] = 'اختر نوع الإصلاح';
+      const opts = optionsForType(it.item_type);
+      if (!it.repairs.length || it.repairs.every(r => !r.type)) {
+        errs[`item_${i}_repair_0`] = 'اختر نوع الإصلاح';
         return;
       }
-      const meta = optionsForType(it.item_type).find(t => t.value === it.repair_type);
-      if (meta?.needs && !it.repair_detail.trim()) {
-        errs[`item_${i}`] = 'أدخل تفاصيل الإصلاح';
-      }
+      it.repairs.forEach((r, j) => {
+        if (!r.type) { errs[`item_${i}_repair_${j}`] = 'اختر نوع الإصلاح'; return; }
+        const meta = opts.find(t => t.value === r.type);
+        if (meta?.needs && !r.detail.trim()) {
+          errs[`item_${i}_repair_${j}`] = 'أدخل تفاصيل الإصلاح';
+        }
+      });
     });
     return errs;
   }
@@ -191,15 +232,15 @@ export default function NewOrder() {
       const order = await createOrder({
         customer_name: form.customerName.trim(),
         phone:         '966' + form.phoneDigits,
-        items:         form.items.map(r => {
-          const detail = r.repair_detail.trim();
-          return {
-            item_name:        r.item_type,
-            quantity:         Number(r.quantity) || 1,
-            notes:            r.notes.trim(),
-            workshop_comment: detail ? `${r.repair_type} — ${detail}` : r.repair_type,
-          };
-        }),
+        items:         form.items.map(r => ({
+          item_name:        r.item_type,
+          quantity:         Number(r.quantity) || 1,
+          notes:            r.notes.trim(),
+          workshop_comment: r.repairs
+            .filter(x => x.type)
+            .map(x => x.detail.trim() ? `${x.type} — ${x.detail.trim()}` : x.type)
+            .join('، '),
+        })),
       });
       clearDraft();
       setCreatedOrder(order);
@@ -298,9 +339,12 @@ export default function NewOrder() {
                   className="select"
                   value={row.item_type}
                   onChange={e => {
-                    updateItem(i, 'item_type', e.target.value);
-                    updateItem(i, 'repair_type', '');
-                    updateItem(i, 'repair_detail', '');
+                    setForm(prev => ({
+                      ...prev,
+                      items: prev.items.map((it, idx) => idx !== i ? it : {
+                        ...it, item_type: e.target.value, repairs: [newRepair()],
+                      }),
+                    }));
                   }}
                   style={{ height: 30 }}
                 >
@@ -313,78 +357,99 @@ export default function NewOrder() {
                   value={row.quantity}
                   onChange={e => updateItem(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
                 />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <select
-                    className="select"
-                    value={row.repair_type}
-                    onChange={e => {
-                      updateItem(i, 'repair_type', e.target.value);
-                      updateItem(i, 'repair_detail', '');
-                    }}
-                    style={{ height: 30, borderColor: errors[`item_${i}`] ? 'var(--danger)' : undefined }}
-                  >
-                    <option value="" disabled>
-                      {optionsForType(row.item_type).length === 0 ? 'لا توجد خيارات — اضبطها من "خيارات الإصلاح"' : 'اختر نوع الإصلاح…'}
-                    </option>
-                    {optionsForType(row.item_type).map(t => <option key={t.id} value={t.value}>{t.value}</option>)}
-                  </select>
-                  {(() => {
-                    const meta = optionsForType(row.item_type).find(t => t.value === row.repair_type);
-                    if (!meta?.needs) return null;
-                    if (meta.needs === 'size') {
-                      return (
-                        <input
-                          className="input mono"
-                          style={{ height: 28 }}
-                          placeholder="المقاس الجديد"
-                          inputMode="decimal"
-                          value={row.repair_detail}
-                          onChange={e => updateItem(i, 'repair_detail', e.target.value)}
-                        />
-                      );
-                    }
-                    if (meta.needs === 'stone') {
-                      return (
-                        <input
-                          className="input"
-                          style={{ height: 28 }}
-                          placeholder="نوع الحجر / الموضع"
-                          value={row.repair_detail}
-                          onChange={e => updateItem(i, 'repair_detail', e.target.value)}
-                        />
-                      );
-                    }
-                    if (meta.needs === 'color') {
-                      return (
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          {COLOR_OPTIONS.map(c => (
-                            <button
-                              key={c}
-                              type="button"
-                              className={'chip' + (row.repair_detail === c ? ' active' : '')}
-                              onClick={() => updateItem(i, 'repair_detail', c)}
-                              style={{ flex: 1, height: 28, fontSize: 11 }}
-                            >
-                              {c}
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    }
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {row.repairs.map((rep, j) => {
+                    const opts = optionsForType(row.item_type);
+                    const meta = opts.find(t => t.value === rep.type);
+                    const errKey = `item_${i}_repair_${j}`;
+                    const canRemove = row.repairs.length > 1;
                     return (
-                      <input
-                        className="input"
-                        style={{ height: 28 }}
-                        placeholder="اكتب التفاصيل"
-                        value={row.repair_detail}
-                        onChange={e => updateItem(i, 'repair_detail', e.target.value)}
-                      />
+                      <div key={j} style={{
+                        display: 'flex', flexDirection: 'column', gap: 4,
+                        padding: row.repairs.length > 1 ? '6px 8px' : 0,
+                        background: row.repairs.length > 1 ? 'var(--bg-soft)' : 'transparent',
+                        border: row.repairs.length > 1 ? '1px solid var(--border-faint)' : 'none',
+                        borderRadius: 'var(--radius-sm)',
+                      }}>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <select
+                            className="select"
+                            value={rep.type}
+                            onChange={e => {
+                              updateRepair(i, j, 'type', e.target.value);
+                              updateRepair(i, j, 'detail', '');
+                            }}
+                            style={{ height: 30, flex: 1, borderColor: errors[errKey] ? 'var(--danger)' : undefined }}
+                          >
+                            <option value="" disabled>
+                              {opts.length === 0 ? 'لا توجد خيارات — اضبطها من "خيارات الإصلاح"' : 'اختر نوع الإصلاح…'}
+                            </option>
+                            {opts.map(t => <option key={t.id} value={t.value}>{t.value}</option>)}
+                          </select>
+                          {canRemove && (
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-icon btn-sm"
+                              onClick={() => removeRepair(i, j)}
+                              title="إزالة"
+                              style={{ height: 30, width: 28, flexShrink: 0 }}
+                            >
+                              <Icons.X size={11} />
+                            </button>
+                          )}
+                        </div>
+                        {meta?.needs === 'size' && (
+                          <input className="input mono" style={{ height: 28 }}
+                            placeholder="المقاس الجديد" inputMode="decimal"
+                            value={rep.detail}
+                            onChange={e => updateRepair(i, j, 'detail', e.target.value)} />
+                        )}
+                        {meta?.needs === 'stone' && (
+                          <input className="input" style={{ height: 28 }}
+                            placeholder="نوع الحجر / الموضع"
+                            value={rep.detail}
+                            onChange={e => updateRepair(i, j, 'detail', e.target.value)} />
+                        )}
+                        {meta?.needs === 'color' && (
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {COLOR_OPTIONS.map(c => (
+                              <button
+                                key={c}
+                                type="button"
+                                className={'chip' + (rep.detail === c ? ' active' : '')}
+                                onClick={() => updateRepair(i, j, 'detail', c)}
+                                style={{ flex: 1, height: 28, fontSize: 11 }}
+                              >
+                                {c}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {meta?.needs === 'text' && (
+                          <input className="input" style={{ height: 28 }}
+                            placeholder="اكتب التفاصيل"
+                            value={rep.detail}
+                            onChange={e => updateRepair(i, j, 'detail', e.target.value)} />
+                        )}
+                      </div>
                     );
-                  })()}
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => addRepair(i)}
+                    style={{
+                      alignSelf: 'flex-start', padding: '4px 8px',
+                      border: '1px dashed var(--border)', borderRadius: 'var(--radius-sm)',
+                      background: 'transparent', color: 'var(--primary)',
+                      fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    <Icons.Plus size={10} /> إضافة إصلاح
+                  </button>
                 </div>
                 <input
                   className="input"
-                  style={{ height: 30, borderColor: errors[`item_${i}`] ? 'var(--danger)' : undefined }}
+                  style={{ height: 30 }}
                   placeholder="خدش طفيف، سلسلة تالفة…"
                   value={row.notes}
                   onChange={e => updateItem(i, 'notes', e.target.value)}
