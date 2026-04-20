@@ -68,7 +68,7 @@ export async function updateOrderStatus(id, status) {
 
 export async function setOrderUrgent(id, isUrgent) {
   const res = await fetch(`${BASE}/${id}`, {
-    method: 'PATCH',
+    method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify({ is_urgent: isUrgent ? 1 : 0 }),
   });

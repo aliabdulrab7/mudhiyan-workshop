@@ -18,6 +18,7 @@ const STATUS_SEQUENCE = [
 const ALLOWED_STATUSES = [
   ...STATUS_SEQUENCE,
   'diagnosing', 'ready_for_pickup', 'pending_approval', 'in_progress', 'ready', 'returned', 'invoiced',
+  'rejected', 'cancelled',
 ];
 
 // All order routes require auth
