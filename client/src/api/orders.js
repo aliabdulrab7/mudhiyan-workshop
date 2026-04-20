@@ -66,6 +66,19 @@ export async function updateOrderStatus(id, status) {
   return res.json();
 }
 
+export async function setOrderUrgent(id, isUrgent) {
+  const res = await fetch(`${BASE}/${id}`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ is_urgent: isUrgent ? 1 : 0 }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل تحديث الأولوية');
+  }
+  return res.json();
+}
+
 export async function updateCost(id, cost) {
   const res = await fetch(`${BASE}/${id}/cost`, {
     method: 'PATCH',

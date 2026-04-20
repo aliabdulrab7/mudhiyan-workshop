@@ -141,7 +141,9 @@ router.get('/', (req, res) => {
     params.push(like, like, like);
   }
 
-  query += ' ORDER BY o.created_at DESC LIMIT ? OFFSET ?';
+  // Urgent orders float to the top (active only); within each bucket, newest first.
+  // `locked_at IS NULL` ensures delivered/closed orders don't hog the top even if flagged.
+  query += " ORDER BY (o.is_urgent = 1 AND o.locked_at IS NULL) DESC, o.created_at DESC LIMIT ? OFFSET ?";
   params.push(safeLimit, safeOffset);
 
   res.json(db.prepare(query).all(...params));

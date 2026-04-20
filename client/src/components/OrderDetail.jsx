@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { updateOrderStatus, updateCost, getComments, addComment, getOrderHistory, confirmPayment } from '../api/orders';
+import { updateOrderStatus, updateCost, getComments, addComment, getOrderHistory, confirmPayment, setOrderUrgent } from '../api/orders';
 import { getRole } from '../api/auth';
 import StatusPill from './StatusPill';
 import { Icons } from './icons';
@@ -70,6 +70,13 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     try { setHistory(await getOrderHistory(order.id)); } catch { /* non-critical */ }
   }
   function update(updated) { setOrder(updated); onUpdated?.(updated); }
+
+  async function handleToggleUrgent() {
+    try {
+      const updated = await setOrderUrgent(order.id, !order.is_urgent);
+      update(updated);
+    } catch (e) { setError(e.message); }
+  }
 
   async function handleStatusAdvance() {
     const next = NEXT_STATUS[order.status];
@@ -152,6 +159,14 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             <Icons.X size={14} />
           </button>
           <span className="stamp" style={{ fontSize: 12 }}>{order.order_number}</span>
+          {order.is_urgent ? (
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              padding: '2px 7px', borderRadius: 3,
+              background: 'var(--danger)', color: '#fff',
+              letterSpacing: 0.3,
+            }}>مستعجل</span>
+          ) : null}
           <StatusPill status={order.status} />
           <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{dateStr}</span>
           <div style={{ flex: 1 }} />

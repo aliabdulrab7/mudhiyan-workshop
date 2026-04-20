@@ -255,6 +255,14 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <PriorityDot priority={o.priority} />
                             <span className="stamp">{o.order_number}</span>
+                            {o.is_urgent ? (
+                              <span style={{
+                                fontSize: 10, fontWeight: 700,
+                                padding: '1px 6px', borderRadius: 3,
+                                background: 'var(--danger)', color: '#fff',
+                                letterSpacing: 0.3,
+                              }}>مستعجل</span>
+                            ) : null}
                           </div>
                         </td>
                         <td><StatusPill status={o.status} size="sm" /></td>

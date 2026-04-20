@@ -157,6 +157,7 @@ export default function Dashboard() {
             {actionOrders.rejected.slice(0, 3).map(o => (
               <div key={o.id} className="mini-row">
                 <span className="stamp" style={{ fontSize: 11 }}>{o.order_number}</span>
+                {o.is_urgent ? <span title="مستعجل" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--danger)', display: 'inline-block', flexShrink: 0 }} /> : null}
                 <span style={{ fontWeight: 500, flex: 1 }}>{o.customer_name}</span>
                 <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{o.piece_type}</span>
               </div>
