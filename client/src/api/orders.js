@@ -37,11 +37,11 @@ export async function getStats() {
   return res.json();
 }
 
-export async function createOrder({ customer_name, phone, items }) {
+export async function createOrder({ customer_name, phone, items, urgency }) {
   const res = await fetch(BASE, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ customer_name, phone, items }),
+    body: JSON.stringify({ customer_name, phone, items, urgency }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
