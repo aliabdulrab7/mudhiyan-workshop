@@ -12,6 +12,7 @@ const servicesRouter   = require('./routes/services');
 const techRouter       = require('./routes/technicians');
 const inventoryRouter  = require('./routes/inventory');
 const printRouter      = require('./routes/print');
+const repairOptsRouter = require('./routes/repair-options');
 const { errorToHttpStatus } = require('./errors');
 
 // ── Phase 2: wire payment validator + notification hook ───────────────────────
@@ -74,6 +75,7 @@ app.use('/api/services',    servicesRouter);
 app.use('/api/technicians', techRouter);
 app.use('/api/inventory',   inventoryRouter);
 app.use('/api/print',       printRouter);
+app.use('/api/repair-options', repairOptsRouter);
 
 // 8.2 — Catch-all 404 for unmatched routes — returns JSON, not Express HTML page
 app.use((_req, res) => {

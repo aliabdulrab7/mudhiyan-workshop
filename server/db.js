@@ -310,6 +310,45 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_loc_item ON item_locations(order_item_id);
 `);
 
+// ── Repair options (workshop-configurable per item type) ─────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS repair_options (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_type  TEXT NOT NULL,
+    value      TEXT NOT NULL,
+    needs      TEXT DEFAULT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    active     INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_repair_opts_type ON repair_options(item_type, sort_order);
+  CREATE UNIQUE INDEX IF NOT EXISTS uniq_repair_opt_value ON repair_options(item_type, value);
+`);
+
+// First-run seed: only populate defaults if the table is empty. Preserves workshop edits across restarts.
+const repairOptsCount = db.prepare('SELECT COUNT(*) AS n FROM repair_options').get().n;
+if (repairOptsCount === 0) {
+  const DEFAULTS = {
+    'خاتم':  [['لحام', null], ['تلميع', null], ['تغيير مقاس', 'size'], ['تركيب حجر', 'stone'], ['تغيير اللون', 'color'], ['تنظيف', null], ['أخرى', 'text']],
+    'حلق':   [['لحام', null], ['تلميع', null], ['تركيب حجر', 'stone'], ['تغيير اللون', 'color'], ['تنظيف', null], ['أخرى', 'text']],
+    'سوار':  [['لحام', null], ['تلميع', null], ['تغيير مقاس', 'size'], ['تركيب حجر', 'stone'], ['تغيير اللون', 'color'], ['إصلاح قفل', null], ['إصلاح سلسلة', null], ['تنظيف', null], ['أخرى', 'text']],
+    'عقد':   [['لحام', null], ['تلميع', null], ['تركيب حجر', 'stone'], ['تغيير اللون', 'color'], ['إصلاح قفل', null], ['إصلاح سلسلة', null], ['تنظيف', null], ['أخرى', 'text']],
+    'دبلة':  [['لحام', null], ['تلميع', null], ['تغيير مقاس', 'size'], ['تغيير اللون', 'color'], ['تنظيف', null], ['أخرى', 'text']],
+    'ساعة':  [['تلميع', null], ['تغيير اللون', 'color'], ['تنظيف', null], ['أخرى', 'text']],
+    'أخرى':  [['لحام', null], ['تلميع', null], ['تنظيف', null], ['أخرى', 'text']],
+  };
+  const insertOpt = db.prepare(
+    `INSERT INTO repair_options (item_type, value, needs, sort_order) VALUES (?, ?, ?, ?)`
+  );
+  const seed = db.transaction(() => {
+    for (const [item_type, opts] of Object.entries(DEFAULTS)) {
+      opts.forEach(([value, needs], i) => insertOpt.run(item_type, value, needs, i));
+    }
+  });
+  seed();
+  console.log(`✓ Seeded repair_options with ${Object.values(DEFAULTS).flat().length} defaults`);
+}
+
 // Backfill: Ensure all orders have at least one record in order_items
 db.exec(`
   INSERT INTO order_items (order_id, item_type, item_name, quantity, notes, workshop_comment)

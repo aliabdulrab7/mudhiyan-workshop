@@ -1,0 +1,94 @@
+const express = require('express');
+const { db }  = require('../db');
+const { requireAuth, requireRole } = require('../middleware/auth');
+
+const router = express.Router();
+router.use(requireAuth);
+
+const ALLOWED_NEEDS = [null, 'size', 'stone', 'color', 'text'];
+
+function normalizeNeeds(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const s = String(v);
+  return ALLOWED_NEEDS.includes(s) ? s : undefined; // undefined signals invalid
+}
+
+// GET /api/repair-options — all authenticated users. Optional ?item_type filter.
+router.get('/', (req, res) => {
+  const { item_type } = req.query;
+  const rows = item_type
+    ? db.prepare(
+        `SELECT * FROM repair_options WHERE item_type = ? AND active = 1 ORDER BY sort_order, id`
+      ).all(item_type)
+    : db.prepare(
+        `SELECT * FROM repair_options ORDER BY item_type, sort_order, id`
+      ).all();
+  res.json(rows);
+});
+
+// POST /api/repair-options — workshop only
+router.post('/', requireRole('workshop'), (req, res) => {
+  const item_type = (req.body.item_type || '').trim();
+  const value     = (req.body.value || '').trim();
+  if (!item_type) return res.status(400).json({ error: 'نوع القطعة مطلوب' });
+  if (!value)     return res.status(400).json({ error: 'اسم الإصلاح مطلوب' });
+
+  const needs = normalizeNeeds(req.body.needs);
+  if (needs === undefined) return res.status(400).json({ error: 'نوع التفاصيل غير صالح' });
+
+  const maxOrder = db.prepare(
+    `SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM repair_options WHERE item_type = ?`
+  ).get(item_type).next;
+
+  try {
+    const result = db.prepare(
+      `INSERT INTO repair_options (item_type, value, needs, sort_order) VALUES (?, ?, ?, ?)`
+    ).run(item_type, value, needs, maxOrder);
+    res.status(201).json(db.prepare('SELECT * FROM repair_options WHERE id = ?').get(result.lastInsertRowid));
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.status(409).json({ error: 'هذا الإصلاح مسجل مسبقاً لهذا النوع' });
+    }
+    throw err;
+  }
+});
+
+// PATCH /api/repair-options/:id — workshop only
+router.patch('/:id', requireRole('workshop'), (req, res) => {
+  const row = db.prepare('SELECT * FROM repair_options WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'الخيار غير موجود' });
+
+  const value = req.body.value !== undefined ? String(req.body.value).trim() : row.value;
+  if (!value) return res.status(400).json({ error: 'اسم الإصلاح مطلوب' });
+
+  let needs = row.needs;
+  if (req.body.needs !== undefined) {
+    const n = normalizeNeeds(req.body.needs);
+    if (n === undefined) return res.status(400).json({ error: 'نوع التفاصيل غير صالح' });
+    needs = n;
+  }
+
+  const active = req.body.active !== undefined ? (req.body.active ? 1 : 0) : row.active;
+  const sort_order = req.body.sort_order !== undefined ? parseInt(req.body.sort_order, 10) : row.sort_order;
+
+  try {
+    db.prepare(
+      `UPDATE repair_options SET value = ?, needs = ?, active = ?, sort_order = ? WHERE id = ?`
+    ).run(value, needs, active, sort_order, row.id);
+    res.json(db.prepare('SELECT * FROM repair_options WHERE id = ?').get(row.id));
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.status(409).json({ error: 'هذا الإصلاح مسجل مسبقاً لهذا النوع' });
+    }
+    throw err;
+  }
+});
+
+// DELETE /api/repair-options/:id — workshop only
+router.delete('/:id', requireRole('workshop'), (req, res) => {
+  const result = db.prepare('DELETE FROM repair_options WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'الخيار غير موجود' });
+  res.json({ ok: true });
+});
+
+module.exports = router;

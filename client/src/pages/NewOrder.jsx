@@ -1,23 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createOrder } from '../api/orders';
+import { getRepairOptions } from '../api/repair-options';
 import LabelCanvas from '../components/LabelCanvas';
 import { Icons } from '../components/icons';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
-
-const REPAIR_TYPES = [
-  { value: 'لحام',         needs: null    },
-  { value: 'تلميع',        needs: null    },
-  { value: 'تغيير مقاس',   needs: 'size'  },
-  { value: 'تركيب حجر',    needs: 'stone' },
-  { value: 'تغيير اللون',  needs: 'color' },
-  { value: 'إصلاح قفل',    needs: null    },
-  { value: 'إصلاح سلسلة',  needs: null    },
-  { value: 'تنظيف',        needs: null    },
-  { value: 'إعادة تحجير',  needs: null    },
-  { value: 'أخرى',         needs: 'text'  },
-];
 const COLOR_OPTIONS = ['أصفر', 'روز جولد', 'أبيض'];
 
 const newItem = () => ({ item_type: 'خاتم', quantity: 1, notes: '', repair_type: '', repair_detail: '' });
@@ -132,6 +120,19 @@ export default function NewOrder() {
   const [loading, setLoading]     = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [createdOrder, setCreatedOrder] = useState(null);
+  const [repairOpts, setRepairOpts] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRepairOptions()
+      .then(data => { if (!cancelled) setRepairOpts(data || []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  function optionsForType(itemType) {
+    return repairOpts.filter(o => o.item_type === itemType && o.active);
+  }
 
   useEffect(() => {
     if (!createdOrder) saveDraft(form);
@@ -174,7 +175,7 @@ export default function NewOrder() {
         errs[`item_${i}`] = 'اختر نوع الإصلاح';
         return;
       }
-      const meta = REPAIR_TYPES.find(t => t.value === it.repair_type);
+      const meta = optionsForType(it.item_type).find(t => t.value === it.repair_type);
       if (meta?.needs && !it.repair_detail.trim()) {
         errs[`item_${i}`] = 'أدخل تفاصيل الإصلاح';
       }
@@ -296,7 +297,11 @@ export default function NewOrder() {
                 <select
                   className="select"
                   value={row.item_type}
-                  onChange={e => updateItem(i, 'item_type', e.target.value)}
+                  onChange={e => {
+                    updateItem(i, 'item_type', e.target.value);
+                    updateItem(i, 'repair_type', '');
+                    updateItem(i, 'repair_detail', '');
+                  }}
                   style={{ height: 30 }}
                 >
                   {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -318,11 +323,13 @@ export default function NewOrder() {
                     }}
                     style={{ height: 30, borderColor: errors[`item_${i}`] ? 'var(--danger)' : undefined }}
                   >
-                    <option value="" disabled>اختر نوع الإصلاح…</option>
-                    {REPAIR_TYPES.map(t => <option key={t.value} value={t.value}>{t.value}</option>)}
+                    <option value="" disabled>
+                      {optionsForType(row.item_type).length === 0 ? 'لا توجد خيارات — اضبطها من "خيارات الإصلاح"' : 'اختر نوع الإصلاح…'}
+                    </option>
+                    {optionsForType(row.item_type).map(t => <option key={t.id} value={t.value}>{t.value}</option>)}
                   </select>
                   {(() => {
-                    const meta = REPAIR_TYPES.find(t => t.value === row.repair_type);
+                    const meta = optionsForType(row.item_type).find(t => t.value === row.repair_type);
                     if (!meta?.needs) return null;
                     if (meta.needs === 'size') {
                       return (

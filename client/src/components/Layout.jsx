@@ -14,6 +14,7 @@ const navItems = [
   { to: '/technicians', icon: Icons.User,      label: 'الفنيون',     roles: ['workshop'] },
   { to: '/inventory',   icon: Icons.Box,       label: 'المخزون',     roles: ['workshop'] },
   { to: '/services',    icon: Icons.Tag,       label: 'الخدمات',     roles: ['workshop'] },
+  { to: '/repair-options', icon: Icons.Settings, label: 'خيارات الإصلاح', roles: ['workshop'] },
 ];
 
 const mobileNav = [
@@ -31,6 +32,7 @@ const PAGE_LABELS = {
   '/technicians': 'الفنيون',
   '/inventory':   'المخزون',
   '/services':    'الخدمات',
+  '/repair-options': 'خيارات الإصلاح',
 };
 
 export default function Layout({ children }) {
