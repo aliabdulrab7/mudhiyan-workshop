@@ -60,8 +60,13 @@ jobs:
             set -e
             cd /var/www/mudhiyan
 
-            echo "==> Pulling latest code"
-            git pull origin master
+            echo "==> Fetching latest code (hard reset — server is a deploy target)"
+            git fetch origin master
+            git reset --hard origin/master
+            git clean -fd
+
+            echo "==> Installing server dependencies"
+            npm install --prefix server --omit=dev
 
             echo "==> Installing client dependencies"
             npm install --prefix client --production=false
