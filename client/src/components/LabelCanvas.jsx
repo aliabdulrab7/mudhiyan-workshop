@@ -1,16 +1,18 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import QRCode from "qrcode";
+import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 
-// NIIMBOT B21S — 5cm × 3cm label @ 203 DPI
-// Canvas: 400 × 240 px
-// Safe zone (40px all sides): x[40..360] y[40..200] → 320 × 160 px usable
-const W = 400;
-const H = 240;
+// Base design-canvas (NIIMBOT B21S @ 203 DPI): 400×240 px = 50×30 mm.
+// All draw code below is expressed in these base coordinates. A `fit` transform
+// scales + centers the base box onto the actual canvas, so any mm size works.
+const BASE_W = 400;
+const BASE_H = 240;
 const PAD = 40;
+const DPI_PX_PER_MM = 8; // 400px / 50mm
 
 // Label sizes for universal (browser) printing.
-// mm values drive @page size; aspect-preserving scale handles any mismatch with the 50×30 canvas.
+// mm values drive @page size + canvas pixel dimensions.
 const LABEL_SIZES = [
   { id: '50x30',   label: '50×30 مم (نيمبوت)',  w: 50,  h: 30  },
   { id: '57x32',   label: '57×32 مم',           w: 57,  h: 32  },
@@ -21,33 +23,50 @@ const LABEL_SIZES = [
 ];
 const SIZE_STORAGE_KEY = 'label_size_preset';
 
-/**
- * ── Customer label ──
- * qr_content: customer_tracking_url
- */
-async function drawCustomerLabel(canvas, order) {
-  const ctx = canvas.getContext("2d");
-  canvas.width = W;
-  canvas.height = H;
+// Pixel dimensions for a given label size (at 8 px/mm).
+// Capped max pixel count to avoid huge canvases on A4 (still reads crisp on print).
+function canvasPxForSize(size) {
+  const cap = 12; // px/mm cap on larger labels
+  const dpi = size.w > 100 || size.h > 100 ? cap : DPI_PX_PER_MM;
+  return { w: Math.round(size.w * dpi), h: Math.round(size.h * dpi) };
+}
 
+// Fit the BASE_W×BASE_H design box onto the real canvas, preserving aspect + centering.
+// After this call, draw code can use base coordinates directly.
+function fitCanvas(canvas) {
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
+  const s = Math.min(W / BASE_W, H / BASE_H);
+  const ox = (W - BASE_W * s) / 2;
+  const oy = (H - BASE_H * s) / 2;
+  ctx.setTransform(s, 0, 0, s, ox, oy);
+  return ctx;
+}
 
-  // ── Header — Brand ──
+/**
+ * ── Customer label ── (QR for tracking)
+ * All coordinates are in the BASE_W×BASE_H design space; fitCanvas handles scale.
+ */
+async function drawCustomerLabel(canvas, order) {
+  const ctx = fitCanvas(canvas);
+  const W = BASE_W, H = BASE_H;
+
+  // Header — Brand
   ctx.fillStyle = "#111111";
   ctx.font = 'bold 20px Almarai, Arial';
   ctx.textAlign = "right";
   ctx.direction = "rtl";
   ctx.fillText("مجوهرات سليمان المضيان", W - PAD, PAD + 25);
 
-  // ── Order number ──
+  // Order number
   ctx.fillStyle = "#374151";
   ctx.font = 'bold 16px "JetBrains Mono", monospace';
-  ctx.textAlign = "right";
-  ctx.direction = "rtl";
   ctx.fillText(order.order_number, W - PAD, PAD + 50);
 
-  // ── Separator ──
+  // Separator
   ctx.strokeStyle = "#E5E7EB";
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -55,10 +74,9 @@ async function drawCustomerLabel(canvas, order) {
   ctx.lineTo(W - PAD, PAD + 60);
   ctx.stroke();
 
-  // ── Tracking QR code (Left) ──
+  // Tracking QR code (left)
   try {
     const trackUrl = `${window.location.origin}/track/${order.customer_token}`;
-
     const qrCanvas = document.createElement("canvas");
     await QRCode.toCanvas(qrCanvas, trackUrl, {
       width: 160,
@@ -73,13 +91,12 @@ async function drawCustomerLabel(canvas, order) {
     ctx.fillStyle = "#6B7280";
     ctx.font = "9px Almarai, Arial";
     ctx.textAlign = "left";
-    ctx.direction = "rtl";
     ctx.fillText("امسح لمتابعة الطلب", PAD, PAD + 206);
   } catch (e) {
     console.error("Customer QR failed", e);
   }
 
-  // ── Instruction ──
+  // Instruction (right column)
   ctx.fillStyle = "#111111";
   ctx.font = "bold 14px Almarai, Arial";
   ctx.textAlign = "right";
@@ -88,78 +105,88 @@ async function drawCustomerLabel(canvas, order) {
 
   ctx.fillStyle = "#4B5563";
   ctx.font = "11px Almarai, Arial";
-  ctx.textAlign = "right";
-  ctx.direction = "rtl";
   ctx.fillText("عزيزنا العميل، يمكنك", W - PAD, PAD + 105);
   ctx.fillText("متابعة حالة مجوهراتك", W - PAD, PAD + 120);
   ctx.fillText("عن طريق مسح الرمز", W - PAD, PAD + 135);
 }
 
 /**
- * ── Workshop label ──
- * Purpose: internal workshop identification with items summary
+ * ── Workshop label ── (internal ID + CODE128 barcode for scan-tracking)
+ * Base coords BASE_W×BASE_H; fitCanvas scales to any canvas size.
  */
 async function drawWorkshopLabel(canvas, order) {
-  const ctx = canvas.getContext("2d");
-  canvas.width = W;
-  canvas.height = H;
+  const ctx = fitCanvas(canvas);
+  const W = BASE_W, H = BASE_H;
 
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, W, H);
-
-  // ── Status/Source ──
+  // Shop name
   ctx.fillStyle = "#059669";
-  ctx.font = "bold 16px Almarai, Arial";
-  ctx.textAlign = "right";
-  ctx.direction = "rtl";
-  ctx.fillText(order.shop_name || "الورشة المركزية", W - PAD, PAD + 25);
-
-  // ── Order Number ──
-  ctx.fillStyle = "#111111";
-  ctx.font = 'bold 22px "JetBrains Mono", monospace';
-  ctx.textAlign = "left";
-  ctx.direction = "ltr";
-  ctx.fillText(order.order_number, PAD, PAD + 25);
-
-  // ── Separator ──
-  ctx.strokeStyle = "#111111";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(PAD, PAD + 40);
-  ctx.lineTo(W - PAD, PAD + 40);
-  ctx.stroke();
-
-  // ── Customer Info ──
-  ctx.fillStyle = "#111111";
   ctx.font = "bold 14px Almarai, Arial";
   ctx.textAlign = "right";
   ctx.direction = "rtl";
-  ctx.fillText(order.customer_name, W - PAD, PAD + 60);
-  ctx.font = '11px "JetBrains Mono", monospace';
-  ctx.fillText(order.phone, W - PAD, PAD + 75);
+  ctx.fillText(order.shop_name || "الورشة المركزية", W - PAD, PAD + 18);
 
-  // ── Items List ──
-  const items = order?.items || [];
+  // Separator
+  ctx.strokeStyle = "#111111";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, PAD + 26);
+  ctx.lineTo(W - PAD, PAD + 26);
+  ctx.stroke();
+
+  // Customer Info
+  ctx.fillStyle = "#111111";
+  ctx.font = "bold 13px Almarai, Arial";
+  ctx.fillText(order.customer_name, W - PAD, PAD + 44);
+  ctx.font = '10px "JetBrains Mono", monospace';
   ctx.fillStyle = "#374151";
-  ctx.font = "bold 11px Almarai, Arial";
-  ctx.textAlign = "right";
-  ctx.direction = "rtl";
-  ctx.fillText("الأصناف:", W - PAD, PAD + 95);
+  ctx.fillText(order.phone, W - PAD, PAD + 58);
 
-  items.slice(0, 4).forEach((item, i) => {
-    let line = `• ${item.item_name}`;
-    if (item.workshop_comment) line += ` (${item.workshop_comment})`;
-
+  // Items summary (one line)
+  const items = order?.items || [];
+  if (items.length) {
+    const names = items.map(x => x.item_name).join("، ");
+    let line = `${items.length} قطع: ${names}`;
     ctx.font = "9px Almarai, Arial";
+    ctx.fillStyle = "#4B5563";
     const maxW = W - PAD * 2;
     while (ctx.measureText(line).width > maxW && line.length > 5) {
       line = line.slice(0, -1) + "…";
     }
-    ctx.fillText(line, W - PAD - 10, PAD + 112 + i * 14);
-  });
+    ctx.fillText(line, W - PAD, PAD + 72);
+  }
 
-  if (items.length > 4) {
-    ctx.fillText(`+${items.length - 4} أصناف أخرى...`, W - PAD - 10, PAD + 112 + 4 * 14);
+  // CODE128 Barcode (bottom, fit-to-width, centered)
+  try {
+    const bcCanvas = document.createElement("canvas");
+    JsBarcode(bcCanvas, order.order_number, {
+      format: "CODE128",
+      displayValue: true,
+      font: "JetBrains Mono, monospace",
+      fontSize: 13,
+      fontOptions: "bold",
+      textMargin: 1,
+      width: 1.8,
+      height: 50,
+      margin: 0,
+      background: "#FFFFFF",
+      lineColor: "#000000",
+    });
+    const maxW = W - PAD * 2;
+    const scale = Math.min(1, maxW / bcCanvas.width);
+    const drawW = bcCanvas.width * scale;
+    const drawH = bcCanvas.height * scale;
+    const x = (W - drawW) / 2;
+    const y = H - PAD - drawH + 10;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(bcCanvas, x, y, drawW, drawH);
+    ctx.imageSmoothingEnabled = true;
+  } catch (e) {
+    console.error("Barcode draw failed", e);
+    ctx.fillStyle = "#111111";
+    ctx.font = 'bold 18px "JetBrains Mono", monospace';
+    ctx.textAlign = "center";
+    ctx.direction = "ltr";
+    ctx.fillText(order.order_number, W / 2, H - PAD - 10);
   }
 }
 
@@ -197,10 +224,20 @@ export default function LabelCanvas({ order, autoPrint = false }) {
     setReady(false);
     autoPrintedOrderRef.current = null;
 
+    const px = canvasPxForSize(size);
+
     const draw = async () => {
       try {
-        if (customerRef.current) await drawCustomerLabel(customerRef.current, order);
-        if (shopRef.current)     await drawWorkshopLabel(shopRef.current, order);
+        if (customerRef.current) {
+          customerRef.current.width = px.w;
+          customerRef.current.height = px.h;
+          await drawCustomerLabel(customerRef.current, order);
+        }
+        if (shopRef.current) {
+          shopRef.current.width = px.w;
+          shopRef.current.height = px.h;
+          await drawWorkshopLabel(shopRef.current, order);
+        }
         setReady(true);
       } catch (err) {
         console.error("Label draw failed", err);
@@ -213,16 +250,17 @@ export default function LabelCanvas({ order, autoPrint = false }) {
     } else {
       draw();
     }
-  }, [order]);
+  }, [order, size.id]);
 
-  // Auto-print Once
+  // Auto-print Once (Niimbot only, native size only)
   useEffect(() => {
     if (!autoPrint || !order?.id || !ready || !isConnected || isPrinting) return;
+    if (sizeId !== '50x30') return;
     if (autoPrintedOrderRef.current === order.id) return;
 
     autoPrintedOrderRef.current = order.id;
     printAll(getPrintableCanvases(), { copiesPerCanvas: 1, maxLabels: 2 });
-  }, [autoPrint, order?.id, ready, isConnected, isPrinting, printAll, getPrintableCanvases]);
+  }, [autoPrint, order?.id, ready, isConnected, isPrinting, printAll, getPrintableCanvases, sizeId]);
 
   const handlePrint = useCallback(() => {
     if (ready && isConnected) {
@@ -290,34 +328,42 @@ export default function LabelCanvas({ order, autoPrint = false }) {
 
   return (
     <div>
-      {/* Label previews */}
-      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "16px" }}>
-        {[
-          { ref: customerRef, title: "ملصق العميل" },
-          { ref: shopRef,     title: "ملصق الورشة" },
-        ].map(({ ref, title }) => (
-          <div key={title}>
-            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "6px", textAlign: "center" }}>
-              {title}
-            </div>
-            <div style={{
-              border: "1px solid #E5E7EB",
-              borderRadius: "var(--radius)",
-              overflow: "hidden",
-              background: "#fff",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              display: "inline-block",
-              opacity: ready ? 1 : 0.4,
-              transition: "opacity 0.3s",
-            }}>
-              <canvas
-                ref={ref}
-                style={{ display: "block", maxWidth: "160px" }}
-              />
-            </div>
+      {/* Label previews — preview scales to true aspect ratio; max 180px on longer edge */}
+      {(() => {
+        const aspect = size.w / size.h; // w/h ratio in mm (same as px)
+        const MAX = 180;
+        const pvW = aspect >= 1 ? MAX : Math.round(MAX * aspect);
+        const pvH = aspect >= 1 ? Math.round(MAX / aspect) : MAX;
+        return (
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "16px" }}>
+            {[
+              { ref: customerRef, title: "ملصق العميل" },
+              { ref: shopRef,     title: "ملصق الورشة" },
+            ].map(({ ref, title }) => (
+              <div key={title}>
+                <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "6px", textAlign: "center" }}>
+                  {title}
+                </div>
+                <div style={{
+                  border: "1px solid #E5E7EB",
+                  borderRadius: "var(--radius)",
+                  overflow: "hidden",
+                  background: "#fff",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  display: "inline-block",
+                  opacity: ready ? 1 : 0.4,
+                  transition: "opacity 0.3s",
+                }}>
+                  <canvas
+                    ref={ref}
+                    style={{ display: "block", width: `${pvW}px`, height: `${pvH}px` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {!ready && (
         <div style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginBottom: "10px" }}>
@@ -352,8 +398,8 @@ export default function LabelCanvas({ order, autoPrint = false }) {
           ⎙ طباعة (أي طابعة)
         </button>
 
-        {/* Niimbot B21 direct path */}
-        {bluetoothAvailable && (
+        {/* Niimbot B21 direct path — only valid at the printer's native 50×30 */}
+        {bluetoothAvailable && sizeId === '50x30' && (
           !isConnected ? (
             <>
               <button className="btn-ghost" onClick={() => connect('bluetooth')}>نيمبوت: بلوتوث</button>
@@ -389,13 +435,15 @@ export default function LabelCanvas({ order, autoPrint = false }) {
         )}
       </div>
 
-      {!bluetoothAvailable && (
+      {(!bluetoothAvailable || sizeId !== '50x30') && (
         <div style={{
           marginTop: 8,
           fontSize: "0.76rem",
           color: "var(--text-muted)",
         }}>
-          نيمبوت المباشر يتطلب Chrome/Edge مع بلوتوث — استخدم زر "طباعة (أي طابعة)" بدلاً من ذلك.
+          {!bluetoothAvailable
+            ? 'نيمبوت المباشر يتطلب Chrome/Edge مع بلوتوث — استخدم زر "طباعة (أي طابعة)" بدلاً من ذلك.'
+            : 'نيمبوت B21 يدعم مقاس 50×30 مم فقط — لأي مقاس آخر استخدم "طباعة (أي طابعة)".'}
         </div>
       )}
 
