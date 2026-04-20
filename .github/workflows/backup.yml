@@ -9,6 +9,7 @@ jobs:
   backup:
     name: Backup SQLite Database
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Get Github action IP
