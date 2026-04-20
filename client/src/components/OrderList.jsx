@@ -261,6 +261,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                                 padding: '1px 6px', borderRadius: 3,
                                 background: 'var(--danger)', color: '#fff',
                                 letterSpacing: 0.3,
+                                whiteSpace: 'nowrap', flexShrink: 0,
                               }}>مستعجل</span>
                             ) : null}
                           </div>
