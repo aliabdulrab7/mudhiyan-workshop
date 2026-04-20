@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { updateOrderStatus, updateCost, getComments, addComment, getOrderHistory, confirmPayment, setOrderUrgent } from '../api/orders';
+import { updateOrderStatus, updateItemCost, sendForApproval, getComments, addComment, getOrderHistory, confirmPayment, setOrderUrgent } from '../api/orders';
 import { getRole } from '../api/auth';
 import StatusPill from './StatusPill';
 import { Icons } from './icons';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 
+// Status advance buttons — omit transitions that require explicit workflow:
+//   inspection → waiting_approval: use "Send for Approval" button (per-item cost)
+//   waiting_approval → approved:  customer decides via tracking page
 const NEXT_STATUS = {
   new:              'received',
   received:         'inspection',
-  inspection:       'waiting_approval',
-  waiting_approval: 'in_repair',
   approved:         'in_repair',
   in_repair:        'quality_check',
   quality_check:    'ready_for_return',
@@ -20,8 +21,6 @@ const NEXT_STATUS = {
 const NEXT_LABEL = {
   new:              'استلام في الورشة',
   received:         'بدء الفحص',
-  inspection:       'طلب موافقة العميل',
-  waiting_approval: 'بدء الإصلاح',
   approved:         'بدء الإصلاح',
   in_repair:        'فحص الجودة',
   quality_check:    'جاهز للإرجاع',
@@ -33,9 +32,9 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [comments, setComments]     = useState([]);
   const [history, setHistory]       = useState([]);
   const [newComment, setNewComment]  = useState('');
-  const [cost, setCost]             = useState(String(initial.cost ?? 0));
   const [paymentMethod, setPaymentMethod]     = useState(null);
-  const [savingCost, setSavingCost]           = useState(false);
+  const [savingItemId, setSavingItemId]       = useState(null);
+  const [sendingApproval, setSendingApproval] = useState(false);
   const [savingStatus, setSavingStatus]       = useState(false);
   const [savingDelivery, setSavingDelivery]   = useState(false);
   const [savingComment, setSavingComment]     = useState(false);
@@ -101,18 +100,27 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     finally { setSavingDelivery(false); }
   }
 
-  async function handleSaveCost() {
-    const c = parseInt(cost, 10);
+  async function handleSaveItemCost(itemId, raw) {
+    const c = parseInt(raw, 10);
     if (isNaN(c) || c < 0) { setError('أدخل مبلغاً صحيحاً'); return; }
-    setSavingCost(true); setError('');
+    setSavingItemId(itemId); setError('');
     try {
-      const updated = await updateCost(order.id, c);
+      const updated = await updateItemCost(order.id, itemId, c);
       update(updated);
+    } catch (e) { setError(e.message); }
+    finally { setSavingItemId(null); }
+  }
+
+  async function handleSendForApproval() {
+    setSendingApproval(true); setError('');
+    try {
+      const updated = await sendForApproval(order.id);
+      update(updated); loadHistory();
       if (updated.status === 'waiting_approval') {
         window.open(buildApprovalWaUrl(updated.phone, updated.customer_name, updated.cost, buildTrackingUrl(updated.customer_token)), '_blank', 'noopener,noreferrer');
       }
     } catch (e) { setError(e.message); }
-    finally { setSavingCost(false); }
+    finally { setSendingApproval(false); }
   }
 
   async function handleConfirmReturnedToShop() {
@@ -235,29 +243,28 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             {order.items && order.items.length > 0 ? (
               <div className="card" style={{ overflow: 'hidden' }}>
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '1.2fr 44px 1.5fr 2fr',
+                  display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 96px',
                   padding: '7px 12px', background: 'var(--bg-soft)',
                   borderBottom: '1px solid var(--border)',
                   fontSize: 11, color: 'var(--text-muted)', fontWeight: 500,
                   textTransform: 'uppercase', letterSpacing: '0.04em', gap: 10,
                 }}>
-                  <span>النوع</span><span style={{ textAlign: 'center' }}>العدد</span><span>ملاحظات</span><span>تقني</span>
+                  <span>النوع</span>
+                  <span style={{ textAlign: 'center' }}>العدد</span>
+                  <span>ملاحظات</span>
+                  <span>التكلفة</span>
+                  <span>الحالة</span>
                 </div>
                 {order.items.map((item, i) => (
-                  <div key={item.id ?? i} style={{
-                    display: 'grid', gridTemplateColumns: '1.2fr 44px 1.5fr 2fr',
-                    padding: '10px 12px',
-                    borderBottom: i < order.items.length - 1 ? '1px solid var(--border)' : 'none',
-                    alignItems: 'start', gap: 10, fontSize: 12.5,
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{item.item_name || item.item_type}</div>
-                      {item.serial_number && <div className="mono text-xs text-mute">{item.serial_number}</div>}
-                    </div>
-                    <span className="mono" style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: 600 }}>{item.quantity}</span>
-                    <span style={{ color: item.notes ? 'var(--text-soft)' : 'var(--text-faint)', fontSize: 12 }}>{item.notes || '—'}</span>
-                    <span style={{ color: 'var(--success)', fontSize: 12 }}>{item.workshop_comment || '—'}</span>
-                  </div>
+                  <ItemRow
+                    key={item.id ?? i}
+                    item={item}
+                    isWorkshop={isWorkshop}
+                    canEditCost={isWorkshop && !order.locked_at && ['inspection', 'in_repair', 'rejected', 'waiting_approval'].includes(order.status)}
+                    saving={savingItemId === item.id}
+                    onSave={(c) => handleSaveItemCost(item.id, c)}
+                    isLast={i === order.items.length - 1}
+                  />
                 ))}
               </div>
             ) : (
@@ -268,6 +275,27 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   <div className="kv-key">ملاحظات</div>
                   <div className="kv-val text-sm" style={{ color: 'var(--text-soft)' }}>{order.notes}</div>
                 </>}
+              </div>
+            )}
+            {isWorkshop && order.items && order.items.length > 0 && (
+              <div style={{
+                marginTop: 10, display: 'flex', gap: 12, alignItems: 'center',
+                justifyContent: 'space-between', flexWrap: 'wrap',
+              }}>
+                <div className="mono" style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                  الإجمالي: <strong style={{ color: 'var(--text)', fontSize: 14 }}>{order.cost ?? 0}</strong> ريال
+                </div>
+                {!order.locked_at && ['inspection', 'in_repair', 'rejected'].includes(order.status) && (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    disabled={sendingApproval}
+                    onClick={handleSendForApproval}
+                    title="إرسال التسعيرة للعميل عبر واتساب"
+                  >
+                    <Icons.Phone size={12} />
+                    {sendingApproval ? 'جاري الإرسال...' : 'إرسال للعميل للموافقة'}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -348,21 +376,6 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                       <Icons.Check size={13} /> {savingStatus ? 'جاري التحديث...' : NEXT_LABEL[order.status]}
                     </button>
                   )}
-
-                  <div style={{ marginBottom: 12 }}>
-                    <label className="field-label">تكلفة الإصلاح (ريال)</label>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <input className="input" type="number" min="0" value={cost} onChange={e => setCost(e.target.value)} style={{ flex: 1 }} />
-                      <button className="btn btn-primary btn-sm" onClick={handleSaveCost} disabled={savingCost}>
-                        {savingCost ? '...' : 'حفظ'}
-                      </button>
-                    </div>
-                    {order.status === 'inspection' && (
-                      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 4 }}>
-                        تحديد التكلفة سينقل الطلب إلى "بانتظار الموافقة" تلقائياً
-                      </div>
-                    )}
-                  </div>
 
                   {error && (
                     <div style={{
@@ -490,5 +503,73 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
         </div>
       </div>
     </>
+  );
+}
+
+const APPROVAL_BADGE = {
+  pending:  { label: 'قيد المراجعة', bg: 'var(--bg-soft)',  fg: 'var(--text-muted)' },
+  approved: { label: 'موافق',         bg: 'oklch(0.7 0.15 145 / 0.12)', fg: 'var(--success)' },
+  rejected: { label: 'مرفوض',         bg: 'oklch(0.58 0.21 25 / 0.1)',  fg: 'var(--danger)' },
+  skipped:  { label: 'مجاني',         bg: 'var(--bg-soft)',  fg: 'var(--text-muted)' },
+};
+
+function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
+  const initial = item.estimated_cost == null ? '' : String(item.estimated_cost);
+  const [draft, setDraft] = useState(initial);
+  useEffect(() => { setDraft(initial); }, [initial]);
+
+  const commit = () => {
+    if (draft === initial) return;
+    if (draft === '') return;
+    onSave(draft);
+  };
+
+  const badge = APPROVAL_BADGE[item.approval_status] || null;
+
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 96px',
+      padding: '10px 12px',
+      borderBottom: isLast ? 'none' : '1px solid var(--border)',
+      alignItems: 'center', gap: 10, fontSize: 12.5,
+    }}>
+      <div>
+        <div style={{ fontWeight: 600 }}>{item.item_name || item.item_type}</div>
+        {item.serial_number && <div className="mono text-xs text-mute">{item.serial_number}</div>}
+      </div>
+      <span className="mono" style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: 600 }}>{item.quantity}</span>
+      <span style={{ color: item.notes ? 'var(--text-soft)' : 'var(--text-faint)', fontSize: 12 }}>{item.notes || '—'}</span>
+      <div>
+        {canEditCost ? (
+          <input
+            className="input"
+            type="number"
+            min="0"
+            value={draft}
+            placeholder="0"
+            disabled={saving}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
+            style={{ width: '100%', height: 28, padding: '4px 6px', fontSize: 12, textAlign: 'right' }}
+          />
+        ) : (
+          <span className="mono" style={{ fontSize: 12.5 }}>
+            {item.estimated_cost == null ? '—' : `${item.estimated_cost} ريال`}
+          </span>
+        )}
+      </div>
+      <div>
+        {badge && (
+          <span style={{
+            display: 'inline-block', fontSize: 10.5, fontWeight: 600,
+            padding: '2px 8px', borderRadius: 3,
+            background: badge.bg, color: badge.fg,
+          }}>
+            {badge.label}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

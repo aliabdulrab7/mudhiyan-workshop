@@ -18,7 +18,7 @@ function syncItemCost(itemId, cost) {
         updated_at        = datetime('now','localtime')
     WHERE id = ?
   `).run(
-    cost > 0 ? cost : null,
+    cost,
     cost > 0 ? 1 : 0,
     cost > 0 ? 'pending' : 'skipped',
     itemId
@@ -37,7 +37,7 @@ function syncAllItemCosts(orderId, cost) {
         updated_at        = datetime('now','localtime')
     WHERE order_id = ?
   `).run(
-    cost > 0 ? cost : null,
+    cost,
     cost > 0 ? 1 : 0,
     cost > 0 ? 'pending' : 'skipped',
     orderId

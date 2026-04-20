@@ -40,8 +40,8 @@ const TRANSITIONS = {
   inspection:       ['waiting_approval', 'in_repair'],
   waiting_approval: ['approved', 'rejected'],
   approved:         ['in_repair'],
-  rejected:         ['ready_for_return'],
-  in_repair:        ['quality_check'],
+  rejected:         ['ready_for_return', 'waiting_approval'],
+  in_repair:        ['quality_check', 'waiting_approval'],
   quality_check:    ['ready_for_return', 'in_repair'],
   ready_for_return: ['returned_to_shop'],
   returned_to_shop: ['delivered'],
@@ -89,20 +89,44 @@ function validateBusinessRules(order, newStatus, user) {
     }
   }
 
-  // Rule: INSPECTION → WAITING_APPROVAL requires cost > 0
+  // Rule: INSPECTION → WAITING_APPROVAL requires at least one item has estimated_cost > 0
   if (order.status === 'inspection' && newStatus === 'waiting_approval') {
-    if (!(order.cost > 0)) {
+    const row = db.prepare(
+      `SELECT COUNT(*) AS n FROM order_items
+       WHERE order_id = ? AND estimated_cost IS NOT NULL AND estimated_cost > 0`
+    ).get(order.id);
+    if (!row || row.n === 0) {
       throw new BusinessRuleViolationError(
-        'لا يمكن طلب موافقة العميل بدون تحديد تكلفة الإصلاح'
+        'لا يمكن طلب موافقة العميل بدون تحديد تكلفة لأي صنف'
       );
     }
   }
 
-  // Rule: INSPECTION → IN_REPAIR requires cost == 0
+  // Rule: INSPECTION → IN_REPAIR requires every item has estimated_cost == 0
   if (order.status === 'inspection' && newStatus === 'in_repair') {
-    if (order.cost > 0) {
+    const row = db.prepare(
+      `SELECT COUNT(*) AS n FROM order_items
+       WHERE order_id = ? AND (estimated_cost IS NULL OR estimated_cost > 0)`
+    ).get(order.id);
+    if (row && row.n > 0) {
       throw new BusinessRuleViolationError(
-        'التكلفة محددة — يجب الحصول على موافقة العميل أولاً'
+        'يوجد أصناف بتكلفة غير صفرية — يجب الحصول على موافقة العميل أولاً'
+      );
+    }
+  }
+
+  // Rule: IN_REPAIR / REJECTED → WAITING_APPROVAL (re-quote)
+  // Requires at least one pending item with estimated_cost > 0
+  if ((order.status === 'in_repair' || order.status === 'rejected') && newStatus === 'waiting_approval') {
+    const row = db.prepare(
+      `SELECT COUNT(*) AS n FROM order_items
+       WHERE order_id = ?
+         AND approval_status = 'pending'
+         AND estimated_cost IS NOT NULL AND estimated_cost > 0`
+    ).get(order.id);
+    if (!row || row.n === 0) {
+      throw new BusinessRuleViolationError(
+        'لا يوجد أصناف بحاجة لإعادة تسعير — عدّل التكلفة على صنف مرفوض أولاً'
       );
     }
   }

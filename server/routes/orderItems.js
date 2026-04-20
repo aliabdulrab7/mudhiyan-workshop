@@ -81,7 +81,8 @@ router.put('/:id', requireRole('workshop'), (req, res) => {
 });
 
 // ── POST /api/order-items/:id/diagnosis — set repair description + cost ───────
-// Triggers OrderService.transition() — does not set status directly.
+// Writes per-item diagnosis + cost. Does NOT transition the order — workshop
+// must explicitly POST /api/orders/:id/send-for-approval when ready.
 router.post('/:id/diagnosis', requireRole('workshop'), (req, res) => {
   const item = getItem(req.params.id);
   if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
@@ -90,15 +91,15 @@ router.post('/:id/diagnosis', requireRole('workshop'), (req, res) => {
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   if (checkLocked(order, res)) return;
 
-  if (order.status !== 'inspection') {
-    return res.status(400).json({ error: 'لا يمكن إضافة تشخيص إلا في مرحلة الفحص' });
+  const QUOTEABLE = new Set(['inspection', 'in_repair', 'rejected', 'waiting_approval']);
+  if (!QUOTEABLE.has(order.status)) {
+    return res.status(400).json({ error: 'لا يمكن إضافة تشخيص في هذه المرحلة' });
   }
 
   const { repair_description, estimated_cost } = req.body;
   const cost = parseFloat(estimated_cost) || 0;
   if (cost < 0) return res.status(400).json({ error: 'التكلفة لا يمكن أن تكون سالبة' });
 
-  // Update item: repair description + cost fields
   db.prepare(`
     UPDATE order_items
     SET repair_description = ?,
@@ -107,30 +108,19 @@ router.post('/:id/diagnosis', requireRole('workshop'), (req, res) => {
   `).run(repair_description?.trim() ?? null, item.id);
 
   syncItemCost(item.id, cost);
+  refreshOrderCost(order.id);
 
-  // Recalculate order total and determine transition
-  const total = refreshOrderCost(order.id);
-  const targetStatus = total > 0 ? 'waiting_approval' : 'in_repair';
-
-  let updated;
-  try {
-    updated = OrderService.transition(
-      order.id,
-      targetStatus,
-      req.user,
-      { notes: `تشخيص الصنف #${item.id}: ${repair_description ?? ''} — تكلفة: ${cost} ريال` }
-    );
-  } catch (err) {
-    return res.status(errorToHttpStatus(err)).json({ error: err.message });
-  }
-
+  const freshOrder = db.prepare(`
+    SELECT o.*, COALESCE(s.name, '') AS shop_name
+    FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+    WHERE o.id = ?
+  `).get(order.id);
   const updatedItem = db.prepare('SELECT * FROM order_items WHERE id = ?').get(item.id);
   const allItems    = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order').all(order.id);
 
   res.json({
-    order: { ...updated, items: allItems },
+    order: { ...freshOrder, items: allItems },
     item: updatedItem,
-    ...(updated._notification && { _notification: updated._notification }),
   });
 });
 

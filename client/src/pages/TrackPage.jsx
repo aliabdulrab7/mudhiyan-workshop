@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { getTrackOrder, approveOrder, rejectOrder } from '../api/orders';
+import { getTrackOrder, submitDecisions } from '../api/orders';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
 
@@ -53,14 +53,13 @@ const ACTIVE_STATUSES = new Set([
 
 export default function TrackPage() {
   const { token } = useParams();
-  const [order,       setOrder]      = useState(null);
-  const [loading,     setLoading]    = useState(true);
-  const [notFound,    setNotFound]   = useState(false);
-  const [approving,   setApproving]  = useState(false);
-  const [approved,    setApproved]   = useState(false);
-  const [rejecting,   setRejecting]  = useState(false);
-  const [rejected,    setRejected]   = useState(false);
-  const [rejectError, setRejectError] = useState(null);
+  const [order,      setOrder]    = useState(null);
+  const [loading,    setLoading]  = useState(true);
+  const [notFound,   setNotFound] = useState(false);
+  const [decisions,  setDecisions] = useState({}); // { [sort_order]: 'approve' | 'reject' }
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted,  setSubmitted]  = useState(null); // 'approved' | 'rejected' | 'mixed'
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
     let timeoutId;
@@ -79,24 +78,31 @@ export default function TrackPage() {
     return () => clearTimeout(timeoutId);
   }, [token]);
 
-  async function handleApprove() {
-    setApproving(true);
-    try {
-      await approveOrder(token);
-      setApproved(true);
-      setOrder(prev => ({ ...prev, status: 'in_repair' }));
-    } catch (e) { console.error(e); }
-    finally { setApproving(false); }
-  }
+  // Pending+costed items that need a customer decision
+  const decidableItems = useMemo(
+    () => (order?.items ?? []).filter(it => it.approval_status === 'pending' && it.estimated_cost > 0),
+    [order]
+  );
+  const allDecided = decidableItems.every(it => decisions[it.sort_order]);
 
-  async function handleReject() {
-    setRejecting(true); setRejectError(null);
+  async function handleSubmitDecisions() {
+    if (!allDecided) return;
+    setSubmitting(true); setSubmitError(null);
+    const payload = decidableItems.map(it => ({
+      sort_order: it.sort_order,
+      decision:   decisions[it.sort_order],
+    }));
     try {
-      await rejectOrder(token);
-      setRejected(true);
-      setOrder(prev => ({ ...prev, status: 'rejected' }));
-    } catch (e) { setRejectError('حدث خطأ، يرجى المحاولة مجدداً'); }
-    finally { setRejecting(false); }
+      const result = await submitDecisions(token, payload);
+      const hasReject = payload.some(d => d.decision === 'reject');
+      const hasApprove = payload.some(d => d.decision === 'approve');
+      setSubmitted(result.status === 'rejected' ? 'rejected'
+        : hasReject && hasApprove ? 'mixed'
+        : 'approved');
+      setOrder(prev => ({ ...prev, status: result.status }));
+    } catch (e) {
+      setSubmitError(e.message || 'حدث خطأ، يرجى المحاولة مجدداً');
+    } finally { setSubmitting(false); }
   }
 
   if (loading) {
@@ -232,8 +238,8 @@ export default function TrackPage() {
             {STATUS_MESSAGES[order.status] ?? order.status_label}
           </div>
 
-          {/* Item breakdown */}
-          {order.items && order.items.length > 0 && (
+          {/* Item breakdown — hidden during the waiting_approval decision flow (items render inside decision panel) */}
+          {order.items && order.items.length > 0 && !(order.status === 'waiting_approval' && !submitted) && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
                 الأصناف
@@ -265,62 +271,62 @@ export default function TrackPage() {
             </div>
           )}
 
-          {/* Cost approval panel */}
-          {order.status === 'waiting_approval' && !approved && !rejected && (
+          {/* Per-item approval panel */}
+          {order.status === 'waiting_approval' && !submitted && (
             <div style={{
               padding: 20, borderRadius: 'var(--radius)',
               background: 'oklch(0.68 0.15 70 / 0.06)',
               border: '1px solid oklch(0.68 0.15 70 / 0.25)',
               marginBottom: 20,
             }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--status-waiting)', marginBottom: 12 }}>رسوم الإصلاح</div>
-
-              {order.items && order.items.some(it => it.estimated_cost > 0) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-                  {order.items.filter(it => it.estimated_cost > 0).map((item, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                      <span style={{ color: 'var(--text-soft)' }}>{item.item_name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}</span>
-                      <span className="mono" style={{ fontWeight: 600, color: 'var(--status-waiting)' }}>{item.estimated_cost} ر.س</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mono" style={{ fontSize: 30, fontWeight: 700, color: 'var(--status-waiting)', marginBottom: 16 }}>
-                {order.estimated_cost} <span style={{ fontSize: 14, fontWeight: 400 }}>ريال</span>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--status-waiting)', marginBottom: 4 }}>
+                تسعيرة الإصلاح
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
+                اختر لكل صنف: موافقة أو رفض
               </div>
 
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  onClick={handleApprove}
-                  disabled={approving || rejecting}
-                  style={{
-                    flex: 1, padding: '14px 0', borderRadius: 'var(--radius)',
-                    background: 'var(--status-waiting)', color: '#fff', border: 'none',
-                    fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                    fontFamily: 'var(--font-ui)', opacity: approving ? 0.6 : 1,
-                  }}
-                >
-                  {approving ? '...' : 'أوافق على السعر'}
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={approving || rejecting}
-                  style={{
-                    flex: 1, padding: '14px 0', borderRadius: 'var(--radius)',
-                    background: 'var(--danger)', color: '#fff', border: 'none',
-                    fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                    fontFamily: 'var(--font-ui)', opacity: rejecting ? 0.6 : 1,
-                  }}
-                >
-                  {rejecting ? '...' : 'أرفض'}
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                {(order.items ?? []).map(item => (
+                  <DecisionRow
+                    key={item.sort_order}
+                    item={item}
+                    decision={decisions[item.sort_order]}
+                    onDecide={(d) => setDecisions(prev => ({ ...prev, [item.sort_order]: d }))}
+                  />
+                ))}
               </div>
-              {rejectError && <div style={{ marginTop: 10, fontSize: 12, textAlign: 'center', color: 'var(--danger)' }}>{rejectError}</div>}
+
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                paddingTop: 12, borderTop: '1px solid oklch(0.68 0.15 70 / 0.2)',
+                marginBottom: 14,
+              }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>الإجمالي</span>
+                <span className="mono" style={{ fontSize: 20, fontWeight: 700, color: 'var(--status-waiting)' }}>
+                  {order.estimated_cost} <span style={{ fontSize: 12, fontWeight: 400 }}>ريال</span>
+                </span>
+              </div>
+
+              <button
+                onClick={handleSubmitDecisions}
+                disabled={!allDecided || submitting}
+                style={{
+                  width: '100%', padding: '14px 0', borderRadius: 'var(--radius)',
+                  background: allDecided ? 'var(--status-waiting)' : 'var(--bg-soft)',
+                  color: allDecided ? '#fff' : 'var(--text-faint)',
+                  border: allDecided ? 'none' : '1px solid var(--border)',
+                  fontWeight: 700, fontSize: 14, cursor: allDecided ? 'pointer' : 'not-allowed',
+                  fontFamily: 'var(--font-ui)', opacity: submitting ? 0.6 : 1,
+                }}
+              >
+                {submitting ? '...' : allDecided ? 'تأكيد قراري' : `اختر لكل صنف (${decidableItems.length - Object.keys(decisions).length} متبقية)`}
+              </button>
+              {submitError && <div style={{ marginTop: 10, fontSize: 12, textAlign: 'center', color: 'var(--danger)' }}>{submitError}</div>}
             </div>
           )}
 
-          {approved && (
+          {submitted === 'approved' && (
             <div style={{
               padding: '14px 16px', borderRadius: 'var(--radius)', textAlign: 'center',
               background: 'oklch(0.60 0.15 150 / 0.08)', border: '1px solid oklch(0.60 0.15 150 / 0.25)',
@@ -330,7 +336,17 @@ export default function TrackPage() {
             </div>
           )}
 
-          {rejected && (
+          {submitted === 'mixed' && (
+            <div style={{
+              padding: '14px 16px', borderRadius: 'var(--radius)', textAlign: 'center',
+              background: 'oklch(0.60 0.15 150 / 0.06)', border: '1px solid oklch(0.60 0.15 150 / 0.2)',
+              color: 'var(--success)', fontWeight: 600, fontSize: 13, marginBottom: 20,
+            }}>
+              <Icons.Check size={14} stroke="var(--success)" /> تم تسجيل قرارك — سنعمل على الأصناف الموافق عليها فقط
+            </div>
+          )}
+
+          {submitted === 'rejected' && (
             <div style={{
               padding: '20px 16px', borderRadius: 'var(--radius)', textAlign: 'center',
               background: 'oklch(0.58 0.21 25 / 0.05)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', marginBottom: 20,
@@ -346,6 +362,104 @@ export default function TrackPage() {
         <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: 'var(--text-faint)' }}>
           يُحدَّث تلقائيًا · لا يتطلب إنشاء حساب
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DecisionRow({ item, decision, onDecide }) {
+  const isFree     = item.estimated_cost === 0 || item.estimated_cost == null;
+  const isApproved = item.approval_status === 'approved';
+  const isRejected = item.approval_status === 'rejected';
+  const isDecidable = item.approval_status === 'pending' && item.estimated_cost > 0;
+
+  const title = (
+    <div>
+      <div style={{ fontWeight: 600, fontSize: 13 }}>
+        {item.item_name}
+        {item.quantity > 1 && <span className="mono text-xs text-mute" style={{ marginRight: 4 }}>× {item.quantity}</span>}
+      </div>
+      {item.repair_description && (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>{item.repair_description}</div>
+      )}
+    </div>
+  );
+
+  if (isFree || item.approval_status === 'skipped') {
+    return (
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+        background: 'var(--bg-soft)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-sm)', padding: '10px 12px',
+      }}>
+        {title}
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--success)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+          مجاني — مشمول
+        </span>
+      </div>
+    );
+  }
+
+  if (isApproved || isRejected) {
+    return (
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+        background: 'var(--bg-soft)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-sm)', padding: '10px 12px', opacity: 0.75,
+      }}>
+        <div style={{ flex: 1 }}>
+          {title}
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            قرار سابق: {isApproved ? 'موافق' : 'مرفوض'}
+          </div>
+        </div>
+        <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', flexShrink: 0 }}>
+          {item.estimated_cost} ر.س
+        </span>
+      </div>
+    );
+  }
+
+  if (!isDecidable) return null;
+
+  return (
+    <div style={{
+      background: 'var(--bg-raised)', border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-sm)', padding: '10px 12px',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+        {title}
+        <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: 'var(--status-waiting)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+          {item.estimated_cost} ر.س
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button
+          type="button"
+          onClick={() => onDecide('approve')}
+          style={{
+            flex: 1, padding: '8px 0', borderRadius: 'var(--radius-sm)',
+            background: decision === 'approve' ? 'var(--success)' : 'transparent',
+            color: decision === 'approve' ? '#fff' : 'var(--success)',
+            border: `1px solid ${decision === 'approve' ? 'var(--success)' : 'oklch(0.60 0.15 150 / 0.3)'}`,
+            fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font-ui)',
+          }}
+        >
+          ✓ أوافق
+        </button>
+        <button
+          type="button"
+          onClick={() => onDecide('reject')}
+          style={{
+            flex: 1, padding: '8px 0', borderRadius: 'var(--radius-sm)',
+            background: decision === 'reject' ? 'var(--danger)' : 'transparent',
+            color: decision === 'reject' ? '#fff' : 'var(--danger)',
+            border: `1px solid ${decision === 'reject' ? 'var(--danger)' : 'oklch(0.58 0.21 25 / 0.3)'}`,
+            fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font-ui)',
+          }}
+        >
+          ✗ أرفض
+        </button>
       </div>
     </div>
   );

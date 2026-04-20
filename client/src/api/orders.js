@@ -92,6 +92,44 @@ export async function updateCost(id, cost) {
   return res.json();
 }
 
+export async function updateItemCost(orderId, itemId, cost) {
+  const res = await fetch(`${BASE}/${orderId}/items/${itemId}/cost`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ estimated_cost: cost }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل تحديث تكلفة الصنف');
+  }
+  return res.json();
+}
+
+export async function sendForApproval(orderId) {
+  const res = await fetch(`${BASE}/${orderId}/send-for-approval`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل إرسال التسعيرة للعميل');
+  }
+  return res.json();
+}
+
+export async function submitDecisions(token, decisions) {
+  const res = await fetch(`/api/track/${token}/decide`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ decisions }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل تسجيل القرار');
+  }
+  return res.json();
+}
+
 export async function getTrackOrder(token) {
   const res = await fetch(`/api/track/${token}`);
   if (!res.ok) throw new Error('الطلب غير موجود');

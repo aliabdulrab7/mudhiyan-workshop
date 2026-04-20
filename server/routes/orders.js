@@ -284,7 +284,8 @@ router.patch('/:id/status', (req, res) => {
 });
 
 // PATCH /api/orders/:id/cost — workshop only (order-level, backward compat)
-// Sets the same cost on all items, then transitions through OrderService.
+// Sets the same cost on every item and refreshes order total.
+// Does NOT transition — workshop must explicitly POST /:id/send-for-approval.
 router.patch('/:id/cost', requireRole('workshop'), (req, res) => {
   const cost = parseInt(req.body.cost, 10);
   if (isNaN(cost) || cost < 0) return res.status(400).json({ error: 'تكلفة غير صالحة' });
@@ -293,49 +294,26 @@ router.patch('/:id/cost', requireRole('workshop'), (req, res) => {
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   if (order.locked_at) return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
 
-  // Sync all items and recalculate order cost
   syncAllItemCosts(order.id, cost);
-  const total = refreshOrderCost(order.id);
+  refreshOrderCost(order.id);
 
-  let updated;
-  let sendApproval = false;
-
-  if (order.status === 'inspection') {
-    const targetStatus = total > 0 ? 'waiting_approval' : 'in_repair';
-    try {
-      updated = OrderService.transition(
-        order.id,
-        targetStatus,
-        req.user,
-        { notes: `تكلفة الإصلاح: ${total} ريال` }
-      );
-      sendApproval = targetStatus === 'waiting_approval';
-    } catch (err) {
-      return res.status(errorToHttpStatus(err)).json({ error: err.message });
-    }
-  } else {
-    updated = db.prepare(`
-      SELECT o.*, COALESCE(s.name, '') AS shop_name
-      FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
-      WHERE o.id = ?
-    `).get(order.id);
-  }
+  const updated = db.prepare(`
+    SELECT o.*, COALESCE(s.name, '') AS shop_name
+    FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+    WHERE o.id = ?
+  `).get(order.id);
 
   const items = db.prepare(
     'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
   ).all(updated.id);
 
-  const notification = sendApproval ? updated._notification : null;
-  res.json({
-    ...updated,
-    items,
-    ...(sendApproval && { _sendApproval: true }),
-    ...(notification && { _notification: notification }),
-  });
+  res.json({ ...updated, items });
 });
 
 // POST /api/orders/:orderId/items/:itemId/cost — workshop only
-// Sets cost on a single item, recalculates order total, triggers transition.
+// Writes cost on a single item + refreshes order total. No transition.
+// Allowed in: inspection (initial quote), in_repair / rejected (re-quote).
+// When re-quoting a previously rejected item, flips approval_status back to 'pending'.
 router.post('/:orderId/items/:itemId/cost', requireRole('workshop'), (req, res) => {
   const { estimated_cost } = req.body;
   const cost = parseFloat(estimated_cost);
@@ -345,8 +323,9 @@ router.post('/:orderId/items/:itemId/cost', requireRole('workshop'), (req, res) 
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   if (order.locked_at) return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
 
-  if (order.status !== 'inspection') {
-    return res.status(400).json({ error: 'لا يمكن تحديد التكلفة إلا في مرحلة الفحص' });
+  const QUOTEABLE = new Set(['inspection', 'in_repair', 'rejected', 'waiting_approval']);
+  if (!QUOTEABLE.has(order.status)) {
+    return res.status(400).json({ error: 'لا يمكن تعديل التكلفة في هذه المرحلة' });
   }
 
   const item = db.prepare(
@@ -354,40 +333,89 @@ router.post('/:orderId/items/:itemId/cost', requireRole('workshop'), (req, res) 
   ).get(req.params.itemId, req.params.orderId);
   if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
 
-  // Update this specific item
+  // Approval status rules:
+  //   cost = 0 → skipped (free, no customer decision needed)
+  //   cost > 0 → pending (re-open regardless of prior approved/rejected state)
+  const nextApproval = cost > 0 ? 'pending' : 'skipped';
+
   db.prepare(`
     UPDATE order_items
     SET estimated_cost    = ?,
         approval_required = ?,
         approval_status   = ?,
-        updated_at        = COALESCE(updated_at, datetime('now','localtime'))
+        updated_at        = datetime('now','localtime')
     WHERE id = ?
   `).run(
-    cost > 0 ? cost : null,
+    cost,
     cost > 0 ? 1 : 0,
-    cost > 0 ? 'pending' : 'skipped',
+    nextApproval,
     item.id
   );
 
-  // Recalculate order total from all items
-  const total = refreshOrderCost(order.id);
+  refreshOrderCost(order.id);
 
-  // Re-read order to get fresh cost/cost_status before deciding transition
-  const freshOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+  const updated = db.prepare(`
+    SELECT o.*, COALESCE(s.name, '') AS shop_name
+    FROM orders o LEFT JOIN shops s ON s.id = o.shop_id
+    WHERE o.id = ?
+  `).get(order.id);
 
-  const targetStatus = total > 0 ? 'waiting_approval' : 'in_repair';
+  const items = db.prepare(
+    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+  ).all(updated.id);
+
+  res.json({ ...updated, items });
+});
+
+// POST /api/orders/:id/send-for-approval — workshop only
+// Explicit gate: workshop sets item costs, then sends the quote to the customer.
+//   - From 'inspection': if any item cost > 0 → waiting_approval; else → in_repair.
+//   - From 'in_repair' / 'rejected' (re-quote): requires a pending item with cost > 0
+//     (the PATCH /items/:itemId/cost endpoint flips re-quoted items to pending).
+router.post('/:id/send-for-approval', requireRole('workshop'), (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  if (order.locked_at) return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
+
+  const ALLOWED_FROM = new Set(['inspection', 'in_repair', 'rejected']);
+  if (!ALLOWED_FROM.has(order.status)) {
+    return res.status(400).json({ error: 'لا يمكن إرسال الطلب للموافقة في هذه المرحلة' });
+  }
+
+  const costRow = db.prepare(
+    `SELECT
+       SUM(CASE WHEN estimated_cost IS NOT NULL AND estimated_cost > 0 THEN 1 ELSE 0 END) AS paid,
+       SUM(CASE WHEN estimated_cost IS NULL THEN 1 ELSE 0 END) AS unpriced
+     FROM order_items WHERE order_id = ?`
+  ).get(order.id);
+
+  if ((costRow?.paid ?? 0) === 0 && (costRow?.unpriced ?? 0) > 0 && order.status === 'inspection') {
+    return res.status(400).json({ error: 'يجب تحديد تكلفة كل صنف قبل الإرسال' });
+  }
+
+  // From inspection with all-zero costs → skip the customer entirely
+  const targetStatus = order.status === 'inspection' && (costRow?.paid ?? 0) === 0
+    ? 'in_repair'
+    : 'waiting_approval';
+
   let updated;
-  let sendApproval = false;
-
   try {
     updated = OrderService.transition(
       order.id,
       targetStatus,
       req.user,
-      { notes: `تكلفة الصنف #${item.id}: ${cost} ريال، الإجمالي: ${total} ريال` }
+      { notes: targetStatus === 'waiting_approval'
+          ? 'إرسال التسعيرة للعميل للموافقة'
+          : 'جميع الأصناف مجانية — بدء الإصلاح مباشرة' }
     );
-    sendApproval = targetStatus === 'waiting_approval';
   } catch (err) {
+    if (err.name === 'InvalidTransitionError') {
+      return res.status(409).json({
+        error: `لا يمكن الانتقال من '${err.from}' إلى '${err.to}'`,
+        from: err.from,
+        to:   err.to,
+      });
+    }
     return res.status(errorToHttpStatus(err)).json({ error: err.message });
   }
 
@@ -399,7 +427,7 @@ router.post('/:orderId/items/:itemId/cost', requireRole('workshop'), (req, res) 
   res.json({
     ...updated,
     items,
-    ...(sendApproval && { _sendApproval: true }),
+    ...(targetStatus === 'waiting_approval' && { _sendApproval: true }),
     ...(notification && { _notification: notification }),
   });
 });

@@ -631,22 +631,35 @@ describe('POST /api/order-items/:id/diagnosis', () => {
     `).run(orderId).lastInsertRowid;
   });
 
-  it('diagnosis with cost > 0 transitions to waiting_approval', async () => {
+  it('diagnosis with cost > 0 writes cost; order stays in inspection until workshop sends for approval', async () => {
     const res = await request(app)
       .post(`/api/order-items/${itemId}/diagnosis`)
       .set(auth(wsToken))
       .send({ repair_description: 'تغيير حجم', estimated_cost: 150 });
     expect(res.status).toBe(200);
-    expect(res.body.order.status).toBe('waiting_approval');
+    expect(res.body.order.status).toBe('inspection');
+    expect(res.body.order.cost).toBe(150);
+
+    const sent = await request(app)
+      .post(`/api/orders/${orderId}/send-for-approval`)
+      .set(auth(wsToken));
+    expect(sent.status).toBe(200);
+    expect(sent.body.status).toBe('waiting_approval');
   });
 
-  it('diagnosis with cost = 0 transitions to in_repair', async () => {
+  it('diagnosis with cost = 0 writes cost; send-for-approval fast-paths to in_repair', async () => {
     const res = await request(app)
       .post(`/api/order-items/${itemId}/diagnosis`)
       .set(auth(wsToken))
       .send({ repair_description: 'تلميع مجاني', estimated_cost: 0 });
     expect(res.status).toBe(200);
-    expect(res.body.order.status).toBe('in_repair');
+    expect(res.body.order.status).toBe('inspection');
+
+    const sent = await request(app)
+      .post(`/api/orders/${orderId}/send-for-approval`)
+      .set(auth(wsToken));
+    expect(sent.status).toBe(200);
+    expect(sent.body.status).toBe('in_repair');
   });
 
   it('rejects diagnosis when order not in diagnosing status', async () => {

@@ -37,12 +37,12 @@ const STATUS_LABELS = {
 // GET /api/track/:token — public, returns limited fields only (no internal IDs)
 router.get('/:token', (req, res) => {
   const order = db.prepare(`
-    SELECT order_number, piece_type, status, cost, cost_status, created_at
+    SELECT id, order_number, piece_type, status, cost, cost_status, created_at
     FROM orders WHERE customer_token = ?
   `).get(req.params.token);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
 
-  // Fetch items — exclude internal `id` and `order_id` fields
+  // Internal `id` stays hidden — the customer references items by `sort_order`.
   const items = db.prepare(`
     SELECT
       item_name,
@@ -53,9 +53,9 @@ router.get('/:token', (req, res) => {
       approval_status,
       sort_order
     FROM order_items
-    WHERE order_id = (SELECT id FROM orders WHERE customer_token = ?)
+    WHERE order_id = ?
     ORDER BY sort_order
-  `).all(req.params.token);
+  `).all(order.id);
 
   res.json({
     tracking_number:      order.order_number,
@@ -70,84 +70,192 @@ router.get('/:token', (req, res) => {
   });
 });
 
-// POST /api/track/:token/approve — public customer approval
-// Token-gated, no auth required. Only valid when order is in waiting_approval.
-router.post('/:token/approve', (req, res) => {
-  const order = db.prepare('SELECT id, status FROM orders WHERE customer_token = ?').get(req.params.token);
-  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+// ── Per-item decision helpers ─────────────────────────────────────────────────
 
+// Apply a list of { sort_order, decision } to an order's pending items.
+// Runs in a transaction so partial writes can't happen. Returns the final order
+// status after the aggregate transition ('approved' or 'rejected').
+function applyDecisions(orderId, decisions, actor) {
+  const pendingCosted = db.prepare(
+    `SELECT id, sort_order FROM order_items
+     WHERE order_id = ?
+       AND approval_status = 'pending'
+       AND estimated_cost IS NOT NULL AND estimated_cost > 0`
+  ).all(orderId);
+  const sortToId = new Map(pendingCosted.map(r => [r.sort_order, r.id]));
+
+  const resolved = [];
+  for (const d of decisions) {
+    const sortOrder = d.sort_order ?? d.item_id; // accept either key
+    if (!sortToId.has(sortOrder)) {
+      const err = new Error('قرار غير صالح — صنف غير مؤهل للموافقة');
+      err.name = 'ValidationError';
+      throw err;
+    }
+    if (d.decision !== 'approve' && d.decision !== 'reject') {
+      const err = new Error('قرار غير صالح');
+      err.name = 'ValidationError';
+      throw err;
+    }
+    resolved.push({ id: sortToId.get(sortOrder), decision: d.decision });
+  }
+
+  const decidedSet = new Set(resolved.map(r => r.id));
+  for (const { id } of pendingCosted) {
+    if (!decidedSet.has(id)) {
+      const err = new Error('يجب اتخاذ قرار لكل صنف معلق');
+      err.name = 'ValidationError';
+      throw err;
+    }
+  }
+
+  const writeAll = db.transaction(() => {
+    const upd = db.prepare(
+      `UPDATE order_items SET approval_status = ? WHERE id = ? AND order_id = ?`
+    );
+    for (const { id, decision } of resolved) {
+      upd.run(decision === 'approve' ? 'approved' : 'rejected', id, orderId);
+    }
+  });
+  writeAll();
+
+  // Aggregate: at least one item "will be worked on" if any row ends up
+  // approved or skipped (free). Otherwise the whole order is rejected.
+  const agg = db.prepare(
+    `SELECT
+       SUM(CASE WHEN approval_status IN ('approved','skipped') THEN 1 ELSE 0 END) AS workable,
+       SUM(CASE WHEN approval_status = 'rejected' THEN 1 ELSE 0 END) AS rejected
+     FROM order_items WHERE order_id = ?`
+  ).get(orderId);
+
+  const targetStatus = (agg?.workable ?? 0) > 0 ? 'approved' : 'rejected';
+
+  db.prepare(
+    `UPDATE orders
+     SET cost_status = ?, updated_at = datetime('now','localtime')
+     WHERE id = ?`
+  ).run(targetStatus === 'approved' ? 'APPROVED' : 'REJECTED', orderId);
+
+  return OrderService.transition(
+    orderId,
+    targetStatus,
+    actor,
+    { notes: targetStatus === 'approved'
+        ? `العميل وافق على ${agg.workable} صنف، رفض ${agg.rejected ?? 0}`
+        : 'العميل رفض جميع الأصناف المسعّرة' }
+  );
+}
+
+// POST /api/track/:token/decide — per-item customer decisions
+// Body: { decisions: [{ item_id, decision: 'approve' | 'reject' }, ...] }
+router.post('/:token/decide', (req, res) => {
+  const { decisions } = req.body || {};
+  if (!Array.isArray(decisions) || decisions.length === 0) {
+    return res.status(400).json({ error: 'لا توجد قرارات' });
+  }
+
+  const order = db.prepare(
+    'SELECT id, status FROM orders WHERE customer_token = ?'
+  ).get(req.params.token);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   if (order.status !== 'waiting_approval') {
     return res.status(400).json({ error: 'الطلب لا يحتاج موافقة في هذه المرحلة' });
   }
 
   try {
-    // Mark all pending items as approved
-    db.prepare(`
-      UPDATE order_items
-      SET approval_status = 'approved'
-      WHERE order_id = ? AND approval_status = 'pending'
-    `).run(order.id);
-
-    // Sync order cost_status
-    db.prepare(`
-      UPDATE orders
-      SET cost_status = 'APPROVED', updated_at = datetime('now','localtime')
-      WHERE id = ?
-    `).run(order.id);
-
-    const updated = OrderService.transition(
-      order.id,
-      'approved',
-      { role: 'workshop', username: 'customer_qr' },
-      { notes: 'موافقة العميل عبر رمز QR' }
-    );
+    const updated = applyDecisions(order.id, decisions, {
+      role: 'workshop',
+      username: 'customer_qr',
+    });
     res.json({
       status:       updated.status,
       status_label: STATUS_LABELS[updated.status] ?? updated.status,
       ...(updated._notification && { _notification: updated._notification }),
     });
   } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
     res.status(errorToHttpStatus(err)).json({ error: err.message });
   }
 });
 
-// POST /api/track/:token/reject — public customer rejection
-// Token-gated, no auth required. Only valid when order is in waiting_approval.
-router.post('/:token/reject', (req, res) => {
-  const order = db.prepare('SELECT id, status FROM orders WHERE customer_token = ?').get(req.params.token);
+// POST /api/track/:token/approve — legacy "approve everything" shim
+router.post('/:token/approve', (req, res) => {
+  const order = db.prepare(
+    'SELECT id, status FROM orders WHERE customer_token = ?'
+  ).get(req.params.token);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
-
   if (order.status !== 'waiting_approval') {
     return res.status(400).json({ error: 'الطلب لا يحتاج موافقة في هذه المرحلة' });
   }
 
+  const pending = db.prepare(
+    `SELECT sort_order FROM order_items
+     WHERE order_id = ?
+       AND approval_status = 'pending'
+       AND estimated_cost IS NOT NULL AND estimated_cost > 0`
+  ).all(order.id);
+
+  const decisions = pending.map(r => ({ sort_order: r.sort_order, decision: 'approve' }));
+
   try {
-    // Mark all pending items as rejected
-    db.prepare(`
-      UPDATE order_items
-      SET approval_status = 'rejected'
-      WHERE order_id = ? AND approval_status = 'pending'
-    `).run(order.id);
-
-    // Sync order cost_status
-    db.prepare(`
-      UPDATE orders
-      SET cost_status = 'REJECTED', updated_at = datetime('now','localtime')
-      WHERE id = ?
-    `).run(order.id);
-
-    const updated = OrderService.transition(
-      order.id,
-      'rejected',
-      { role: 'workshop', username: 'customer_qr' },
-      { notes: 'رفض العميل عبر رمز QR' }
-    );
+    const updated = decisions.length === 0
+      // No costed-pending items — just transition via OrderService.
+      // (Edge case: order in waiting_approval with nothing to decide.)
+      ? OrderService.transition(order.id, 'approved',
+          { role: 'workshop', username: 'customer_qr' },
+          { notes: 'موافقة العميل (لا توجد أصناف مسعّرة معلقة)' })
+      : applyDecisions(order.id, decisions,
+          { role: 'workshop', username: 'customer_qr' });
     res.json({
       status:       updated.status,
       status_label: STATUS_LABELS[updated.status] ?? updated.status,
       ...(updated._notification && { _notification: updated._notification }),
     });
   } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(errorToHttpStatus(err)).json({ error: err.message });
+  }
+});
+
+// POST /api/track/:token/reject — legacy "reject everything" shim
+router.post('/:token/reject', (req, res) => {
+  const order = db.prepare(
+    'SELECT id, status FROM orders WHERE customer_token = ?'
+  ).get(req.params.token);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  if (order.status !== 'waiting_approval') {
+    return res.status(400).json({ error: 'الطلب لا يحتاج موافقة في هذه المرحلة' });
+  }
+
+  const pending = db.prepare(
+    `SELECT sort_order FROM order_items
+     WHERE order_id = ?
+       AND approval_status = 'pending'
+       AND estimated_cost IS NOT NULL AND estimated_cost > 0`
+  ).all(order.id);
+
+  const decisions = pending.map(r => ({ sort_order: r.sort_order, decision: 'reject' }));
+
+  try {
+    const updated = decisions.length === 0
+      ? OrderService.transition(order.id, 'rejected',
+          { role: 'workshop', username: 'customer_qr' },
+          { notes: 'رفض العميل (لا توجد أصناف مسعّرة معلقة)' })
+      : applyDecisions(order.id, decisions,
+          { role: 'workshop', username: 'customer_qr' });
+    res.json({
+      status:       updated.status,
+      status_label: STATUS_LABELS[updated.status] ?? updated.status,
+      ...(updated._notification && { _notification: updated._notification }),
+    });
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
     res.status(errorToHttpStatus(err)).json({ error: err.message });
   }
 });

@@ -53,23 +53,35 @@ describe('PATCH /api/orders/:id/cost', () => {
     db.prepare(`INSERT INTO order_items (order_id, item_name, item_type, sort_order) VALUES (?, 'خاتم ذهبي', 'ring', 1)`).run(orderId);
   });
 
-  it('cost > 0 sets status to waiting_approval', async () => {
+  it('cost > 0 writes cost + keeps status in inspection (workshop must send for approval)', async () => {
     const res = await request(app)
       .patch(`/api/orders/${orderId}/cost`)
       .set(auth(workshopToken))
       .send({ cost: 50 });
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('waiting_approval');
+    expect(res.body.status).toBe('inspection');
     expect(res.body.cost).toBe(50);
+
+    const approval = await request(app)
+      .post(`/api/orders/${orderId}/send-for-approval`)
+      .set(auth(workshopToken));
+    expect(approval.status).toBe(200);
+    expect(approval.body.status).toBe('waiting_approval');
   });
 
-  it('cost = 0 sets status to in_repair', async () => {
+  it('cost = 0 writes cost; send-for-approval fast-paths to in_repair', async () => {
     const res = await request(app)
       .patch(`/api/orders/${orderId}/cost`)
       .set(auth(workshopToken))
       .send({ cost: 0 });
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('in_repair');
+    expect(res.body.status).toBe('inspection');
+
+    const approval = await request(app)
+      .post(`/api/orders/${orderId}/send-for-approval`)
+      .set(auth(workshopToken));
+    expect(approval.status).toBe(200);
+    expect(approval.body.status).toBe('in_repair');
   });
 
   it('shop_employee cannot set cost', async () => {
