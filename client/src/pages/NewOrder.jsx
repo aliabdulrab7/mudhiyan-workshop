@@ -5,7 +5,35 @@ import LabelCanvas from '../components/LabelCanvas';
 import { Icons } from '../components/icons';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
-const newItem = () => ({ item_type: 'خاتم', quantity: 1, notes: '', workshop_comment: '' });
+
+const REPAIR_TYPES = [
+  { value: 'لحام',         needs: null    },
+  { value: 'تلميع',        needs: null    },
+  { value: 'تغيير مقاس',   needs: 'size'  },
+  { value: 'تركيب حجر',    needs: 'stone' },
+  { value: 'تغيير اللون',  needs: 'color' },
+  { value: 'إصلاح قفل',    needs: null    },
+  { value: 'إصلاح سلسلة',  needs: null    },
+  { value: 'تنظيف',        needs: null    },
+  { value: 'إعادة تحجير',  needs: null    },
+  { value: 'أخرى',         needs: 'text'  },
+];
+const COLOR_OPTIONS = ['أصفر', 'روز جولد', 'أبيض'];
+
+const newItem = () => ({ item_type: 'خاتم', quantity: 1, notes: '', repair_type: '', repair_detail: '' });
+
+function migrateItem(it) {
+  if (!it) return newItem();
+  if (it.repair_type !== undefined) return { repair_detail: '', ...it };
+  const wc = (it.workshop_comment || '').trim();
+  return {
+    item_type:     it.item_type || 'خاتم',
+    quantity:      it.quantity || 1,
+    notes:         it.notes || '',
+    repair_type:   wc ? 'أخرى' : '',
+    repair_detail: wc,
+  };
+}
 
 const STORAGE_KEY = 'new_order_draft';
 function saveDraft(s) { try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (_) {} }
@@ -93,7 +121,12 @@ export default function NewOrder() {
   const navigate = useNavigate();
   const [form, setForm] = useState(() => {
     const draft = loadDraft();
-    return draft ?? { customerName: '', phoneDigits: '', items: [newItem()] };
+    if (!draft) return { customerName: '', phoneDigits: '', items: [newItem()] };
+    return {
+      customerName: draft.customerName || '',
+      phoneDigits:  draft.phoneDigits  || '',
+      items:        Array.isArray(draft.items) && draft.items.length ? draft.items.map(migrateItem) : [newItem()],
+    };
   });
   const [errors, setErrors]       = useState({});
   const [loading, setLoading]     = useState(false);
@@ -137,7 +170,14 @@ export default function NewOrder() {
     if (!form.customerName.trim()) errs.customerName = 'يرجى إدخال اسم العميل';
     if (form.phoneDigits.length !== 9) errs.phone = 'يرجى إدخال 9 أرقام بعد رمز الدولة';
     form.items.forEach((it, i) => {
-      if (!it.workshop_comment.trim()) errs[`item_${i}`] = 'الإصلاح المطلوب مطلوب';
+      if (!it.repair_type) {
+        errs[`item_${i}`] = 'اختر نوع الإصلاح';
+        return;
+      }
+      const meta = REPAIR_TYPES.find(t => t.value === it.repair_type);
+      if (meta?.needs && !it.repair_detail.trim()) {
+        errs[`item_${i}`] = 'أدخل تفاصيل الإصلاح';
+      }
     });
     return errs;
   }
@@ -150,12 +190,15 @@ export default function NewOrder() {
       const order = await createOrder({
         customer_name: form.customerName.trim(),
         phone:         '966' + form.phoneDigits,
-        items:         form.items.map(r => ({
-          item_name:        r.item_type,
-          quantity:         Number(r.quantity) || 1,
-          notes:            r.notes.trim(),
-          workshop_comment: r.workshop_comment.trim(),
-        })),
+        items:         form.items.map(r => {
+          const detail = r.repair_detail.trim();
+          return {
+            item_name:        r.item_type,
+            quantity:         Number(r.quantity) || 1,
+            notes:            r.notes.trim(),
+            workshop_comment: detail ? `${r.repair_type} — ${detail}` : r.repair_type,
+          };
+        }),
       });
       clearDraft();
       setCreatedOrder(order);
@@ -244,8 +287,8 @@ export default function NewOrder() {
             <div className="items-thead">
               <span>النوع</span>
               <span style={{ textAlign: 'center' }}>عدد</span>
-              <span>ملاحظات الاستلام</span>
               <span>الإصلاح المطلوب <span style={{ color: 'var(--danger)' }}>*</span></span>
+              <span>ملاحظات الاستلام</span>
               <span />
             </div>
             {form.items.map((row, i) => (
@@ -265,19 +308,79 @@ export default function NewOrder() {
                   value={row.quantity}
                   onChange={e => updateItem(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
                 />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <select
+                    className="select"
+                    value={row.repair_type}
+                    onChange={e => {
+                      updateItem(i, 'repair_type', e.target.value);
+                      updateItem(i, 'repair_detail', '');
+                    }}
+                    style={{ height: 30, borderColor: errors[`item_${i}`] ? 'var(--danger)' : undefined }}
+                  >
+                    <option value="" disabled>اختر نوع الإصلاح…</option>
+                    {REPAIR_TYPES.map(t => <option key={t.value} value={t.value}>{t.value}</option>)}
+                  </select>
+                  {(() => {
+                    const meta = REPAIR_TYPES.find(t => t.value === row.repair_type);
+                    if (!meta?.needs) return null;
+                    if (meta.needs === 'size') {
+                      return (
+                        <input
+                          className="input mono"
+                          style={{ height: 28 }}
+                          placeholder="المقاس الجديد"
+                          inputMode="decimal"
+                          value={row.repair_detail}
+                          onChange={e => updateItem(i, 'repair_detail', e.target.value)}
+                        />
+                      );
+                    }
+                    if (meta.needs === 'stone') {
+                      return (
+                        <input
+                          className="input"
+                          style={{ height: 28 }}
+                          placeholder="نوع الحجر / الموضع"
+                          value={row.repair_detail}
+                          onChange={e => updateItem(i, 'repair_detail', e.target.value)}
+                        />
+                      );
+                    }
+                    if (meta.needs === 'color') {
+                      return (
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          {COLOR_OPTIONS.map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              className={'chip' + (row.repair_detail === c ? ' active' : '')}
+                              onClick={() => updateItem(i, 'repair_detail', c)}
+                              style={{ flex: 1, height: 28, fontSize: 11 }}
+                            >
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return (
+                      <input
+                        className="input"
+                        style={{ height: 28 }}
+                        placeholder="اكتب التفاصيل"
+                        value={row.repair_detail}
+                        onChange={e => updateItem(i, 'repair_detail', e.target.value)}
+                      />
+                    );
+                  })()}
+                </div>
                 <input
                   className="input"
                   style={{ height: 30, borderColor: errors[`item_${i}`] ? 'var(--danger)' : undefined }}
                   placeholder="خدش طفيف، سلسلة تالفة…"
                   value={row.notes}
                   onChange={e => updateItem(i, 'notes', e.target.value)}
-                />
-                <input
-                  className="input"
-                  style={{ height: 30, borderColor: errors[`item_${i}`] ? 'var(--danger)' : undefined }}
-                  placeholder="لحام، تلميع، إعادة تحجير…"
-                  value={row.workshop_comment}
-                  onChange={e => updateItem(i, 'workshop_comment', e.target.value)}
                 />
                 <button
                   className="btn btn-ghost btn-icon btn-sm"

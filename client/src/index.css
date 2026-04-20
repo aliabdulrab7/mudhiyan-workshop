@@ -704,14 +704,14 @@ h1, h2, h3, h4 {
 
 .items-table { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
 .items-thead {
-  display: grid; grid-template-columns: 140px 60px 1fr 1fr 28px;
+  display: grid; grid-template-columns: 140px 60px 1.25fr 1fr 28px;
   padding: 8px 10px; background: var(--bg-soft);
   border-bottom: 1px solid var(--border);
   font-size: 10px; color: var(--text-muted); font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.10em; gap: 10px;
 }
 .items-row {
-  display: grid; grid-template-columns: 140px 60px 1fr 1fr 28px;
+  display: grid; grid-template-columns: 140px 60px 1.25fr 1fr 28px;
   padding: 8px 10px; border-bottom: 1px solid var(--border-faint);
   align-items: start; gap: 10px;
 }
