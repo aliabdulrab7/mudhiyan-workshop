@@ -401,9 +401,9 @@ const createOrder = db.transaction((data) => {
     : (data.piece_type || '');
 
   const result = db.prepare(`
-    INSERT INTO orders (order_number, customer_name, phone, piece_type, notes, shop_id, customer_token, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'new')
-  `).run(order_number, data.customer_name, data.phone, piece_type, data.notes ?? '', data.shop_id ?? null, customer_token);
+    INSERT INTO orders (order_number, customer_name, phone, piece_type, notes, shop_id, customer_token, status, is_urgent)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?)
+  `).run(order_number, data.customer_name, data.phone, piece_type, data.notes ?? '', data.shop_id ?? null, customer_token, data.is_urgent ? 1 : 0);
 
   const orderId = result.lastInsertRowid;
 

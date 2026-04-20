@@ -185,7 +185,8 @@ router.get('/:id/history', (req, res) => {
 
 // POST /api/orders — shop_employee only
 router.post('/', requireRole('shop_employee'), (req, res) => {
-  const { customer_name, phone, notes, items } = req.body;
+  const { customer_name, phone, notes, items, urgency } = req.body;
+  const is_urgent = urgency === 'rush' ? 1 : 0;
   if (!customer_name || !phone) {
     return res.status(400).json({ error: 'الاسم ورقم الجوال مطلوبان' });
   }
@@ -229,6 +230,7 @@ router.post('/', requireRole('shop_employee'), (req, res) => {
       })),
       shop_id:    req.user.shop_id,
       created_by: req.user.username,
+      is_urgent,
     });
     res.status(201).json(created);
   } catch {

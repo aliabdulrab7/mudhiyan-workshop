@@ -125,6 +125,30 @@ async function drawWorkshopLabel(canvas, order) {
   ctx.direction = "rtl";
   ctx.fillText(order.shop_name || "الورشة المركزية", W - PAD, PAD + 18);
 
+  // Urgency stamp (red pill on the left)
+  if (order.is_urgent) {
+    const pillW = 70, pillH = 20;
+    const px = PAD, py = PAD + 4;
+    ctx.fillStyle = "#DC2626";
+    ctx.beginPath();
+    const r = 4;
+    ctx.moveTo(px + r, py);
+    ctx.lineTo(px + pillW - r, py);
+    ctx.quadraticCurveTo(px + pillW, py, px + pillW, py + r);
+    ctx.lineTo(px + pillW, py + pillH - r);
+    ctx.quadraticCurveTo(px + pillW, py + pillH, px + pillW - r, py + pillH);
+    ctx.lineTo(px + r, py + pillH);
+    ctx.quadraticCurveTo(px, py + pillH, px, py + pillH - r);
+    ctx.lineTo(px, py + r);
+    ctx.quadraticCurveTo(px, py, px + r, py);
+    ctx.fill();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 12px Almarai, Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("مستعجل", px + pillW / 2, py + 14);
+    ctx.textAlign = "right";
+  }
+
   // Separator
   ctx.strokeStyle = "#111111";
   ctx.lineWidth = 1;

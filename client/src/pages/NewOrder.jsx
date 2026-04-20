@@ -117,10 +117,11 @@ export default function NewOrder() {
   const navigate = useNavigate();
   const [form, setForm] = useState(() => {
     const draft = loadDraft();
-    if (!draft) return { customerName: '', phoneDigits: '', items: [newItem()] };
+    if (!draft) return { customerName: '', phoneDigits: '', urgency: 'normal', items: [newItem()] };
     return {
       customerName: draft.customerName || '',
       phoneDigits:  draft.phoneDigits  || '',
+      urgency:      draft.urgency === 'rush' ? 'rush' : 'normal',
       items:        Array.isArray(draft.items) && draft.items.length ? draft.items.map(migrateItem) : [newItem()],
     };
   });
@@ -232,6 +233,7 @@ export default function NewOrder() {
       const order = await createOrder({
         customer_name: form.customerName.trim(),
         phone:         '966' + form.phoneDigits,
+        urgency:       form.urgency === 'rush' ? 'rush' : 'normal',
         items:         form.items.map(r => ({
           item_name:        r.item_type,
           quantity:         Number(r.quantity) || 1,
@@ -257,7 +259,7 @@ export default function NewOrder() {
         order={createdOrder}
         onNewOrder={() => {
           setCreatedOrder(null);
-          setForm({ customerName: '', phoneDigits: '', items: [newItem()] });
+          setForm({ customerName: '', phoneDigits: '', urgency: 'normal', items: [newItem()] });
           setErrors({});
           setSubmitError('');
         }}
@@ -320,6 +322,28 @@ export default function NewOrder() {
               {errors.phone && (
                 <div style={{ color: 'var(--danger)', fontSize: 11.5, marginTop: 4 }}>{errors.phone}</div>
               )}
+            </div>
+          </div>
+
+          {/* Urgency */}
+          <div style={{ marginBottom: 16 }}>
+            <label className="field-label">الأولوية</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[
+                { value: 'normal', label: 'عادي' },
+                { value: 'rush',   label: 'مستعجل' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={'chip' + (form.urgency === opt.value ? ' active' : '')}
+                  onClick={() => updateForm('urgency', opt.value)}
+                  style={{ flex: 1, height: 32, fontSize: 12 }}
+                >
+                  {opt.value === 'rush' && <Icons.Bell size={11} style={{ marginInlineEnd: 4 }} />}
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
