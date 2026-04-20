@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getStats, getBranchStats } from '../api/orders';
+import { getUsername } from '../api/auth';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
+import { openReportPrintWindow } from '../utils/reportPrint';
+
+const WORKSHOP_NAME = 'المضيان';
 
 const STAT_CARDS = [
   { key: 'received',         label: 'مستلمة في الورشة',   color: 'var(--status-received)' },
@@ -49,7 +53,18 @@ export default function ReportsPage() {
           <div className="page-sub">ملخص حالة الطلبات وتوزيع الفروع</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-sm"><Icons.Download size={12} /> تصدير</button>
+          <button
+            className="btn btn-sm"
+            onClick={() => openReportPrintWindow({
+              stats,
+              branchStats,
+              generatedAt: new Date(),
+              username: getUsername(),
+              workshopName: WORKSHOP_NAME,
+            })}
+          >
+            <Icons.Download size={12} /> تصدير
+          </button>
         </div>
       </div>
 

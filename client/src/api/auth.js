@@ -1,7 +1,8 @@
-export function getToken()  { return localStorage.getItem('token'); }
-export function getRole()   { return localStorage.getItem('role'); }
-export function getShopId() { return localStorage.getItem('shop_id'); }
-export function isLoggedIn() { return !!getToken(); }
+export function getToken()    { return localStorage.getItem('token'); }
+export function getRole()     { return localStorage.getItem('role'); }
+export function getShopId()   { return localStorage.getItem('shop_id'); }
+export function getUsername() { return localStorage.getItem('username') || ''; }
+export function isLoggedIn()  { return !!getToken(); }
 
 export function saveAuth({ token, role, shop_id, username }) {
   localStorage.setItem('token', token);
