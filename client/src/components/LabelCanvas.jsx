@@ -9,6 +9,18 @@ const W = 400;
 const H = 240;
 const PAD = 40;
 
+// Label sizes for universal (browser) printing.
+// mm values drive @page size; aspect-preserving scale handles any mismatch with the 50×30 canvas.
+const LABEL_SIZES = [
+  { id: '50x30',   label: '50×30 مم (نيمبوت)',  w: 50,  h: 30  },
+  { id: '57x32',   label: '57×32 مم',           w: 57,  h: 32  },
+  { id: '80x50',   label: '80×50 مم',           w: 80,  h: 50  },
+  { id: '100x50',  label: '100×50 مم',          w: 100, h: 50  },
+  { id: '100x100', label: '100×100 مم (شحن)',   w: 100, h: 100 },
+  { id: 'a4',      label: 'A4 (ورقة عادية)',     w: 210, h: 297 },
+];
+const SIZE_STORAGE_KEY = 'label_size_preset';
+
 /**
  * ── Customer label ──
  * qr_content: customer_tracking_url
@@ -156,6 +168,13 @@ export default function LabelCanvas({ order, autoPrint = false }) {
   const shopRef = useRef(null);
   const autoPrintedOrderRef = useRef(null);
   const [ready, setReady] = useState(false);
+  const [sizeId, setSizeId] = useState(() => {
+    try { return localStorage.getItem(SIZE_STORAGE_KEY) || '50x30'; } catch (_) { return '50x30'; }
+  });
+  const size = LABEL_SIZES.find(s => s.id === sizeId) || LABEL_SIZES[0];
+  useEffect(() => {
+    try { localStorage.setItem(SIZE_STORAGE_KEY, sizeId); } catch (_) {}
+  }, [sizeId]);
   const {
     connect,
     printAll,
@@ -211,6 +230,62 @@ export default function LabelCanvas({ order, autoPrint = false }) {
     }
   }, [ready, isConnected, printAll, getPrintableCanvases]);
 
+  // Universal print: opens OS print dialog for any printer (label or regular).
+  // Uses @page size so the printer driver sizes the label correctly.
+  const handleUniversalPrint = useCallback(() => {
+    if (!ready) return;
+    const customer = customerRef.current?.toDataURL('image/png');
+    const shop = shopRef.current?.toDataURL('image/png');
+    if (!customer || !shop) return;
+
+    const win = window.open('', '_blank', 'width=480,height=640');
+    if (!win) return;
+
+    const { w, h } = size;
+    const html = `<!doctype html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8" />
+<title>طباعة ملصقات ${order.order_number}</title>
+<style>
+  @page { size: ${w}mm ${h}mm; margin: 0; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  .sheet {
+    width: ${w}mm; height: ${h}mm;
+    display: flex; align-items: center; justify-content: center;
+    page-break-after: always; break-after: page;
+  }
+  .sheet:last-child { page-break-after: auto; break-after: auto; }
+  .sheet img {
+    max-width: 100%; max-height: 100%;
+    image-rendering: pixelated;
+  }
+  @media screen {
+    body { padding: 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; font-family: system-ui, sans-serif; }
+    .sheet { border: 1px dashed #ccc; }
+    .hint { font-size: 12px; color: #666; }
+  }
+  @media print { .hint { display: none; } }
+</style>
+</head>
+<body>
+  <div class="hint">إذا لم تبدأ الطباعة تلقائياً، استخدم Ctrl/Cmd + P</div>
+  <div class="sheet"><img src="${customer}" alt="customer" /></div>
+  <div class="sheet"><img src="${shop}" alt="shop" /></div>
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () { window.focus(); window.print(); }, 250);
+    });
+    window.onafterprint = function () { window.close(); };
+  </script>
+</body>
+</html>`;
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  }, [ready, size, order]);
+
   const bluetoothAvailable = typeof navigator !== "undefined" && !!navigator.bluetooth;
 
   return (
@@ -250,25 +325,40 @@ export default function LabelCanvas({ order, autoPrint = false }) {
         </div>
       )}
 
+      {/* Label size selector */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+        <label style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>مقاس الملصق:</label>
+        <select
+          className="select"
+          value={sizeId}
+          onChange={e => setSizeId(e.target.value)}
+          style={{ height: 30, fontSize: "0.82rem", minWidth: 180 }}
+        >
+          {LABEL_SIZES.map(s => (
+            <option key={s.id} value={s.id}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Print controls */}
-      {!bluetoothAvailable ? (
-        <div style={{
-          background: "rgba(220,38,38,0.06)",
-          border: "1px solid rgba(220,38,38,0.20)",
-          borderRadius: "var(--radius)",
-          padding: "10px 14px",
-          color: "#DC2626",
-          fontSize: "0.83rem",
-        }}>
-          ⚠ طابعة Niimbot تتطلب Chrome أو Edge مع دعم Bluetooth
-        </div>
-      ) : (
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-          {!isConnected ? (
+      <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+        {/* Universal browser print — works with any OS-installed printer */}
+        <button
+          className="btn-gold"
+          disabled={!ready}
+          onClick={handleUniversalPrint}
+          title="طباعة عبر المتصفح — تدعم أي طابعة مثبتة في النظام"
+        >
+          ⎙ طباعة (أي طابعة)
+        </button>
+
+        {/* Niimbot B21 direct path */}
+        {bluetoothAvailable && (
+          !isConnected ? (
             <>
-              <button className="btn-ghost" onClick={() => connect('bluetooth')}>⌘ اتصال بلوتوث</button>
+              <button className="btn-ghost" onClick={() => connect('bluetooth')}>نيمبوت: بلوتوث</button>
               {supportsSerial && (
-                <button className="btn-ghost" onClick={() => connect('serial')}>USB-C / Serial</button>
+                <button className="btn-ghost" onClick={() => connect('serial')}>نيمبوت: USB-C</button>
               )}
             </>
           ) : (
@@ -278,24 +368,34 @@ export default function LabelCanvas({ order, autoPrint = false }) {
                 متصل {printerMeta?.transport === 'serial' ? 'USB' : 'Bluetooth'}
               </span>
               <button
-                className="btn-gold"
+                className="btn-ghost"
                 disabled={isPrinting || !ready}
                 onClick={handlePrint}
               >
-                {isPrinting ? "جاري الطباعة..." : "⎙ طباعة الملصقات"}
+                {isPrinting ? "جاري الطباعة..." : "طباعة نيمبوت"}
               </button>
               {isPrinting && (
-                <button 
-                  className="btn-ghost-sm" 
+                <button
+                  className="btn-ghost-sm"
                   style={{ color: '#DC2626', border: '1px solid rgba(220,38,38,0.2)' }}
                   onClick={disconnect}
                 >
-                  ⚠ إيقاف إجباري
+                  ⚠ إيقاف
                 </button>
               )}
               {!isPrinting && <button className="btn-ghost-sm" onClick={disconnect}>قطع الاتصال</button>}
             </>
-          )}
+          )
+        )}
+      </div>
+
+      {!bluetoothAvailable && (
+        <div style={{
+          marginTop: 8,
+          fontSize: "0.76rem",
+          color: "var(--text-muted)",
+        }}>
+          نيمبوت المباشر يتطلب Chrome/Edge مع بلوتوث — استخدم زر "طباعة (أي طابعة)" بدلاً من ذلك.
         </div>
       )}
 
