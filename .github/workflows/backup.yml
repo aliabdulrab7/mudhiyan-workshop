@@ -45,15 +45,16 @@ jobs:
             # Keep only last 30 backups
             ls -t $BACKUP_DIR/*.db | tail -n +31 | xargs -r rm
 
-      - name: Copy backup to runner
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_IP }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: /var/www/mudhiyan/server/data/backups/
-          target: ./db-backup
-          strip_components: 7
+      - name: Copy latest backup to runner
+        run: |
+          mkdir -p ~/.ssh db-backup
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.EC2_IP }}" >> ~/.ssh/known_hosts 2>/dev/null
+          scp -i ~/.ssh/id_rsa \
+            "ubuntu@${{ secrets.EC2_IP }}:/var/www/mudhiyan/server/data/backups/*.db" \
+            db-backup/
+          ls -la db-backup/
 
       - name: Upload backup as artifact
         uses: actions/upload-artifact@v4
