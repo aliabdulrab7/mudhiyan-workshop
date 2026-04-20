@@ -384,10 +384,11 @@ const createOrder = db.transaction((data) => {
   const branchId = data.shop_id ?? 0;
   const prefix   = `BR${branchId}-${ymd}-`;
 
-  // Per-branch per-day sequence — atomic inside transaction (race-condition safe)
+  // Per-branch continuous sequence — counter does NOT reset on date change.
+  // Atomic inside transaction (race-condition safe).
   const { next } = db.prepare(
     `SELECT COUNT(*) + 1 AS next FROM orders WHERE order_number LIKE ?`
-  ).get(`${prefix}%`);
+  ).get(`BR${branchId}-%`);
 
   const order_number   = `${prefix}${String(next).padStart(4, '0')}`;
   const customer_token = require('crypto').randomUUID();
