@@ -14,6 +14,9 @@ function normalizeNeeds(v) {
 }
 
 // GET /api/repair-options — all authenticated users. Optional ?item_type filter.
+// GET stays on requireAuth (not requireRole('workshop')) because
+// shop_employee needs this at /new intake to populate the
+// repair-type dropdown. Writes below are correctly workshop-only.
 router.get('/', (req, res) => {
   const { item_type } = req.query;
   const rows = item_type

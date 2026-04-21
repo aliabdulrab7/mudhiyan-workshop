@@ -168,7 +168,8 @@ describe('GET /api/services', () => {
   });
 
   it('lists all services', async () => {
-    const res = await request(app).get('/api/services').set(auth(shopToken));
+    // Workshop-only read (see workshop-only-reads.test.js for the 403 gate).
+    const res = await request(app).get('/api/services').set(auth(wsToken));
     expect(res.status).toBe(200);
     expect(res.body.length).toBe(2);
   });
@@ -224,7 +225,8 @@ describe('GET /api/technicians', () => {
   });
 
   it('lists all technicians', async () => {
-    const res = await request(app).get('/api/technicians').set(auth(shopToken));
+    // Workshop-only read (see workshop-only-reads.test.js for the 403 gate).
+    const res = await request(app).get('/api/technicians').set(auth(wsToken));
     expect(res.status).toBe(200);
     expect(res.body.length).toBe(2);
   });

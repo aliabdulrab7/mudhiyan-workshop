@@ -19,8 +19,8 @@ router.post('/', requireRole('workshop'), (req, res) => {
   res.status(201).json(db.prepare('SELECT * FROM services WHERE id = ?').get(result.lastInsertRowid));
 });
 
-// GET /api/services — all authenticated users
-router.get('/', (req, res) => {
+// GET /api/services — workshop only (no shop_employee surface consumes this)
+router.get('/', requireRole('workshop'), (req, res) => {
   res.json(db.prepare('SELECT * FROM services ORDER BY name').all());
 });
 

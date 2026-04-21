@@ -21,8 +21,8 @@ router.post('/', requireRole('workshop'), (req, res) => {
   `).get(result.lastInsertRowid));
 });
 
-// GET /api/technicians
-router.get('/', (req, res) => {
+// GET /api/technicians — workshop only (no shop_employee surface consumes this)
+router.get('/', requireRole('workshop'), (req, res) => {
   res.json(db.prepare(`
     SELECT t.*, u.username
     FROM technicians t

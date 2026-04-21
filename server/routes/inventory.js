@@ -23,8 +23,8 @@ router.post('/', requireRole('workshop'), (req, res) => {
   );
 });
 
-// GET /api/inventory
-router.get('/', (req, res) => {
+// GET /api/inventory — workshop only (no shop_employee surface consumes this)
+router.get('/', requireRole('workshop'), (req, res) => {
   const { category, search } = req.query;
   let query  = 'SELECT * FROM inventory_items WHERE 1=1';
   const params = [];
