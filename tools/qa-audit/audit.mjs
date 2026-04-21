@@ -613,20 +613,21 @@ let createdOrderId     = null;
       }
 
       // Advance status to inspection (new → received → inspection) via status button
-      const advanceBtn = page.locator('button:has-text("استلام في الورشة")').first();
+      // The header advance button is the same testid across transitions; its
+      // label text changes based on NEXT_LABEL[order.status].
+      const advanceBtn = page.locator('[data-testid="order-detail__status-advance"]');
       if (await advanceBtn.count()) {
         await advanceBtn.click();
         await page.waitForTimeout(500);
       }
-      const inspectBtn = page.locator('button:has-text("بدء الفحص")').first();
-      if (await inspectBtn.count()) {
-        await inspectBtn.click();
+      if (await advanceBtn.count()) {
+        await advanceBtn.click();
         await page.waitForTimeout(500);
       }
       await shot(page, '04-orders-inspection');
 
       // Attempt to fill a per-item cost input in the items table
-      const costInputs = page.locator('input[type="number"][min="0"]');
+      const costInputs = page.locator('[data-testid^="order-detail__item__"][data-testid$="__cost-input"]');
       const costCount  = await costInputs.count();
       if (costCount === 0) {
         log({
@@ -667,7 +668,7 @@ let createdOrderId     = null;
         }
 
         // Send for approval button
-        const sendBtn = page.locator('button:has-text("إرسال للعميل")').first();
+        const sendBtn = page.locator('[data-testid="order-detail__send-for-approval"]').first();
         if (!(await sendBtn.count())) {
           log({
             severity: 'Major',

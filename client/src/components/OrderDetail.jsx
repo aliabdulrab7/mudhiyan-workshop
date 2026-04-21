@@ -163,7 +163,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
       <div className="drawer">
         {/* Header */}
         <div className="drawer-head">
-          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} data-testid="order-detail__close">
             <Icons.X size={14} />
           </button>
           <span className="stamp" style={{ fontSize: 12 }}>{order.order_number}</span>
@@ -171,6 +171,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             <button
               type="button"
               onClick={handleToggleUrgent}
+              data-testid="order-detail__urgent-toggle"
               title={order.is_urgent ? 'إلغاء الأولوية' : 'تعليم كمستعجل'}
               style={{
                 cursor: 'pointer', border: 0,
@@ -195,12 +196,12 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
           <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{dateStr}</span>
           <div style={{ flex: 1 }} />
           {NEXT_STATUS[order.status] && isWorkshop && (
-            <button className="btn btn-sm btn-primary" disabled={savingStatus} onClick={handleStatusAdvance}>
+            <button className="btn btn-sm btn-primary" disabled={savingStatus} onClick={handleStatusAdvance} data-testid="order-detail__status-advance">
               <Icons.Check size={12} />
               {savingStatus ? '...' : NEXT_LABEL[order.status]}
             </button>
           )}
-          <button className="btn btn-sm" onClick={() => window.open('/orders/' + order.id + '/label', '_blank', 'noopener,noreferrer')}>
+          <button className="btn btn-sm" onClick={() => window.open('/orders/' + order.id + '/label', '_blank', 'noopener,noreferrer')} data-testid="order-detail__label-print-link">
             <Icons.Printer size={12} /> طباعة
           </button>
         </div>
@@ -227,6 +228,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     <button
                       className={`btn btn-sm${linkCopied ? '' : ''}`}
                       onClick={copyTrackingLink}
+                      data-testid="order-detail__copy-tracking-link"
                       style={linkCopied ? { color: 'var(--success)', borderColor: 'var(--success)' } : {}}
                     >
                       {linkCopied ? <><Icons.Check size={11} /> تم النسخ</> : <><Icons.Link size={11} /> نسخ الرابط</>}
@@ -291,6 +293,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     className="btn btn-primary btn-sm"
                     disabled={sendingApproval}
                     onClick={handleSendForApproval}
+                    data-testid="order-detail__send-for-approval"
                     title="إرسال التسعيرة للعميل عبر واتساب"
                   >
                     <Icons.Phone size={12} />
@@ -327,12 +330,14 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   <button
                     className="btn" style={{ width: '100%', justifyContent: 'center', marginBottom: 8, height: 36 }}
                     onClick={() => window.open(buildReadyWaUrl(order.phone, order.customer_name, order.order_number), '_blank', 'noopener,noreferrer')}
+                    data-testid="order-detail__whatsapp-ready"
                   >
                     <Icons.Phone size={13} /> إرسال رسالة الاستلام (WhatsApp) ↗
                   </button>
                   <button
                     className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 36 }}
                     disabled={savingStatus} onClick={handleConfirmReturnedToShop}
+                    data-testid="order-detail__confirm-returned-to-shop"
                   >
                     <Icons.Check size={13} /> {savingStatus ? 'جاري التحديث...' : 'تأكيد وصول القطعة من الورشة'}
                   </button>
@@ -354,12 +359,14 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                         onClick={() => setPaymentMethod(value)}
                         className={`btn btn-sm${paymentMethod === value ? ' btn-primary' : ''}`}
                         style={{ flex: 1, justifyContent: 'center' }}
+                        data-testid={`order-detail__payment__${value}`}
                       >{label}</button>
                     ))}
                   </div>
                   <button
                     className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 36, opacity: paymentMethod ? 1 : 0.5 }}
                     disabled={!paymentMethod || savingDelivery} onClick={handleDelivery}
+                    data-testid="order-detail__confirm-delivery"
                   >
                     <Icons.Check size={13} /> {savingDelivery ? 'جاري التأكيد...' : 'تأكيد التسليم والدفع'}
                   </button>
@@ -373,6 +380,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     <button
                       className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 36, marginBottom: 12 }}
                       disabled={savingStatus} onClick={handleStatusAdvance}
+                      data-testid="order-detail__status-advance__actions"
                     >
                       <Icons.Check size={13} /> {savingStatus ? 'جاري التحديث...' : NEXT_LABEL[order.status]}
                     </button>
@@ -402,6 +410,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                           onClick={() => setConfirmingCancel(true)}
                           className="btn btn-sm btn-danger"
                           style={{ width: '100%', justifyContent: 'center', height: 32, borderColor: 'oklch(0.58 0.21 25 / 0.3)', color: 'var(--danger)' }}
+                          data-testid="order-detail__cancel-button"
                         >
                           إلغاء الطلب
                         </button>
@@ -418,6 +427,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                               onClick={handleCancel} disabled={savingCancel}
                               className="btn btn-sm"
                               style={{ flex: 1, justifyContent: 'center', background: 'var(--danger)', borderColor: 'var(--danger)', color: '#fff' }}
+                              data-testid="order-detail__cancel-confirm"
                             >
                               {savingCancel ? 'جاري الإلغاء...' : 'نعم، إلغاء'}
                             </button>
@@ -425,6 +435,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                               onClick={() => setConfirmingCancel(false)}
                               className="btn btn-sm"
                               style={{ flex: 1, justifyContent: 'center' }}
+                              data-testid="order-detail__cancel-deny"
                             >
                               لا، تراجع
                             </button>
@@ -490,8 +501,9 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   placeholder="أضف تعليقاً..."
                   value={newComment}
                   onChange={e => setNewComment(e.target.value)}
+                  data-testid="order-detail__comment__textarea"
                 />
-                <button className="btn btn-sm" type="submit" disabled={savingComment || !newComment.trim()}>
+                <button className="btn btn-sm" type="submit" disabled={savingComment || !newComment.trim()} data-testid="order-detail__comment__submit">
                   {savingComment ? 'جاري الإرسال...' : 'إضافة تعليق'}
                 </button>
               </form>
@@ -561,6 +573,7 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
             onBlur={commit}
             onKeyDown={e => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
             style={{ width: '100%', height: 28, padding: '4px 6px', fontSize: 12, textAlign: 'right' }}
+            data-testid={item.id ? `order-detail__item__${item.id}__cost-input` : undefined}
           />
         ) : (
           <span
@@ -583,13 +596,16 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
       </div>
       <div>
         {badge && (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            fontSize: 10.5, fontWeight: 600,
-            padding: '2px 8px', borderRadius: 3,
-            background: badge.bg, color: badge.fg,
-            whiteSpace: 'nowrap',
-          }}>
+          <span
+            data-testid={item.id ? `order-detail__item__${item.id}__approval-badge` : undefined}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 10.5, fontWeight: 600,
+              padding: '2px 8px', borderRadius: 3,
+              background: badge.bg, color: badge.fg,
+              whiteSpace: 'nowrap',
+            }}
+          >
             {badge.icon === 'check' && <Icons.Check size={10} />}
             {badge.icon === 'x'     && <Icons.X     size={10} />}
             {badge.label}
