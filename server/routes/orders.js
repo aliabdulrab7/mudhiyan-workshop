@@ -241,46 +241,74 @@ router.post('/', requireRole('shop_employee'), (req, res) => {
   }
 });
 
-// PATCH /api/orders/:id/status
-// All transitions go through OrderService.transition() — no direct DB updates.
-// 6.8 — requireAuth is already applied by router.use() above; removed duplicate.
-router.patch('/:id/status', (req, res) => {
-  const { status, notes } = req.body;
+// Shared transition handler. Expects orderId to be resolved and scope-checked.
+// Used by both /:id/status (single-scan) and /by-barcode/:barcode/status (bulk-scan).
+function performStatusTransition(req, res, orderId) {
+  const { status, notes, source, session_id, session_type } = req.body;
 
   if (!status) {
     return res.status(400).json({ error: 'الحالة مطلوبة' });
   }
 
-  // Scope check: shop_employee can only act on their own shop's orders
+  // Bulk-scan body validation — source must be 'bulk_scan' and both others present.
+  if (source !== undefined) {
+    if (source !== 'bulk_scan') {
+      return res.status(400).json({ error: 'source غير صالح' });
+    }
+    if (!session_id || !session_type) {
+      return res.status(400).json({ error: 'session_id و session_type مطلوبان مع source=bulk_scan' });
+    }
+  }
+
+  // Thread bulk-scan marker into notes. Single-scan path (source undefined) is byte-identical to before.
+  let combinedNotes = notes ?? null;
+  if (source === 'bulk_scan') {
+    const bulkNote = `bulk-scan · session:${session_id} · type:${session_type}`;
+    combinedNotes = notes ? `${bulkNote} · ${notes}` : bulkNote;
+  }
+
+  try {
+    const updated = OrderService.transition(orderId, status, req.user, { notes: combinedNotes });
+    const items = db.prepare(
+      'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+    ).all(updated.id);
+    res.json({ ...updated, items });
+  } catch (err) {
+    if (err.name === 'InvalidTransitionError') {
+      return res.status(409).json({
+        error: `لا يمكن الانتقال من '${err.from}' إلى '${err.to}'`,
+        code: 'INVALID_TRANSITION',
+        from: err.from,
+        to:   err.to,
+        details: { current_status: err.from },
+      });
+    }
+    res.status(errorToHttpStatus(err)).json({ error: err.message });
+  }
+}
+
+// PATCH /api/orders/by-barcode/:barcode/status — bulk-scan path.
+// Must be declared BEFORE /:id/status so Express doesn't try to parseInt "by-barcode".
+router.patch('/by-barcode/:barcode/status', (req, res) => {
+  const isWorkshop = req.user.role === 'workshop';
+  const order = isWorkshop
+    ? db.prepare('SELECT id FROM orders WHERE order_number = ?').get(req.params.barcode)
+    : db.prepare('SELECT id FROM orders WHERE order_number = ? AND shop_id = ?')
+        .get(req.params.barcode, req.user.shop_id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  return performStatusTransition(req, res, order.id);
+});
+
+// PATCH /api/orders/:id/status
+// All transitions go through OrderService.transition() — no direct DB updates.
+router.patch('/:id/status', (req, res) => {
   if (req.user.role === 'shop_employee') {
     const order = db.prepare(
       'SELECT id FROM orders WHERE id = ? AND shop_id = ?'
     ).get(req.params.id, req.user.shop_id);
     if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   }
-
-  try {
-    const updated = OrderService.transition(
-      parseInt(req.params.id, 10),
-      status,
-      req.user,
-      { notes: notes ?? null }
-    );
-    const items = db.prepare(
-      'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
-    ).all(updated.id);
-    res.json({ ...updated, items });
-  } catch (err) {
-    // 8.6 — Include from/to for transition errors so the client can display context
-    if (err.name === 'InvalidTransitionError') {
-      return res.status(409).json({
-        error: `لا يمكن الانتقال من '${err.from}' إلى '${err.to}'`,
-        from: err.from,
-        to:   err.to,
-      });
-    }
-    res.status(errorToHttpStatus(err)).json({ error: err.message });
-  }
+  return performStatusTransition(req, res, parseInt(req.params.id, 10));
 });
 
 // PATCH /api/orders/:id/cost — workshop only (order-level, backward compat)
