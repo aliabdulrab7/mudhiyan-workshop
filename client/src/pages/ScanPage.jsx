@@ -7,13 +7,18 @@ import { getOrderByBarcode } from '../api/orders';
 import StatusPill from '../components/StatusPill';
 import { Icons } from '../components/icons';
 
+const cameraSupported =
+  typeof navigator !== 'undefined' &&
+  !!navigator.mediaDevices &&
+  typeof navigator.mediaDevices.getUserMedia === 'function';
+
 export default function ScanPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [state, setState]     = useState('scanning'); // scanning | loading | found | error
   const [order, setOrder]     = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [lastScanned, setLastScanned] = useState('');
-  const [manualMode, setManualMode] = useState(false);
+  const [manualMode, setManualMode] = useState(true);
 
   const handleScan = useCallback(async (value) => {
     if (value === lastScanned && state === 'found') return;
@@ -41,20 +46,22 @@ export default function ScanPage() {
     setSearchParams({});
   }
 
-  const closeManualMode = useCallback(() => {
-    setManualMode(false);
-  }, []);
+  const switchToManual = useCallback(() => {
+    setState('scanning');
+    setOrder(null);
+    setErrorMsg('');
+    setLastScanned('');
+    setManualMode(true);
+    setSearchParams({});
+  }, [setSearchParams]);
 
-  const toggleManualMode = useCallback(() => {
-    setManualMode(prev => {
-      if (prev) return false;
-      // opening: mirror resetScanner
-      setState('scanning');
-      setOrder(null);
-      setErrorMsg('');
-      setLastScanned('');
-      return true;
-    });
+  const switchToCamera = useCallback(() => {
+    if (!cameraSupported) return;
+    setState('scanning');
+    setOrder(null);
+    setErrorMsg('');
+    setLastScanned('');
+    setManualMode(false);
     setSearchParams({});
   }, [setSearchParams]);
 
@@ -62,18 +69,19 @@ export default function ScanPage() {
     function onKey(e) {
       const tag = document.activeElement?.tagName;
       const typing = tag === 'INPUT' || tag === 'TEXTAREA';
-      if (e.key === 'Escape' && manualMode) {
-        setManualMode(false);
-        return;
-      }
-      if ((e.key === 'm' || e.key === 'M') && !typing) {
+      if (typing) return;
+      if ((e.key === 'm' || e.key === 'M') && !manualMode) {
         e.preventDefault();
-        toggleManualMode();
+        switchToManual();
+      }
+      if ((e.key === 'c' || e.key === 'C') && manualMode && cameraSupported) {
+        e.preventDefault();
+        switchToCamera();
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [manualMode, toggleManualMode]);
+  }, [manualMode, switchToManual, switchToCamera]);
 
   const viaMobile = !!searchParams.get('code');
 
@@ -113,13 +121,14 @@ export default function ScanPage() {
           <div className="page-sub">امسح الباركود على الملصق لسحب الطلب فورًا</div>
         </div>
         <div className="page-actions">
-          <button
-            className={`btn btn-sm${manualMode ? ' btn-primary' : ''}`}
-            onClick={toggleManualMode}
-            aria-pressed={manualMode}
-          >
-            <Icons.QR size={13} /> إدخال يدوي
-          </button>
+          {cameraSupported && manualMode && (
+            <button
+              className="btn btn-sm"
+              onClick={switchToCamera}
+            >
+              <Icons.QR size={13} /> مسح بالكاميرا
+            </button>
+          )}
           <button className="btn btn-sm btn-primary" onClick={resetScanner}>
             <Icons.Refresh size={12} /> مسح آخر
           </button>
@@ -131,8 +140,7 @@ export default function ScanPage() {
         <div className="card" style={{ padding: 16 }}>
           {manualMode ? (
             <ManualEntryInput
-              onSubmit={(v) => { setManualMode(false); handleScan(v); }}
-              onCancel={closeManualMode}
+              onSubmit={(v) => handleScan(v)}
             />
           ) : state === 'found' ? (
             <div className="scan-stage" style={{ opacity: 0.5 }}>
@@ -164,10 +172,11 @@ export default function ScanPage() {
 
           {/* Status bar */}
           <div style={{ marginTop: 12, display: 'flex', gap: 12, fontSize: 11.5, color: 'var(--text-faint)' }}>
-            <span><span className="kbd">C</span> كاميرا</span>
+            {cameraSupported && <span><span className="kbd">C</span> كاميرا</span>}
             <span><span className="kbd">M</span> يدوي</span>
-            <span><span className="kbd">esc</span> إلغاء</span>
-            <span style={{ marginRight: 'auto' }} className="mono">WebCam · 720p</span>
+            <span style={{ marginRight: 'auto' }} className="mono">
+              {manualMode ? 'إدخال يدوي' : 'WebCam · 720p'}
+            </span>
           </div>
 
           {/* Error */}

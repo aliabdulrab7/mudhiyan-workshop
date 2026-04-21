@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icons } from './icons';
 
-export default function ManualEntryInput({ onSubmit, onCancel }) {
+export default function ManualEntryInput({ onSubmit }) {
   const [value, setValue] = useState('');
   const inputRef = useRef(null);
 
@@ -19,7 +19,7 @@ export default function ManualEntryInput({ onSubmit, onCancel }) {
   return (
     <form onSubmit={handleSubmit} style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-        أدخل رقم الطلب يدويًا:
+        أدخل رقم الطلب
       </div>
       <input
         ref={inputRef}
@@ -32,7 +32,7 @@ export default function ManualEntryInput({ onSubmit, onCancel }) {
         spellCheck={false}
         style={{ direction: 'ltr', textAlign: 'left', fontSize: 14 }}
       />
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div>
         <button
           type="submit"
           className="btn btn-sm btn-primary"
@@ -40,12 +40,6 @@ export default function ManualEntryInput({ onSubmit, onCancel }) {
         >
           <Icons.Arrow size={12} /> بحث
         </button>
-        <button type="button" className="btn btn-sm btn-ghost" onClick={onCancel}>
-          إلغاء
-        </button>
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
-        اضغط <span className="kbd">Esc</span> للإلغاء
       </div>
     </form>
   );
