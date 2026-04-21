@@ -13,19 +13,22 @@ in `client/src/`:
   oklch literals. A `Button.jsx` primitive exists but is used in ~2 places;
   the rest of the codebase writes `<button className="btn btn-primary">`.
 
-Four phases, reviewed in order:
+Five phases, reviewed in order:
 
 | # | Phase | Output |
 |---|-------|--------|
 | 1 | Plan (this doc) | `docs/CLEANUP-PLAN.md` |
-| 2 | Build primitives | `client/src/components/ui/*.jsx` |
-| 3 | Migrate call sites | one commit per primitive |
-| 4 | Attach stable testids | one commit per surface + harness update |
+| 2 | Attach stable testids | one commit per surface (or small batch) + harness update in same commit |
+| 3 | Build primitives | `client/src/components/ui/*.jsx` |
+| 4 | Migrate call sites | one commit per primitive |
+| 5 | Legacy cleanup | remove legacy CSS classes from `index.css`; delete `OrderForm.jsx`; inline + delete `CostEditor.jsx` |
 
-**Proposed reordering** (see §3): swap Phase 4 and Phase 2 — add testids
-*before* migrating, so the Playwright harness has fixed selectors to verify
-each primitive migration against. The rest of the document follows the
-original ordering for clarity; §3 calls out the swap as a recommendation.
+**Canonical ordering rationale.** Testids land first so the Playwright
+harness has stable selectors to verify Phase 4's per-primitive migration
+commits. Text-match assertions are brittle precisely because we're
+refactoring the JSX — writing `data-testid` onto raw `<button className="btn
+btn-primary">…</button>` in Phase 2 is a pure additive diff that survives
+unchanged through Phase 4 (primitives accept `testId` as a pass-through prop).
 
 ---
 
@@ -293,11 +296,34 @@ counts are grep-approximate — exact counts settle during Phase 2.
 | **Textarea**     | `<textarea className="textarea">` + inline-styled free textareas | 8+           | `NewOrder` notes, `OrderDetail` comment, admin pages                                                               | `<Textarea rows value onChange error size testId>` — consistent with Input API.                                                                                |
 | **Checkbox**     | `<Checkbox>` primitive exists; `OrderList.jsx` uses local `.cb`-class copy at L491-507 | 5+           | `DataTable`, `OrderList` (duplicate), `OrdersPage` bulk                                                            | Keep existing `Checkbox.jsx`. Delete local copy in `OrderList`.                                                                                                |
 | **Chip**         | `<button className="chip">` + `.chip.chip-active` + `.count` span inside | 40+          | `OrdersPage` filters, `OrderList` filters, `NewOrder` urgency, `NewOrder` repair colors, `RepairOptionsPage` tabs | `<Chip active count onClick testId>children</Chip>` — handles the active colorway and optional count badge.                                                    |
-| **Alert**        | inline `<div style={{ background:'oklch(…/0.06)', border:'1px solid oklch(…/0.2)', borderRight:'3px solid …', …}}>` (danger/success/warning/info) | 15+          | `LoginPage`, `NewOrder`, `OrderDetail`, `TrackPage`, `ScanResult`, `Dashboard` rejected alert, `PrintPanel`, `ReportsPage` pending | `<Alert variant="danger\|success\|warning\|info" title children dismissible>` — variants map to existing oklch tokens. Removes repeated inline oklch literals. |
+| **Alert**        | inline `<div style={{ background:'oklch(…/0.06)', border:'1px solid oklch(…/0.2)', borderRight:'3px solid …', …}}>` (danger/success/warning/info) | 15+          | `LoginPage`, `NewOrder`, `OrderDetail`, `TrackPage`, `ScanResult`, `Dashboard` rejected alert, `PrintPanel`, `ReportsPage` pending | `<Alert variant="danger\|success\|warning\|info" title children dismissible>` — see §2.1 for structural requirements per variant. |
 | **FormField**    | `<label className="field-label">…</label><input className="input">` + optional `<p className="error">…</p>` | 20+          | Every admin-page form, `LoginPage`, `NewOrder`                                                                     | `<FormField label error required><Input .../></FormField>` — composes over Input/Select/Textarea.                                                              |
 | **SegmentedGroup** | two-or-three `<button>` pair with shared borders, active colorway | 5            | `NewOrder` urgency (normal/rush), `TrackPage` DecisionRow (approve/reject), `BulkScanSession` session-type selector, `Dashboard` period (if present) | `<SegmentedGroup value onChange options={[{value,label,icon,variant}]} testIdPrefix>` — uses Button under the hood.                                          |
 | **Card**         | `<div className="card">` + `<div className="card stat-card">` + `<div className="card track-card">` | 25+          | Every admin page, `Dashboard` stat grid, `TrackPage`, `ReportsPage`, `PrintPanel`                                  | `<Card padding="sm\|md\|lg" variant="default\|soft\|raised">` — thin wrapper; the win is eliminating raw `div.card` strings and owning hover/focus states.    |
 | **Dialog**       | inline cancel-confirm panel in `OrderDetail` + `CommandPalette` modal shell + `BulkScanSession` summary card + `window.confirm` in Branches/RepairOptions | 3–4          | `OrderDetail.jsx` cancel flow, `CommandPalette.jsx`, `BulkScanSession.jsx` summary, admin `window.confirm` replacements (optional) | `<Dialog open onClose title footer children>` — headless, focus-trap, ESC-to-close. Behavior change risk: replacing `window.confirm` touches user interaction timing. |
+
+### 2.1 Alert — structural requirements per variant
+
+**Rule:** Alert variants must be structurally distinguishable, not just
+color-coded. Users stop seeing variants that differ only by hue; an Alert
+without a glyph or weight cue becomes visual noise.
+
+Minimum per variant:
+
+| Variant   | Border (logical)                              | Icon                         | Title weight | Body color      |
+|-----------|-----------------------------------------------|------------------------------|--------------|-----------------|
+| `danger`  | `border-inline-start: 3px solid var(--danger)` (renders on the right edge in RTL) | `Icons.X` or stop glyph      | 600          | `var(--danger)` |
+| `success` | `border-inline-start: 3px solid var(--success)` | `Icons.Check`                | 600          | `var(--success)` |
+| `warning` | `border-inline-start: 3px solid var(--warning)` | `Icons.Warn` (triangle/!)    | 600          | `var(--warning)` |
+| `info`    | `border-inline-start: 3px solid var(--primary)` | `Icons.Sparkle` or info `i`  | 500          | `var(--primary)` |
+
+- **Use CSS logical properties** (`border-inline-start`, `padding-inline`,
+  `margin-inline-end`) — the border visually lands on the right edge in
+  RTL without per-locale branching. No raw `border-left` / `border-right`.
+- Icon is **required**, not optional. Primitive signature: `<Alert variant
+  title children dismissible>` — icon is picked from variant, not passed in.
+- Title is bold; body is regular weight. Dismissible adds an `×` button
+  mapped to `toast__dismiss` pattern.
 
 ### Observed but NOT extracted (<3 uses or divergent semantics)
 
@@ -341,12 +367,51 @@ counts are grep-approximate — exact counts settle during Phase 2.
 
 ---
 
-## 3. Phase 2 execution order + proposed phase reorder
+## 3. Phase execution plans
 
-### 3.1 Primitive build order (Phase 2)
+### 3.1 Phase 2 — testid attachment
+
+Canonical order runs testids first. All commits are pure additive diffs
+(no visual/behavioral change). Each commit updates `tools/qa-audit/` (and
+`server/tests/e2e/` if applicable) in the same commit, then runs
+`node tools/qa-audit/audit.mjs` clean before push.
+
+**Commit sequence (8 commits total):**
+
+1. **`login` surface** — `LoginPage.jsx` (3 testids) + harness updates
+   where login flow is referenced. Expect: `audit.mjs` 0 findings.
+2. **`orders-list` surface** — `OrdersPage.jsx` (11 static testids) +
+   `DataTable.jsx` `testIdPrefix` plumbing (caller-scoped emission) +
+   harness migration of orders-list flows.
+3. **`order-detail` surface** — `OrderDetail.jsx` drawer (~10 static + 2
+   per-item) + harness migration of drawer flows.
+4. **`new-order` surface** — `NewOrder.jsx` (~10 static + item/repair
+   generators) + harness migration of new-order flow.
+
+After these four, **report to reviewer** before continuing.
+
+5. **Admin pages batch** — `BranchesPage`, `TechniciansPage`,
+   `ServicesPage`, `InventoryPage`, `RepairOptionsPage`. Batched because
+   the harness doesn't reference these yet by text; pure additive.
+6. **Shared components batch** — `Layout`, `OrderList`, `CommandPalette`,
+   `ScanResult`, `ManualEntryInput`, `PrintPanel`, `LabelCanvas`,
+   `ReadyLabelCanvas`, `ToastProvider`, `CostEditor`. Batched.
+7. **Remaining surfaces** — `Dashboard`, `TrackPage`, `ReportsPage`,
+   `ScanPage` (add new testids alongside existing `mode-strip-single`),
+   `LabelPrintPage`. Batched.
+8. **Rename commit** — rename the 19 existing testids per §1.3 in JSX +
+   `tools/qa-audit/audit.mjs` + `server/tests/e2e/*.test.js` in one
+   commit. Run `npm run test:e2e` and `node tools/qa-audit/audit.mjs`
+   green before push.
+
+**After Phase 2:** stop and wait for reviewer approval before Phase 3.
+
+### 3.2 Phase 3 — primitive build order
 
 Honors dependencies. Each primitive ships in its own commit with unit
-tests where non-trivial.
+tests where non-trivial. Each primitive lives at
+`client/src/components/ui/{Name}.jsx`. `ui/` is the canonical home;
+anything there is harness-stable, tested, and documented in CLAUDE.md.
 
 1. **Button** (expand existing) — no dependencies.
 2. **Input** — no dependencies.
@@ -355,50 +420,18 @@ tests where non-trivial.
 5. **Checkbox** — already exists; expand API (`testId`) and ship in this
    slot for consistency.
 6. **Chip** — no dependencies.
-7. **Alert** — no dependencies.
+7. **Alert** — no dependencies. Must meet §2.1 structural requirements.
 8. **Card** — no dependencies.
 9. **FormField** — depends on Input, Select, Textarea.
 10. **SegmentedGroup** — depends on Button.
-11. **Dialog** — depends on Button. Ships with focus-trap + ESC handler.
+11. **Dialog** — depends on Button. Roll-your-own: focus-trap + ESC +
+    backdrop-click, using RTL logical-property conventions from
+    CLAUDE.md. Target ~80 LOC. **Escalation trigger:** if implementation
+    exceeds 150 LOC or surfaces multiple accessibility edge cases
+    (e.g. nested focus traps, iOS VoiceOver quirks), stop and escalate
+    before pulling in `@radix-ui/react-dialog`.
 
-Each primitive lives at `client/src/components/ui/{Name}.jsx`. `ui/` is
-the canonical home; anything there is harness-stable, tested, and
-documented in CLAUDE.md.
-
-### 3.2 Proposed phase reorder
-
-The project spec lists phases as: plan → build primitives → migrate →
-attach testids. **Recommendation: swap to plan → attach testids → build
-primitives → migrate.**
-
-**Why.** The harness is our only automated signal that a migration didn't
-break a screen. If testids land *after* migration, every per-primitive
-migration commit goes in "blind" — we're relying on visible text to assert
-equivalence, and visible text is what motivated the cleanup. If testids
-land *first*, the harness can assert "the `orders-list__filter__ready`
-button still exists, is still clickable, still toggles the URL to
-`?status=ready`" across every migration commit. That's the scaffold.
-
-**Cost of the swap:** testid commits touch every `.jsx` file once, before
-any primitive exists. That means:
-- Pure additive diffs (no visual/behavioral change).
-- Harness updates for the 19 existing-testid renames (§1.3) + new
-  assertions.
-- We're writing `data-testid="..."` on raw `<button className="btn
-  btn-primary">…</button>` — when primitives land in Phase 3 (post-swap),
-  the primitive accepts `testId` as a pass-through prop, so the attribute
-  survives the JSX swap unchanged. Grep-friendly.
-
-**If kept in original order:** risk mitigation means a much slower Phase
-3 — each migration commit must pair with a harness update, and harness
-updates without stable selectors are brittle text-match changes.
-
-Either ordering is valid; the swap is my recommendation. Both remain in
-this doc so the reviewer can direct.
-
-### 3.3 Phase 3 migration strategy
-
-Assumption below: phases run in the swapped order (testids first).
+### 3.3 Phase 4 — migration strategy
 
 One primitive at a time. Per primitive:
 
@@ -429,11 +462,7 @@ One primitive at a time. Per primitive:
 | Dialog      | hand-rolled `window.confirm`, backdrop+panel inline styles    |
 | Segmented   | `NewOrder` urgency pair, `TrackPage` DecisionRow, session-type |
 
-**Don't migrate — delete or leave alone:**
-- **`OrderForm.jsx`** — dead, delete in the first migration commit.
-- **`CostEditor.jsx`** — single caller (`ScanResult`). Inline into
-  `ScanResult.jsx` (it's 70 lines) and delete. Reduces the `.input-base`
-  / naked `.btn-primary` (legacy gold) surface to zero.
+**Don't migrate — leave alone:**
 - **`TrackPage.jsx` DecisionRow buttons** — bespoke segmented pill. Migrate
   to `SegmentedGroup` only if the API fits cleanly; if not, leave as-is
   and document the exception. Track page is public-facing + high-test —
@@ -445,23 +474,40 @@ One primitive at a time. Per primitive:
 
 **Commit cadence:** one commit per primitive migration, running harness
 + tests before each push. Never batch two primitives into one commit.
+This cadence is non-negotiable per Risk #11 — it's the mechanism that
+keeps reviewer throughput matched to migration throughput.
 
-### 3.4 Phase 4 testid attachment (or Phase 2 under the swap)
+### 3.4 Phase 5 — legacy cleanup
 
-Order within this phase:
+One final commit (two at most) after all primitive migrations land:
 
-1. Top 4 pages on QA harness critical path — `LoginPage`, `OrdersPage`,
-   `OrderDetail` (drawer), `NewOrder`. Unblocks harness migration.
-2. Remaining pages alphabetically.
-3. Shared components: `Layout`, `OrderList`, `CommandPalette`, `ScanResult`,
-   `ManualEntryInput`, `Bulk*`, `Label*`, `PrintPanel`, `DataTable`,
-   `CostEditor`.
-4. Rename the existing 19 testids (§1.3) in the **same commit** as the
-   harness/e2e update so green stays green.
+- **Delete legacy CSS** from `client/src/index.css`: `.btn*` class
+  family, `.input-base`, `.chip` rules if now dead, `.field-label` if
+  now dead, `.card` if now dead. Grep first — any surviving consumers
+  block this commit.
+- **Delete `client/src/components/OrderForm.jsx`** — dead, no imports.
+- **Inline `CostEditor.jsx` into `ScanResult.jsx`** and delete. Single
+  caller; drops the last `.input-base` + naked `.btn-primary` legacy
+  usage. This is one atomic commit alongside the OrderForm deletion,
+  labeled "legacy cleanup."
+- Run `audit.mjs` + `npm test --prefix server` + `npm run test:e2e`
+  green before push.
 
-Each commit updates `tools/qa-audit/audit.mjs` and (if applicable)
-`server/tests/e2e/*.test.js` to reference the new selectors, and runs
-`node tools/qa-audit/audit.mjs` clean before push.
+### 3.5 Explicit non-goals
+
+- **`window.confirm` → Dialog conversion** — out of scope. `window.confirm`
+  in `BranchesPage` and `RepairOptionsPage` stays in place. Revisit in a
+  separate UX track.
+- **New design tokens / color palette changes** — this cleanup is
+  structural. Color/typography decisions belong to a separate design pass.
+- **Tailwind vs. CSS-class consolidation** — primitives will use Tailwind,
+  and the CLAUDE.md rule "no new `.className` strings in `index.css`"
+  lands with Phase 3. But we are **not** migrating existing CSS class
+  definitions to Tailwind. The legacy class definitions survive in
+  `index.css` until Phase 5 deletes the ones that are fully unused.
+- **`PageHead` primitive** — not extracted. `.page-head` stays as a CSS
+  class; CLAUDE.md documents: *use the `.page-head` class directly; do
+  not wrap in a component.*
 
 ---
 
@@ -480,7 +526,8 @@ Ten risks, each with one-line mitigation.
 | 7 | **Three styling layers** (Tailwind + `index.css` utility classes + inline styles) without a clear rule for which to use when.         | Document in CLAUDE.md after Phase 2 lands: *primitives use Tailwind, one-offs use inline styles, no new `.className` strings added to `index.css`*. Enforce via code review.     |
 | 8 | **Harness breakage mid-migration** (primitive renames `btn` → `<Button>`; `getByRole` still matches, but brittle text-only checks break). | Run `audit.mjs` after every commit. Swap ordering so testids land first (§3.2) — the harness relies on stable selectors, not text, during the refactor.                           |
 | 9 | **Similar-looking, semantically-different** components (StatusPill vs Badge vs Chip vs Pill).                                         | Name by role, not appearance. StatusPill = order status (keep). Chip = filter-toggle (new). Badge = neutral count/flag (defer — only extract if Phase 3 finds 3+ uses).           |
-| 10 | **CostEditor is dead-weight** (`.input-base` legacy class, single caller, pre-design-system).                                         | Inline into `ScanResult.jsx` in Phase 2's `OrderForm` deletion commit. Zero remaining `.input-base` users after this.                                                              |
+| 10 | **CostEditor is dead-weight** (`.input-base` legacy class, single caller, pre-design-system).                                         | Inline into `ScanResult.jsx` in the Phase 5 "legacy cleanup" commit alongside `OrderForm.jsx` deletion. Zero remaining `.input-base` users after this.                              |
+| 11 | **Migration fatigue across 20+ commits**. Rubber-stamp review makes the commit-per-primitive cadence pointless and hides regressions. | Reviewer (Ali) reads every diff, not rubber-stamps. If commit velocity rises without matching review time, that's the signal to pause. Primitive-level commit cadence is non-negotiable. |
 
 ---
 
@@ -489,39 +536,54 @@ Ten risks, each with one-line mitigation.
 Rough effort, focused working time (not wall-clock). Each phase ends at a
 review gate where the user approves before the next begins.
 
-| Phase                              | Est. effort | Notes                                                                                                                                                   |
-|------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Phase 1** — plan (this doc)      | ~3 h        | Nearly done. Remaining: user review + revisions.                                                                                                        |
-| **Phase 4 (testids, if swapped first)** | ~6 h    | 161 new testids across 26 surfaces + 19 renames + harness + e2e updates. One commit per surface group; ~4 commits. Verify each with `audit.mjs` clean.  |
-| **Phase 2** — build primitives     | ~4 h        | 9 new files + 1 expansion. Each ~25 min (skeleton + variants + test + export). Total including boilerplate and CLAUDE.md update.                         |
-| **Phase 3** — migrate call sites   | ~12 h       | 11 primitives × ~1 h each (grep, replace, harness, commit, push). Button alone is ~3 h (200+ call sites). Alert, Chip, FormField each ~1 h.              |
-| **Phase 5 (post-migration)**       | ~2 h        | Delete legacy `.btn*` / `.input*` / `.chip*` / `.card*` / `.field-label` / `.input-base` from `index.css`. Verify with harness. Update CLAUDE.md.        |
-| **Total**                          | **~27 h**   | ≈ 7 focused sessions of 4 h. Review gates add wall-clock lag; expect 2–3 calendar weeks end-to-end at current cadence.                                  |
+| Phase                                | Est. effort | Notes                                                                                                                                                     |
+|--------------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Phase 1** — plan (this doc)        | ~3 h        | Done on approval of the v2 doc.                                                                                                                           |
+| **Phase 2** — testid attachment      | ~6 h        | 161 new testids across 26 surfaces + 19 renames + harness + e2e updates. 8 commits per §3.1. Verify each with `audit.mjs` clean.                         |
+| **Phase 3** — build primitives       | ~4 h        | 9 new files + 1 expansion. Each ~25 min (skeleton + variants + test + export). Total including boilerplate and CLAUDE.md update.                          |
+| **Phase 4** — migrate call sites     | ~12 h       | 11 primitives × ~1 h each (grep, replace, harness, commit, push). Button alone is ~3 h (200+ call sites). Alert, Chip, FormField each ~1 h.                |
+| **Phase 5** — legacy cleanup         | ~2 h        | Delete legacy `.btn*` / `.input-base` / `.field-label` / etc. from `index.css`. Delete `OrderForm.jsx`. Inline + delete `CostEditor.jsx`. Update CLAUDE.md. |
+| **Total**                            | **~27 h**   | ≈ 7 focused sessions of 4 h. Review gates add wall-clock lag; expect 2–3 calendar weeks end-to-end at current cadence.                                    |
 
 **Time until conversation can resume with confidence each phase is done:**
 
 - **Phase 1:** immediately after this doc is approved.
-- **Phase 2 (build, post-swap):** after 10-primitive commit series pushes
-  green and `npm test --prefix server` stays green.
-- **Phase 3 (migrate):** after the "remove legacy classes from index.css"
-  commit pushes with `audit.mjs` 0-findings and `npm test --prefix
-  server` green. This is the definitive "done" signal.
-- **Phase 4 (testids, pre-swap):** after the final renames commit pushes
-  with harness + e2e green, and `tools/qa-audit/QA-REPORT.md` shows 0
-  findings referencing only new testid names.
+- **Phase 2 (testids):** after the final rename commit pushes with harness
+  + e2e green, and `tools/qa-audit/QA-REPORT.md` shows 0 findings
+  referencing only new testid names.
+- **Phase 3 (primitives):** after 10-primitive commit series pushes green
+  and `npm test --prefix server` stays green.
+- **Phase 4 (migrate):** after the final per-primitive migration commit
+  pushes with `audit.mjs` 0-findings and all tests green.
+- **Phase 5 (legacy cleanup):** when `grep -r "\.btn\b\|\.input-base" client/src`
+  returns zero matches and `index.css` has lost its legacy class
+  definitions.
 
 ---
 
-## 6. Open questions for the reviewer
+## 6. Decisions (resolved)
 
-1. **Phase reorder (§3.2)** — approve swap to plan → testids → primitives
-   → migrate? Or keep the original ordering?
-2. **`CostEditor.jsx`** — inline into `ScanResult.jsx` and delete, or
-   keep and migrate? Single caller; either works.
-3. **`PageHead` primitive** — extract now (consistency) or defer to
-   after-measurement (don't over-abstract)?
-4. **`window.confirm` replacement** — in-scope for this cleanup, or
-   separate UX work?
-5. **Dialog focus-trap implementation** — roll our own, or pull in a
-   small library (`@radix-ui/react-dialog` ~8 KB gzipped)? Adding a
-   dependency is a bigger decision than the rest of this cleanup.
+Reviewer decisions captured here for future lookup. Decision date:
+2026-04-21.
+
+1. **Phase reorder** — approved. Canonical order: plan → testids →
+   primitives → migrate → legacy cleanup. See §3.
+2. **`CostEditor.jsx`** — inline into `ScanResult.jsx` and delete. Done
+   in the Phase 5 legacy-cleanup commit alongside `OrderForm.jsx`
+   deletion.
+3. **Dialog implementation** — roll our own (~80 LOC target; focus-trap,
+   ESC, backdrop-click, RTL logical properties). Escalation trigger:
+   stop and escalate before pulling `@radix-ui/react-dialog` if the
+   implementation exceeds 150 LOC or multiple accessibility edge cases
+   surface.
+4. **`PageHead`** — not extracted. Document in CLAUDE.md: *use the
+   `.page-head` class directly; do not wrap in a component.*
+5. **`window.confirm` replacement** — explicit non-goal (§3.5). Not
+   replaced during this cleanup.
+6. **Alert structural requirements** — variants must differ by border +
+   icon + weight, not just color. See §2.1.
+7. **Phase 2 commit structure** — §3.1: 4 critical-surface commits
+   (login, orders-list, order-detail, new-order) reported individually,
+   then 3 batched commits (admin / shared / remaining), then 1 rename
+   commit. Report after each of the 4 criticals; single summary at end
+   of Phase 2.
