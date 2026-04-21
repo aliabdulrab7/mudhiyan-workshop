@@ -241,9 +241,10 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
           <div className="detail-section">
             <div className="detail-section-label">الأصناف</div>
             {order.items && order.items.length > 0 ? (
-              <div className="card" style={{ overflow: 'hidden' }}>
+              <div className="card" style={{ overflowX: 'auto' }}>
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 96px',
+                  display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 120px',
+                  minWidth: 500,
                   padding: '7px 12px', background: 'var(--bg-soft)',
                   borderBottom: '1px solid var(--border)',
                   fontSize: 11, color: 'var(--text-muted)', fontWeight: 500,
@@ -506,11 +507,13 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   );
 }
 
+// Per-item approval_status badges — workshop drawer only. The customer's
+// track page has its own display; we don't want to leak these back there.
+// 'pending' renders no badge (normal pre-approval state).
 const APPROVAL_BADGE = {
-  pending:  { label: 'قيد المراجعة', bg: 'var(--bg-soft)',  fg: 'var(--text-muted)' },
-  approved: { label: 'موافق',         bg: 'oklch(0.7 0.15 145 / 0.12)', fg: 'var(--success)' },
-  rejected: { label: 'مرفوض',         bg: 'oklch(0.58 0.21 25 / 0.1)',  fg: 'var(--danger)' },
-  skipped:  { label: 'مجاني',         bg: 'var(--bg-soft)',  fg: 'var(--text-muted)' },
+  approved: { label: 'موافق عليه',    icon: 'check', bg: 'oklch(0.7 0.15 145 / 0.12)', fg: 'var(--success)' },
+  rejected: { label: 'مرفوض',         icon: 'x',     bg: 'oklch(0.58 0.21 25 / 0.1)',  fg: 'var(--danger)'  },
+  skipped:  { label: 'مجاني — مشمول', icon: null,    bg: 'var(--bg-soft)',             fg: 'var(--text-muted)' },
 };
 
 function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
@@ -524,14 +527,20 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
     onSave(draft);
   };
 
-  const badge = APPROVAL_BADGE[item.approval_status] || null;
+  const badge      = isWorkshop ? (APPROVAL_BADGE[item.approval_status] || null) : null;
+  const isRejected = item.approval_status === 'rejected';
 
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 96px',
+      display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 120px',
+      minWidth: 500,
       padding: '10px 12px',
       borderBottom: isLast ? 'none' : '1px solid var(--border)',
       alignItems: 'center', gap: 10, fontSize: 12.5,
+      // Rejected items stay visible — technician needs to see them — but the
+      // row is clearly muted so they're not mistaken for active work.
+      background: isRejected ? 'oklch(0.58 0.21 25 / 0.04)' : undefined,
+      opacity:    isRejected ? 0.82 : 1,
     }}>
       <div>
         <div style={{ fontWeight: 600 }}>{item.item_name || item.item_type}</div>
@@ -554,7 +563,20 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
             style={{ width: '100%', height: 28, padding: '4px 6px', fontSize: 12, textAlign: 'right' }}
           />
         ) : (
-          <span className="mono" style={{ fontSize: 12.5 }}>
+          <span
+            className="mono"
+            // dir=ltr so the strikethrough draws left-to-right across the
+            // digits consistently in both Chrome and Safari under an RTL
+            // parent. Without this the line can render visually reversed.
+            dir="ltr"
+            style={{
+              fontSize: 12.5,
+              display: 'inline-block',
+              textDecoration: isRejected ? 'line-through' : 'none',
+              textDecorationColor: isRejected ? 'var(--danger)' : undefined,
+              color: isRejected ? 'var(--text-muted)' : undefined,
+            }}
+          >
             {item.estimated_cost == null ? '—' : `${item.estimated_cost} ريال`}
           </span>
         )}
@@ -562,10 +584,14 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
       <div>
         {badge && (
           <span style={{
-            display: 'inline-block', fontSize: 10.5, fontWeight: 600,
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontSize: 10.5, fontWeight: 600,
             padding: '2px 8px', borderRadius: 3,
             background: badge.bg, color: badge.fg,
+            whiteSpace: 'nowrap',
           }}>
+            {badge.icon === 'check' && <Icons.Check size={10} />}
+            {badge.icon === 'x'     && <Icons.X     size={10} />}
             {badge.label}
           </span>
         )}
