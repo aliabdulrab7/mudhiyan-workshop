@@ -76,8 +76,8 @@ async function login(page, username, password) {
 async function enterBulkAndPick(page, sessionTypeId) {
   await page.goto('/scan', { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'تبديل إلى الوضع الدفعي' }).click();
-  await page.locator(`[data-testid="session-type-${sessionTypeId}"]`).click();
-  await page.waitForSelector('[data-testid="mode-strip-session-active"]');
+  await page.locator(`[data-testid="bulk-scan__session-type__${sessionTypeId}"]`).click();
+  await page.waitForSelector('[data-testid="bulk-scan__mode-strip__session-active"]');
 }
 
 async function scan(page, barcode) {
@@ -87,7 +87,7 @@ async function scan(page, barcode) {
 }
 
 async function waitForRow(page, stamp, expectedStatus, timeout = 4000) {
-  const sel = `[data-testid="bulk-row-${stamp}"]`;
+  const sel = `[data-testid="bulk-scan-list__row__${stamp}"]`;
   await page.waitForSelector(sel, { timeout });
   const end = Date.now() + timeout;
   while (Date.now() < end) {
@@ -126,12 +126,12 @@ test.describe('bulk-scan — workshop intake', () => {
       await waitForRow(page, o, 'success');
     }
 
-    await expect(page.locator('[data-testid="mode-strip-session-active"]')).toContainText('3 تمّ');
-    await expect(page.locator('[data-testid="mode-strip-session-active"]')).toContainText('0 مرفوض');
+    await expect(page.locator('[data-testid="bulk-scan__mode-strip__session-active"]')).toContainText('3 تمّ');
+    await expect(page.locator('[data-testid="bulk-scan__mode-strip__session-active"]')).toContainText('0 مرفوض');
 
-    await page.locator('[data-testid="btn-end-session"]').click();
-    await page.waitForSelector('[data-testid="mode-strip-summary"]');
-    await expect(page.locator('[data-testid="summary-headline"]')).toContainText('3 طلب تمّ معالجته');
+    await page.locator('[data-testid="bulk-scan__end-session-button"]').click();
+    await page.waitForSelector('[data-testid="bulk-scan__mode-strip__summary"]');
+    await expect(page.locator('[data-testid="bulk-scan__summary-headline"]')).toContainText('3 طلب تمّ معالجته');
 
     for (const o of orders) {
       expect(bulkHistoryFor(o)).toBe('1');
@@ -164,11 +164,11 @@ test.describe('bulk-scan — workshop prepare for return', () => {
       await waitForRow(page, o, 'success');
     }
 
-    await expect(page.locator('[data-testid="mode-strip-session-active"]')).toContainText('3 تمّ');
+    await expect(page.locator('[data-testid="bulk-scan__mode-strip__session-active"]')).toContainText('3 تمّ');
 
-    await page.locator('[data-testid="btn-end-session"]').click();
-    await page.waitForSelector('[data-testid="mode-strip-summary"]');
-    await expect(page.locator('[data-testid="summary-headline"]')).toContainText('3 طلب تمّ معالجته');
+    await page.locator('[data-testid="bulk-scan__end-session-button"]').click();
+    await page.waitForSelector('[data-testid="bulk-scan__mode-strip__summary"]');
+    await expect(page.locator('[data-testid="bulk-scan__summary-headline"]')).toContainText('3 طلب تمّ معالجته');
 
     for (const o of [qc1, qc2, rej]) {
       expect(bulkHistoryFor(o)).toBe('1');
@@ -200,9 +200,9 @@ test.describe('bulk-scan — shop pickup from workshop', () => {
       await waitForRow(page, o, 'success');
     }
 
-    await page.locator('[data-testid="btn-end-session"]').click();
-    await page.waitForSelector('[data-testid="mode-strip-summary"]');
-    await expect(page.locator('[data-testid="summary-headline"]')).toContainText('2 طلب تمّ معالجته');
+    await page.locator('[data-testid="bulk-scan__end-session-button"]').click();
+    await page.waitForSelector('[data-testid="bulk-scan__mode-strip__summary"]');
+    await expect(page.locator('[data-testid="bulk-scan__summary-headline"]')).toContainText('2 طلب تمّ معالجته');
 
     for (const o of [a, b]) {
       expect(bulkHistoryFor(o)).toBe('1');
@@ -220,7 +220,7 @@ test.describe('bulk-scan — mute toggle persistence', () => {
     await page.getByRole('button', { name: 'تبديل إلى الوضع الدفعي' }).click();
 
     // default: not muted
-    const muteBtn = page.locator('[data-testid="mute-toggle"]').first();
+    const muteBtn = page.locator('[data-testid="bulk-scan__mute-toggle"]').first();
     await expect(muteBtn).toHaveAttribute('data-muted', 'false');
 
     await muteBtn.click();
@@ -231,7 +231,7 @@ test.describe('bulk-scan — mute toggle persistence', () => {
 
     await page.reload({ waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'تبديل إلى الوضع الدفعي' }).click();
-    const muteBtn2 = page.locator('[data-testid="mute-toggle"]').first();
+    const muteBtn2 = page.locator('[data-testid="bulk-scan__mute-toggle"]').first();
     await expect(muteBtn2).toHaveAttribute('data-muted', 'true');
 
     // clean up so we don't affect other tests

@@ -129,7 +129,7 @@ export default function ScanPage() {
       {/* Mode strip — always top-of-page, color-coded. Single-mode is compact; BulkScanSession owns bulk variants. */}
       {!bulkMode && (
         <div
-          data-testid="mode-strip-single"
+          data-testid="scan__mode-strip__single"
           style={{
             width: '100%',
             minHeight: 56,

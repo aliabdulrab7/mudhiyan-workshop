@@ -55,7 +55,7 @@ export default function BulkScanList({ rows }) {
             <div
               key={`${r.id}-${r.flashId || 0}`}
               data-flash-id={r.flashId || 0}
-              data-testid={`bulk-row-${r.stamp}`}
+              data-testid={`bulk-scan-list__row__${r.stamp}`}
               data-row-status={r.status}
               className={r.flashId ? 'bulk-row-flash' : ''}
               style={{

@@ -115,7 +115,7 @@ export default function BulkScanInput({
         onBlur={handleBlur}
         onFocus={handleFocus}
         aria-label="bulk scan input"
-        data-testid="bulk-scan-hidden-input"
+        data-testid="bulk-scan-input__hidden-input"
         style={{
           opacity: 0,
           width: 1,

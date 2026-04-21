@@ -240,7 +240,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
   if (phase === 'mode_selected') {
     return (
       <div style={{ ...base, background: 'oklch(0.95 0.12 90)', color: 'oklch(0.30 0.09 80)' }}
-           data-testid="mode-strip-bulk-no-session">
+           data-testid="bulk-scan__mode-strip__no-session">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {muteButton}
         </div>
@@ -253,14 +253,14 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
   if (phase === 'scanning') {
     return (
       <div style={{ ...base, background: 'oklch(0.82 0.17 70)', color: 'oklch(0.22 0.08 60)' }}
-           data-testid="mode-strip-session-active">
+           data-testid="bulk-scan__mode-strip__session-active">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {muteButton}
         </div>
         <span style={{ textAlign: 'center' }}>
           مسح دفعي · {sessionType?.label} · {counters.done} تمّ · {counters.rejected} مرفوض
         </span>
-        <button className="btn btn-sm" onClick={onEndSession} data-testid="btn-end-session">إنهاء الجلسة</button>
+        <button className="btn btn-sm" onClick={onEndSession} data-testid="bulk-scan__end-session-button">إنهاء الجلسة</button>
       </div>
     );
   }
@@ -268,7 +268,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
   if (phase === 'ending') {
     return (
       <div style={{ ...base, background: 'oklch(0.82 0.17 70)', color: 'oklch(0.22 0.08 60)' }}
-           data-testid="mode-strip-ending">
+           data-testid="bulk-scan__mode-strip__ending">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {muteButton}
         </div>
@@ -283,7 +283,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
   // summary
   return (
     <div style={{ ...base, background: 'oklch(0.88 0.14 150)', color: 'oklch(0.24 0.07 150)' }}
-         data-testid="mode-strip-summary">
+         data-testid="bulk-scan__mode-strip__summary">
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         {muteButton}
       </div>
@@ -291,8 +291,8 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
         اكتملت الجلسة — {counters.done} طلب تمّ معالجته{counters.rejected > 0 ? ` · ${counters.rejected} مرفوض` : ''}
       </span>
       <span style={{ display: 'flex', gap: 8 }}>
-        <button className="btn btn-sm" onClick={onNewSession} data-testid="btn-new-session">جلسة جديدة</button>
-        <button className="btn btn-sm" onClick={onExitBulk} data-testid="btn-exit-bulk">الرجوع للوضع العادي</button>
+        <button className="btn btn-sm" onClick={onNewSession} data-testid="bulk-scan__new-session-button">جلسة جديدة</button>
+        <button className="btn btn-sm" onClick={onExitBulk} data-testid="bulk-scan__exit-button">الرجوع للوضع العادي</button>
       </span>
     </div>
   );
@@ -305,7 +305,7 @@ function MuteToggle({ muted, onClick }) {
       onClick={onClick}
       aria-label={muted ? 'تشغيل الصوت' : 'كتم الصوت'}
       title={muted ? 'الصوت مكتوم' : 'الصوت مفعّل'}
-      data-testid="mute-toggle"
+      data-testid="bulk-scan__mute-toggle"
       data-muted={muted ? 'true' : 'false'}
       style={{
         appearance: 'none',
@@ -371,7 +371,7 @@ function SessionTypeSelector({ types, onPick }) {
               border: '1px solid var(--border)', background: 'var(--bg-raised)',
               cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
             }}
-            data-testid={`session-type-${t.id}`}
+            data-testid={`bulk-scan__session-type__${t.id}`}
           >
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{t.label}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
@@ -420,7 +420,7 @@ function ScanningSurface({ sessionType, rows, inputFocused, onScan, onFocusChang
 function ScanReadyBadge({ focused }) {
   if (focused) {
     return (
-      <span data-testid="scan-ready-badge" style={{
+      <span data-testid="bulk-scan__scan-ready-badge" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12,
         color: 'var(--success)', background: 'oklch(0.56 0.13 150 / 0.10)',
         border: '1px solid oklch(0.56 0.13 150 / 0.28)',
@@ -443,7 +443,7 @@ function ScanReadyBadge({ focused }) {
   }
 
   return (
-    <span data-testid="scan-paused-badge" style={{
+    <span data-testid="bulk-scan__scan-paused-badge" style={{
       display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12,
       color: 'oklch(0.35 0.12 70)', background: 'oklch(0.92 0.13 80)',
       border: '1px solid oklch(0.82 0.17 70)',
@@ -457,7 +457,7 @@ function ScanReadyBadge({ focused }) {
 
 function EndingBadge() {
   return (
-    <span data-testid="ending-badge" style={{
+    <span data-testid="bulk-scan__ending-badge" style={{
       display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12,
       color: 'oklch(0.35 0.12 70)', background: 'oklch(0.92 0.13 80)',
       border: '1px solid oklch(0.82 0.17 70)',
@@ -480,7 +480,7 @@ function SummaryCard({ sessionType, counters, rows, onNewSession, onExitBulk }) 
     <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
       <div
         className="card"
-        data-testid="summary-card"
+        data-testid="bulk-scan__summary-card"
         style={{ width: '100%', maxWidth: 720, padding: 0, overflow: 'hidden' }}
       >
         <div style={{
@@ -492,7 +492,7 @@ function SummaryCard({ sessionType, counters, rows, onNewSession, onExitBulk }) 
             {sessionType?.label}
           </div>
           <div
-            data-testid="summary-headline"
+            data-testid="bulk-scan__summary-headline"
             style={{ fontSize: 17, fontWeight: 800, color: 'oklch(0.28 0.09 150)' }}
           >
             {headline}
@@ -510,10 +510,10 @@ function SummaryCard({ sessionType, counters, rows, onNewSession, onExitBulk }) 
           justifyContent: 'flex-end',
           gap: 10,
         }}>
-          <button className="btn btn-primary" onClick={onNewSession} data-testid="btn-new-session-card">
+          <button className="btn btn-primary" onClick={onNewSession} data-testid="bulk-scan__summary__new-session-button">
             جلسة جديدة
           </button>
-          <button className="btn" onClick={onExitBulk} data-testid="btn-exit-bulk-card">
+          <button className="btn" onClick={onExitBulk} data-testid="bulk-scan__summary__exit-button">
             الرجوع للوضع العادي
           </button>
         </div>
