@@ -184,9 +184,9 @@ async function shot(page, name) {
 // ── Helper: UI login (used by Flow 1 to exercise the form and Flow 2 to gate setup)
 async function login(page, username, password) {
   await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });
-  await page.fill('input[autocomplete="username"]',        username);
-  await page.fill('input[autocomplete="current-password"]', password);
-  await page.click('button[type="submit"]');
+  await page.fill('[data-testid="login__username-input"]',        username);
+  await page.fill('[data-testid="login__password-input"]', password);
+  await page.click('[data-testid="login__submit-button"]');
 }
 
 // ── Helper: seed auth via localStorage (bypasses login form to preserve
@@ -243,7 +243,7 @@ const browser = await chromium.launch();
   ]);
 
   // 1a — empty submit
-  const submit = page.locator('button[type="submit"]');
+  const submit = page.locator('[data-testid="login__submit-button"]');
   const btnDisabledEmpty = await submit.isDisabled();
   await submit.click().catch(() => {});
   const bodyAfter = await page.textContent('body');
@@ -252,9 +252,9 @@ const browser = await chromium.launch();
   }
 
   // 1b — invalid credentials
-  await page.fill('input[autocomplete="username"]', 'nobody');
-  await page.fill('input[autocomplete="current-password"]', 'wrong!');
-  await page.click('button[type="submit"]');
+  await page.fill('[data-testid="login__username-input"]', 'nobody');
+  await page.fill('[data-testid="login__password-input"]', 'wrong!');
+  await page.click('[data-testid="login__submit-button"]');
   await page.waitForTimeout(600);
   await shot(page, '01-login-invalid');
   const errText = await page.textContent('body');
@@ -272,9 +272,9 @@ const browser = await chromium.launch();
   }
 
   // 1c — SQL-like username
-  await page.fill('input[autocomplete="username"]', `admin' OR '1'='1`);
-  await page.fill('input[autocomplete="current-password"]', 'x');
-  await page.click('button[type="submit"]');
+  await page.fill('[data-testid="login__username-input"]', `admin' OR '1'='1`);
+  await page.fill('[data-testid="login__password-input"]', 'x');
+  await page.click('[data-testid="login__submit-button"]');
   await page.waitForTimeout(500);
   await shot(page, '01-login-sqli');
   if ((await page.url()).endsWith('/') || (await page.url()).includes('/dashboard')) {

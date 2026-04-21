@@ -91,7 +91,7 @@ Convention:
 - embedded `OrderList` inherits `order-list__*`
 
 #### `login` — `pages/LoginPage.jsx` · 3 slots
-- `login__phone-input`, `login__password-input`, `login__submit-button`
+- `login__username-input`, `login__password-input`, `login__submit-button`
 
 #### `orders-list` — `pages/OrdersPage.jsx` · 11 static + DataTable slots
 - `orders-list__search-input`

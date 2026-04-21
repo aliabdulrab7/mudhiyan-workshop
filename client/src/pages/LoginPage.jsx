@@ -59,6 +59,7 @@ export default function LoginPage() {
               required
               autoComplete="username"
               autoFocus
+              data-testid="login__username-input"
               style={{ direction: 'ltr', textAlign: 'left' }}
             />
           </div>
@@ -71,6 +72,7 @@ export default function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               required
               autoComplete="current-password"
+              data-testid="login__password-input"
               style={{ direction: 'ltr', textAlign: 'left' }}
             />
           </div>
@@ -90,6 +92,7 @@ export default function LoginPage() {
             type="submit"
             className="btn btn-primary"
             disabled={loading}
+            data-testid="login__submit-button"
             style={{ width: '100%', justifyContent: 'center', height: 38, marginTop: 4 }}
           >
             {loading ? 'جاري الدخول...' : 'تسجيل الدخول'}
