@@ -1,4 +1,4 @@
-import Checkbox from './Checkbox';
+import Checkbox from './ui/Checkbox';
 
 /**
  * DataTable — dense operational table with right-border hover accent (RTL).
@@ -50,6 +50,7 @@ export default function DataTable({ columns, rows, selected, onSelect, getRowKey
                   checked={allSelected}
                   indeterminate={someSelected}
                   onChange={v => onSelect(v ? new Set(rows.map(getRowKey)) : new Set())}
+                  aria-label="تحديد الكل"
                   testId={testIdPrefix ? `${testIdPrefix}__select-all` : undefined}
                 />
               </th>
@@ -86,6 +87,7 @@ export default function DataTable({ columns, rows, selected, onSelect, getRowKey
                         v ? next.add(key) : next.delete(key);
                         onSelect(next);
                       }}
+                      aria-label="تحديد هذا الصف"
                       testId={tid ? `${tid}__select` : undefined}
                     />
                   </td>
