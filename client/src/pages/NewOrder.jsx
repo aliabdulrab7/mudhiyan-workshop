@@ -293,7 +293,7 @@ export default function NewOrder() {
               <label className="field-label">اسم العميل</label>
               <input
                 className="input"
-                placeholder="محمد العتيبي"
+                placeholder="محمد"
                 value={form.customerName}
                 onChange={e => updateForm('customerName', e.target.value)}
                 style={errors.customerName ? { borderColor: 'var(--danger)' } : {}}
@@ -361,6 +361,7 @@ export default function NewOrder() {
               <div key={i} className="items-row">
                 <select
                   className="select"
+                  aria-label="نوع الصنف"
                   value={row.item_type}
                   onChange={e => {
                     setForm(prev => ({
@@ -376,6 +377,7 @@ export default function NewOrder() {
                 </select>
                 <input
                   className="input mono"
+                  aria-label="الكمية"
                   style={{ textAlign: 'center', height: 30 }}
                   type="number" min="1" max="99"
                   value={row.quantity}
@@ -398,6 +400,7 @@ export default function NewOrder() {
                         <div style={{ display: 'flex', gap: 4 }}>
                           <select
                             className="select"
+                            aria-label="نوع الإصلاح"
                             value={rep.type}
                             onChange={e => {
                               updateRepair(i, j, 'type', e.target.value);

@@ -16,14 +16,19 @@ export function clearAuth() {
 }
 
 export async function login(username, password) {
-  const res = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
+  let res;
+  try {
+    res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+  } catch (_e) {
+    throw new Error('تعذر الاتصال بالخادم');
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'خطأ في تسجيل الدخول');
+    throw new Error(err.error || 'بيانات غير صحيحة');
   }
   const data = await res.json();
   saveAuth(data);

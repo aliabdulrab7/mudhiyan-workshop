@@ -10,7 +10,7 @@ const PAD = 40;
 const DPI_PX_PER_MM = 8;
 
 const LABEL_SIZES = [
-  { id: '50x30',   label: '50×30 مم (نيمبوت)',  w: 50,  h: 30  },
+  { id: '50x30',   label: '50×30 مم ()',  w: 50,  h: 30  },
   { id: '57x32',   label: '57×32 مم',           w: 57,  h: 32  },
   { id: '80x50',   label: '80×50 مم',           w: 80,  h: 50  },
   { id: '100x50',  label: '100×50 مم',          w: 100, h: 50  },
@@ -225,7 +225,7 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
           style={{ flex: 1, justifyContent: "center" }}
           title="طباعة عبر المتصفح — تدعم أي طابعة"
         >
-          ⎙ طباعة (أي طابعة)
+          طباعة
         </button>
 
         {bluetoothAvailable && sizeId === '50x30' && (
@@ -247,7 +247,7 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
                 onClick={() => printAll([labelRef.current], { copiesPerCanvas: 1, maxLabels: 1 })}
                 disabled={isPrinting || !ready}
               >
-                {isPrinting ? "..." : "نيمبوت"}
+                {isPrinting ? "..." : ""}
               </button>
               <button className="btn-ghost" onClick={disconnect} disabled={isPrinting} title="قطع الاتصال">✖</button>
             </>
@@ -258,8 +258,8 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
       {(!bluetoothAvailable || sizeId !== '50x30') && (
         <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", maxWidth: 320, textAlign: "center" }}>
           {!bluetoothAvailable
-            ? 'نيمبوت يتطلب Chrome/Edge مع بلوتوث.'
-            : 'نيمبوت B21 يدعم مقاس 50×30 مم فقط.'}
+            ? ' يتطلب Chrome/Edge مع بلوتوث.'
+            : ' B21 يدعم مقاس 50×30 مم فقط.'}
         </div>
       )}
 

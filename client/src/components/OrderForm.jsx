@@ -82,7 +82,7 @@ export default function OrderForm({ onSuccess }) {
         <input
           className="input-base"
           type="text"
-          placeholder="محمد العتيبي"
+          placeholder="محمد"
           value={customerName}
           onChange={e => {
             setCustomerName(e.target.value);

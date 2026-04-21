@@ -14,7 +14,7 @@ const DPI_PX_PER_MM = 8; // 400px / 50mm
 // Label sizes for universal (browser) printing.
 // mm values drive @page size + canvas pixel dimensions.
 const LABEL_SIZES = [
-  { id: '50x30',   label: '50×30 مم (نيمبوت)',  w: 50,  h: 30  },
+  { id: '50x30',   label: '50×30 مم ()',  w: 50,  h: 30  },
   { id: '57x32',   label: '57×32 مم',           w: 57,  h: 32  },
   { id: '80x50',   label: '80×50 مم',           w: 80,  h: 50  },
   { id: '100x50',  label: '100×50 مم',          w: 100, h: 50  },
@@ -419,16 +419,16 @@ export default function LabelCanvas({ order, autoPrint = false }) {
           onClick={handleUniversalPrint}
           title="طباعة عبر المتصفح — تدعم أي طابعة مثبتة في النظام"
         >
-          ⎙ طباعة (أي طابعة)
+          طباعة
         </button>
 
         {/* Niimbot B21 direct path — only valid at the printer's native 50×30 */}
         {bluetoothAvailable && sizeId === '50x30' && (
           !isConnected ? (
             <>
-              <button className="btn-ghost" onClick={() => connect('bluetooth')}>نيمبوت: بلوتوث</button>
+              <button className="btn-ghost" onClick={() => connect('bluetooth')}>: بلوتوث</button>
               {supportsSerial && (
-                <button className="btn-ghost" onClick={() => connect('serial')}>نيمبوت: USB-C</button>
+                <button className="btn-ghost" onClick={() => connect('serial')}>: USB-C</button>
               )}
             </>
           ) : (
@@ -442,7 +442,7 @@ export default function LabelCanvas({ order, autoPrint = false }) {
                 disabled={isPrinting || !ready}
                 onClick={handlePrint}
               >
-                {isPrinting ? "جاري الطباعة..." : "طباعة نيمبوت"}
+                {isPrinting ? "جاري الطباعة..." : "طباعة "}
               </button>
               {isPrinting && (
                 <button
@@ -466,8 +466,8 @@ export default function LabelCanvas({ order, autoPrint = false }) {
           color: "var(--text-muted)",
         }}>
           {!bluetoothAvailable
-            ? 'نيمبوت المباشر يتطلب Chrome/Edge مع بلوتوث — استخدم زر "طباعة (أي طابعة)" بدلاً من ذلك.'
-            : 'نيمبوت B21 يدعم مقاس 50×30 مم فقط — لأي مقاس آخر استخدم "طباعة (أي طابعة)".'}
+            ? ' المباشر يتطلب Chrome/Edge مع بلوتوث — استخدم زر "طباعة (أي طابعة)" بدلاً من ذلك.'
+            : ' B21 يدعم مقاس 50×30 مم فقط — لأي مقاس آخر استخدم "طباعة (أي طابعة)".'}
         </div>
       )}
 

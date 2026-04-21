@@ -142,6 +142,7 @@ export default function RepairOptionsPage() {
               <label className="field-label">نوع التفاصيل</label>
               <select
                 className="select"
+                aria-label="نوع التفاصيل"
                 value={newForm.needs}
                 onChange={e => setNewForm(f => ({ ...f, needs: e.target.value }))}
               >

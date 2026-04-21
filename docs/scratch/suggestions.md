@@ -65,9 +65,11 @@ Move the `order_items` and `orders` field updates inside `OrderService.transitio
 ```js
 // Option A — simple, immediate fix: put all mutations in a transaction
 const doApprove = db.transaction((orderId) => {
-  db.prepare(`UPDATE order_items SET approval_status = 'approved' ...`).run(orderId);
+  db.prepare(`UPDATE order_items SET approval_status = 'approved' ...`).run(
+    orderId,
+  );
   db.prepare(`UPDATE orders SET cost_status = 'APPROVED' ...`).run(orderId);
-  return OrderService.transition(orderId, 'approved', user, opts);
+  return OrderService.transition(orderId, "approved", user, opts);
 });
 const updated = doApprove(order.id);
 ```
@@ -103,8 +105,8 @@ Also update the validation comment to note that fractional SAR is intentional.
 Add a startup guard:
 
 ```js
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET must be set in production');
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET must be set in production");
   process.exit(1);
 }
 ```
@@ -123,7 +125,7 @@ Extend `requireRole` to accept an array:
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.user?.role)) {
-      return res.status(403).json({ error: 'غير مسموح' });
+      return res.status(403).json({ error: "غير مسموح" });
     }
     next();
   };
@@ -151,6 +153,7 @@ router.post('/:id/confirm-payment', requireRole('workshop', 'shop_employee'), (r
 **File:** `server/routes/orders.js`, `server/services/OrderService.js`
 
 Either:
+
 - **Remove**: Delete `'invoiced'` from `STATUS_SEQUENCE` in `orders.js` and from stats queries if it was never used in production.
 - **Implement**: Add a `READY_FOR_PICKUP → INVOICED → DELIVERED` transition path in `OrderService.TRANSITIONS` if invoicing is a planned feature.
 
@@ -179,7 +182,7 @@ No functional impact — this is purely for audit trail accuracy.
 
 ```js
 if (!ALLOWED_STATUSES.includes(status)) {
-  return res.status(400).json({ error: 'حالة غير صالحة' });
+  return res.status(400).json({ error: "حالة غير صالحة" });
 }
 ```
 
@@ -195,7 +198,7 @@ This gives a clear 400 before reaching the FSM, instead of a confusing transitio
 
 **File:** `server/db.js`, `server/routes/technicians.js`
 
-Currently technicians are identified only by `specialization`. Add a `name` field to the `technicians` table so order details can show "Assigned to: محمد العتيبي (ذهب)".
+Currently technicians are identified only by `specialization`. Add a `name` field to the `technicians` table so order details can show "Assigned to: محمد (ذهب)".
 
 ```sql
 ALTER TABLE technicians ADD COLUMN name TEXT DEFAULT NULL;

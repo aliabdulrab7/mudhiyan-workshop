@@ -7,8 +7,6 @@ ARCHITECTURE_DECISIONS.md
 SYSTEM_INVARIANTS.md
 CLAUDE_PLAYBOOK.md
 
-
-
 # Github commit
 
 git add .

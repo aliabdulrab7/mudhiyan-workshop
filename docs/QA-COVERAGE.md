@@ -1,7 +1,6 @@
 # QA Coverage Sweep
 
-Generated: 2026-04-20T23:16:04.832Z
-Re-swept /scan bulk mode: 2026-04-21 (see bottom of file)
+Generated: 2026-04-21T03:41:48.192Z
 Harness: Playwright Chromium headless, ignoreHTTPSErrors
 Strategy: click every unique interactive element once (deduped by label+tag+href). Classify by observable effect: navigation, XHR, DOM delta, console/page error.
 
@@ -14,24 +13,20 @@ Strategy: click every unique interactive element once (deduped by label+tag+href
 ## Summary
 | Status | Count |
 |---|---|
-| works | 226 |
-| dead | 33 |
+| works | 210 |
+| dead | 21 |
 | errors | 0 |
-| unclear | 185 |
-| **Total** | **444** |
-
-_Delta from 2026-04-20: +16 works, 0 dead. All bulk-mode elements on `/scan` are accounted for as "works" (see re-sweep section at bottom)._
+| unclear | 192 |
+| **Total** | **423** |
 
 ## Notable dead elements (excluding sidebar self-nav)
 
 | Element | Seen on | Count |
 |---|---|---|
-| تصدير | workshop /; workshop /reports; shop_employee /; +6 more | 9 |
 | الطلبات | shop_employee /branches; shop_employee /reports; shop_employee /technicians; +3 more | 6 |
-| إدخال يدوي | workshop /scan; shop_employee /scan | 2 |
-| مسح آخر | workshop /scan; shop_employee /scan | 2 |
 | تسجيل الدخول | public /login | 1 |
-| ✗ أرفض | public /track/1ae59885-5a4c-445d-9105-f9eb1317f5ee | 1 |
+| ✗ أرفض | public /track/8c25ab84-3673-44d5-9076-ef4dec2cf9b9 | 1 |
+| تصدير | workshop /reports | 1 |
 
 _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Buttons whose only effect is a small state flag (e.g., toggling `aria-pressed`) may register as dead — false negatives are possible here. Step 2 deep-checks will verify these case-by-case._
 
@@ -41,7 +36,7 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 |---|---|---|---|---|
 | تسجيل الدخول | button | (click) | no observable effect | dead |
 
-## public :: /track/1ae59885-5a4c-445d-9105-f9eb1317f5ee
+## public :: /track/8c25ab84-3673-44d5-9076-ef4dec2cf9b9
 
 | Element | Kind | Action on Click | Result | Status |
 |---|---|---|---|---|
@@ -67,17 +62,16 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | صيانة جديدة | a href=/new | (click) | navigated → /new | works |
 | <button> | button | (click) | element vanished before click | unclear |
 | تحديث | button | (click) | XHR GET /api/orders → 200 | works |
-| تصدير | button | (click) | no observable effect | dead |
-| جديد 3 | button | (click) | element vanished before click | unclear |
-| مستلمة 0 | button | (click) | element vanished before click | unclear |
+| تصدير | button | (click) | XHR GET /api/orders → 200 | works |
+| جديد 2 | button | (click) | element vanished before click | unclear |
+| مستلمة 1 | button | (click) | element vanished before click | unclear |
 | قيد الفحص 0 | button | (click) | element vanished before click | unclear |
-| بانتظار الموافقة 3 | button | (click) | element vanished before click | unclear |
+| بانتظار الموافقة 4 | button | (click) | element vanished before click | unclear |
 | قيد الإصلاح 0 | button | (click) | element vanished before click | unclear |
 | فحص الجودة 0 | button | (click) | element vanished before click | unclear |
 | جاهزة للإرجاع 3 | button | (click) | element vanished before click | unclear |
 | وصلت للفرع 0 | button | (click) | element vanished before click | unclear |
-| الكل 15 | button | (click) | element vanished before click | unclear |
-| مستلمة | button | (click) | XHR GET /api/orders → 200 | works |
+| الكل 20 | button | (click) | element vanished before click | unclear |
 | قيد الفحص | button | (click) | XHR GET /api/orders → 200 | works |
 | قيد الإصلاح | button | (click) | XHR GET /api/orders → 200 | works |
 | فحص الجودة | button | (click) | XHR GET /api/orders → 200 | works |
@@ -85,9 +79,10 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | وصلت للفرع | button | (click) | XHR GET /api/orders → 200 | works |
 | تم التسليم 3 | button | (click) | element vanished before click | unclear |
 | فلتر | button | (click) | DOM Δ 1273B | works |
-| ترتيب | button | (click) | DOM Δ 3125B | works |
+| ترتيب | button | (click) | DOM Δ 1948B | works |
 | تجميع | button | (click) | DOM Δ 1692B | works |
 | نسخ رابط المتابعة | button | (click) | element vanished before click | unclear |
+| بدء الفحص | button | (click) | element vanished before click | unclear |
 | استلام | button | (click) | element vanished before click | unclear |
 
 ## workshop :: /new
@@ -131,9 +126,10 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | بحث أو تنقل… ⌘ K | button | (click) | element vanished before click | unclear |
 | صيانة جديدة | a href=/new | (click) | navigated → /new | works |
 | <button> | button | (click) | element vanished before click | unclear |
-| إدخال يدوي | button | (click) | no observable effect | dead |
-| مسح آخر | button | (click) | no observable effect | dead |
-| Request Camera Permissions | button | (click) | DOM Δ 118B | works |
+| تبديل إلى الوضع الدفعي | button | (click) | DOM Δ 202B | works |
+| مسح بالكاميرا | button | (click) | element vanished before click | unclear |
+| مسح آخر | button | (click) | element vanished before click | unclear |
+| بحث | button | (click) | disabled | unclear |
 
 ## workshop :: /orders
 
@@ -296,24 +292,23 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | بحث أو تنقل… ⌘ K | button | (click) | element vanished before click | unclear |
 | <button> | button | (click) | element vanished before click | unclear |
 | تحديث | button | (click) | XHR GET /api/orders → 200 | works |
-| تصدير | button | (click) | no observable effect | dead |
-| جديد 3 | button | (click) | element vanished before click | unclear |
-| مستلمة 0 | button | (click) | element vanished before click | unclear |
+| تصدير | button | (click) | XHR GET /api/orders → 200 | works |
+| جديد 2 | button | (click) | element vanished before click | unclear |
+| مستلمة 1 | button | (click) | element vanished before click | unclear |
 | قيد الفحص 0 | button | (click) | element vanished before click | unclear |
-| بانتظار الموافقة 3 | button | (click) | element vanished before click | unclear |
+| بانتظار الموافقة 4 | button | (click) | element vanished before click | unclear |
 | قيد الإصلاح 0 | button | (click) | element vanished before click | unclear |
 | فحص الجودة 0 | button | (click) | element vanished before click | unclear |
 | جاهزة للإرجاع 0 | button | (click) | element vanished before click | unclear |
 | وصلت للفرع 0 | button | (click) | element vanished before click | unclear |
-| الكل 9 | button | (click) | element vanished before click | unclear |
-| مستلمة | button | (click) | XHR GET /api/orders → 200 | works |
+| الكل 14 | button | (click) | element vanished before click | unclear |
 | قيد الفحص | button | (click) | XHR GET /api/orders → 200 | works |
 | قيد الإصلاح | button | (click) | XHR GET /api/orders → 200 | works |
 | فحص الجودة | button | (click) | XHR GET /api/orders → 200 | works |
 | جاهزة للإرجاع | button | (click) | XHR GET /api/orders → 200 | works |
 | وصلت للفرع | button | (click) | XHR GET /api/orders → 200 | works |
 | تم التسليم | button | (click) | XHR GET /api/orders → 200 | works |
-| فلتر | button | (click) | DOM Δ 1273B | works |
+| فلتر | button | (click) | DOM Δ 96B | works |
 | ترتيب | button | (click) | DOM Δ 3125B | works |
 | تجميع | button | (click) | DOM Δ 1692B | works |
 | نسخ رابط المتابعة | button | (click) | element vanished before click | unclear |
@@ -347,9 +342,10 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | تسجيل الخروج | button | (click) | destructive — not clicked | unclear |
 | بحث أو تنقل… ⌘ K | button | (click) | element vanished before click | unclear |
 | <button> | button | (click) | element vanished before click | unclear |
-| إدخال يدوي | button | (click) | no observable effect | dead |
-| مسح آخر | button | (click) | no observable effect | dead |
-| Request Camera Permissions | button | (click) | DOM Δ 118B | works |
+| تبديل إلى الوضع الدفعي | button | (click) | DOM Δ 818B | works |
+| مسح بالكاميرا | button | (click) | element vanished before click | unclear |
+| مسح آخر | button | (click) | element vanished before click | unclear |
+| بحث | button | (click) | disabled | unclear |
 
 ## shop_employee :: /orders
 
@@ -381,24 +377,23 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | بحث أو تنقل… ⌘ K | button | (click) | element vanished before click | unclear |
 | <button> | button | (click) | element vanished before click | unclear |
 | تحديث | button | (click) | XHR GET /api/orders → 200 | works |
-| تصدير | button | (click) | no observable effect | dead |
-| جديد 3 | button | (click) | element vanished before click | unclear |
-| مستلمة 0 | button | (click) | element vanished before click | unclear |
+| تصدير | button | (click) | XHR GET /api/orders → 200 | works |
+| جديد 2 | button | (click) | element vanished before click | unclear |
+| مستلمة 1 | button | (click) | element vanished before click | unclear |
 | قيد الفحص 0 | button | (click) | element vanished before click | unclear |
-| بانتظار الموافقة 3 | button | (click) | element vanished before click | unclear |
+| بانتظار الموافقة 4 | button | (click) | element vanished before click | unclear |
 | قيد الإصلاح 0 | button | (click) | element vanished before click | unclear |
 | فحص الجودة 0 | button | (click) | element vanished before click | unclear |
 | جاهزة للإرجاع 0 | button | (click) | element vanished before click | unclear |
 | وصلت للفرع 0 | button | (click) | element vanished before click | unclear |
-| الكل 9 | button | (click) | element vanished before click | unclear |
-| مستلمة | button | (click) | XHR GET /api/orders → 200 | works |
+| الكل 14 | button | (click) | element vanished before click | unclear |
 | قيد الفحص | button | (click) | XHR GET /api/orders → 200 | works |
 | قيد الإصلاح | button | (click) | XHR GET /api/orders → 200 | works |
 | فحص الجودة | button | (click) | XHR GET /api/orders → 200 | works |
 | جاهزة للإرجاع | button | (click) | XHR GET /api/orders → 200 | works |
 | وصلت للفرع | button | (click) | XHR GET /api/orders → 200 | works |
 | تم التسليم | button | (click) | XHR GET /api/orders → 200 | works |
-| فلتر | button | (click) | DOM Δ 1273B | works |
+| فلتر | button | (click) | DOM Δ 96B | works |
 | ترتيب | button | (click) | DOM Δ 3125B | works |
 | تجميع | button | (click) | DOM Δ 1692B | works |
 | نسخ رابط المتابعة | button | (click) | element vanished before click | unclear |
@@ -415,24 +410,23 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | بحث أو تنقل… ⌘ K | button | (click) | element vanished before click | unclear |
 | <button> | button | (click) | element vanished before click | unclear |
 | تحديث | button | (click) | XHR GET /api/orders → 200 | works |
-| تصدير | button | (click) | no observable effect | dead |
-| جديد 3 | button | (click) | element vanished before click | unclear |
-| مستلمة 0 | button | (click) | element vanished before click | unclear |
+| تصدير | button | (click) | XHR GET /api/orders → 200 | works |
+| جديد 2 | button | (click) | element vanished before click | unclear |
+| مستلمة 1 | button | (click) | element vanished before click | unclear |
 | قيد الفحص 0 | button | (click) | element vanished before click | unclear |
-| بانتظار الموافقة 3 | button | (click) | element vanished before click | unclear |
+| بانتظار الموافقة 4 | button | (click) | element vanished before click | unclear |
 | قيد الإصلاح 0 | button | (click) | element vanished before click | unclear |
 | فحص الجودة 0 | button | (click) | element vanished before click | unclear |
 | جاهزة للإرجاع 0 | button | (click) | element vanished before click | unclear |
 | وصلت للفرع 0 | button | (click) | element vanished before click | unclear |
-| الكل 9 | button | (click) | element vanished before click | unclear |
-| مستلمة | button | (click) | XHR GET /api/orders → 200 | works |
+| الكل 14 | button | (click) | element vanished before click | unclear |
 | قيد الفحص | button | (click) | XHR GET /api/orders → 200 | works |
 | قيد الإصلاح | button | (click) | XHR GET /api/orders → 200 | works |
 | فحص الجودة | button | (click) | XHR GET /api/orders → 200 | works |
 | جاهزة للإرجاع | button | (click) | XHR GET /api/orders → 200 | works |
 | وصلت للفرع | button | (click) | XHR GET /api/orders → 200 | works |
 | تم التسليم | button | (click) | XHR GET /api/orders → 200 | works |
-| فلتر | button | (click) | DOM Δ 1273B | works |
+| فلتر | button | (click) | DOM Δ 96B | works |
 | ترتيب | button | (click) | DOM Δ 3125B | works |
 | تجميع | button | (click) | DOM Δ 1692B | works |
 | نسخ رابط المتابعة | button | (click) | element vanished before click | unclear |
@@ -448,25 +442,24 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | تسجيل الخروج | button | (click) | destructive — not clicked | unclear |
 | بحث أو تنقل… ⌘ K | button | (click) | element vanished before click | unclear |
 | <button> | button | (click) | element vanished before click | unclear |
-| تحديث | button | (click) | XHR GET /api/orders → 200 | works |
-| تصدير | button | (click) | no observable effect | dead |
-| جديد 3 | button | (click) | element vanished before click | unclear |
-| مستلمة 0 | button | (click) | element vanished before click | unclear |
+| تحديث | button | (click) | XHR GET /api/orders/stats → 200 | works |
+| تصدير | button | (click) | XHR GET /api/orders → 200 | works |
+| جديد 2 | button | (click) | element vanished before click | unclear |
+| مستلمة 1 | button | (click) | element vanished before click | unclear |
 | قيد الفحص 0 | button | (click) | element vanished before click | unclear |
-| بانتظار الموافقة 3 | button | (click) | element vanished before click | unclear |
+| بانتظار الموافقة 4 | button | (click) | element vanished before click | unclear |
 | قيد الإصلاح 0 | button | (click) | element vanished before click | unclear |
 | فحص الجودة 0 | button | (click) | element vanished before click | unclear |
 | جاهزة للإرجاع 0 | button | (click) | element vanished before click | unclear |
 | وصلت للفرع 0 | button | (click) | element vanished before click | unclear |
-| الكل 9 | button | (click) | element vanished before click | unclear |
-| مستلمة | button | (click) | XHR GET /api/orders → 200 | works |
+| الكل 14 | button | (click) | element vanished before click | unclear |
 | قيد الفحص | button | (click) | XHR GET /api/orders → 200 | works |
 | قيد الإصلاح | button | (click) | XHR GET /api/orders → 200 | works |
 | فحص الجودة | button | (click) | XHR GET /api/orders → 200 | works |
 | جاهزة للإرجاع | button | (click) | XHR GET /api/orders → 200 | works |
 | وصلت للفرع | button | (click) | XHR GET /api/orders → 200 | works |
 | تم التسليم | button | (click) | XHR GET /api/orders → 200 | works |
-| فلتر | button | (click) | DOM Δ 1273B | works |
+| فلتر | button | (click) | DOM Δ 96B | works |
 | ترتيب | button | (click) | DOM Δ 3125B | works |
 | تجميع | button | (click) | DOM Δ 1692B | works |
 | نسخ رابط المتابعة | button | (click) | element vanished before click | unclear |
@@ -482,25 +475,24 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | تسجيل الخروج | button | (click) | destructive — not clicked | unclear |
 | بحث أو تنقل… ⌘ K | button | (click) | element vanished before click | unclear |
 | <button> | button | (click) | element vanished before click | unclear |
-| تحديث | button | (click) | XHR GET /api/orders/stats → 200 | works |
-| تصدير | button | (click) | no observable effect | dead |
-| جديد 3 | button | (click) | element vanished before click | unclear |
-| مستلمة 0 | button | (click) | element vanished before click | unclear |
+| تحديث | button | (click) | XHR GET /api/orders → 200 | works |
+| تصدير | button | (click) | XHR GET /api/orders → 200 | works |
+| جديد 2 | button | (click) | element vanished before click | unclear |
+| مستلمة 1 | button | (click) | element vanished before click | unclear |
 | قيد الفحص 0 | button | (click) | element vanished before click | unclear |
-| بانتظار الموافقة 3 | button | (click) | element vanished before click | unclear |
+| بانتظار الموافقة 4 | button | (click) | element vanished before click | unclear |
 | قيد الإصلاح 0 | button | (click) | element vanished before click | unclear |
 | فحص الجودة 0 | button | (click) | element vanished before click | unclear |
 | جاهزة للإرجاع 0 | button | (click) | element vanished before click | unclear |
 | وصلت للفرع 0 | button | (click) | element vanished before click | unclear |
-| الكل 9 | button | (click) | element vanished before click | unclear |
-| مستلمة | button | (click) | XHR GET /api/orders → 200 | works |
+| الكل 14 | button | (click) | element vanished before click | unclear |
 | قيد الفحص | button | (click) | XHR GET /api/orders → 200 | works |
 | قيد الإصلاح | button | (click) | XHR GET /api/orders → 200 | works |
 | فحص الجودة | button | (click) | XHR GET /api/orders → 200 | works |
 | جاهزة للإرجاع | button | (click) | XHR GET /api/orders → 200 | works |
 | وصلت للفرع | button | (click) | XHR GET /api/orders → 200 | works |
 | تم التسليم | button | (click) | XHR GET /api/orders → 200 | works |
-| فلتر | button | (click) | DOM Δ 1273B | works |
+| فلتر | button | (click) | DOM Δ 96B | works |
 | ترتيب | button | (click) | DOM Δ 3125B | works |
 | تجميع | button | (click) | DOM Δ 1692B | works |
 | نسخ رابط المتابعة | button | (click) | element vanished before click | unclear |
@@ -516,25 +508,24 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | تسجيل الخروج | button | (click) | destructive — not clicked | unclear |
 | بحث أو تنقل… ⌘ K | button | (click) | element vanished before click | unclear |
 | <button> | button | (click) | element vanished before click | unclear |
-| تحديث | button | (click) | XHR GET /api/orders → 200 | works |
-| تصدير | button | (click) | no observable effect | dead |
-| جديد 3 | button | (click) | element vanished before click | unclear |
-| مستلمة 0 | button | (click) | element vanished before click | unclear |
+| تحديث | button | (click) | XHR GET /api/orders/stats → 200 | works |
+| تصدير | button | (click) | XHR GET /api/orders → 200 | works |
+| جديد 2 | button | (click) | element vanished before click | unclear |
+| مستلمة 1 | button | (click) | element vanished before click | unclear |
 | قيد الفحص 0 | button | (click) | element vanished before click | unclear |
-| بانتظار الموافقة 3 | button | (click) | element vanished before click | unclear |
+| بانتظار الموافقة 4 | button | (click) | element vanished before click | unclear |
 | قيد الإصلاح 0 | button | (click) | element vanished before click | unclear |
 | فحص الجودة 0 | button | (click) | element vanished before click | unclear |
 | جاهزة للإرجاع 0 | button | (click) | element vanished before click | unclear |
 | وصلت للفرع 0 | button | (click) | element vanished before click | unclear |
-| الكل 9 | button | (click) | element vanished before click | unclear |
-| مستلمة | button | (click) | XHR GET /api/orders → 200 | works |
+| الكل 14 | button | (click) | element vanished before click | unclear |
 | قيد الفحص | button | (click) | XHR GET /api/orders → 200 | works |
 | قيد الإصلاح | button | (click) | XHR GET /api/orders → 200 | works |
 | فحص الجودة | button | (click) | XHR GET /api/orders → 200 | works |
 | جاهزة للإرجاع | button | (click) | XHR GET /api/orders → 200 | works |
 | وصلت للفرع | button | (click) | XHR GET /api/orders → 200 | works |
 | تم التسليم | button | (click) | XHR GET /api/orders → 200 | works |
-| فلتر | button | (click) | DOM Δ 1273B | works |
+| فلتر | button | (click) | DOM Δ 96B | works |
 | ترتيب | button | (click) | DOM Δ 3125B | works |
 | تجميع | button | (click) | DOM Δ 1692B | works |
 | نسخ رابط المتابعة | button | (click) | element vanished before click | unclear |
@@ -550,59 +541,24 @@ _Caveat: the "dead" classifier requires >20B DOM delta or a fetch/navigation. Bu
 | تسجيل الخروج | button | (click) | destructive — not clicked | unclear |
 | بحث أو تنقل… ⌘ K | button | (click) | element vanished before click | unclear |
 | <button> | button | (click) | element vanished before click | unclear |
-| تحديث | button | (click) | XHR GET /api/orders → 200 | works |
-| تصدير | button | (click) | no observable effect | dead |
-| جديد 3 | button | (click) | element vanished before click | unclear |
-| مستلمة 0 | button | (click) | element vanished before click | unclear |
+| تحديث | button | (click) | XHR GET /api/orders/stats → 200 | works |
+| تصدير | button | (click) | XHR GET /api/orders → 200 | works |
+| جديد 2 | button | (click) | element vanished before click | unclear |
+| مستلمة 1 | button | (click) | element vanished before click | unclear |
 | قيد الفحص 0 | button | (click) | element vanished before click | unclear |
-| بانتظار الموافقة 3 | button | (click) | element vanished before click | unclear |
+| بانتظار الموافقة 4 | button | (click) | element vanished before click | unclear |
 | قيد الإصلاح 0 | button | (click) | element vanished before click | unclear |
 | فحص الجودة 0 | button | (click) | element vanished before click | unclear |
 | جاهزة للإرجاع 0 | button | (click) | element vanished before click | unclear |
 | وصلت للفرع 0 | button | (click) | element vanished before click | unclear |
-| الكل 9 | button | (click) | element vanished before click | unclear |
-| مستلمة | button | (click) | XHR GET /api/orders → 200 | works |
+| الكل 14 | button | (click) | element vanished before click | unclear |
 | قيد الفحص | button | (click) | XHR GET /api/orders → 200 | works |
 | قيد الإصلاح | button | (click) | XHR GET /api/orders → 200 | works |
 | فحص الجودة | button | (click) | XHR GET /api/orders → 200 | works |
 | جاهزة للإرجاع | button | (click) | XHR GET /api/orders → 200 | works |
 | وصلت للفرع | button | (click) | XHR GET /api/orders → 200 | works |
 | تم التسليم | button | (click) | XHR GET /api/orders → 200 | works |
-| فلتر | button | (click) | DOM Δ 1273B | works |
+| فلتر | button | (click) | DOM Δ 96B | works |
 | ترتيب | button | (click) | DOM Δ 3125B | works |
 | تجميع | button | (click) | DOM Δ 1692B | works |
 | نسخ رابط المتابعة | button | (click) | element vanished before click | unclear |
-
----
-
-## Bulk-mode re-sweep — 2026-04-21
-
-Manual sweep of the new bulk-scan UI on `/scan`. Every interactive element was clicked at least once with an active session seeded; all produced observable effects (DOM delta, XHR, or navigation).
-
-### workshop :: /scan (bulk additions)
-
-| Element | Kind | Action on Click | Result | Status |
-|---|---|---|---|---|
-| تبديل إلى الوضع الدفعي | button | (click) | mounts BulkScanSession; mode strip renders yellow | works |
-| استلام من الفرع (session-type card) | button | (click) | transitions to `scanning`; mode strip turns amber | works |
-| تجهيز للإرجاع (session-type card) | button | (click) | transitions to `scanning`; mode strip turns amber | works |
-| إلغاء الوضع الدفعي | button | (click) | unmounts BulkScanSession; single-scan UI returns | works |
-| Mute toggle (speaker icon) | button | (click) | data-muted flips; localStorage `bulkScanMuted` written; DOM Δ for icon | works |
-| إنهاء الجلسة | button | (click) | transitions to `ending` then `summary`; mode strip turns green | works |
-| جلسة جديدة (summary) | button | (click) | rows cleared; phase → `scanning` with session type preserved | works |
-| الرجوع للوضع العادي (summary) | button | (click) | bulk mode off; single-scan UI returns | works |
-
-### shop_employee :: /scan (bulk additions)
-
-| Element | Kind | Action on Click | Result | Status |
-|---|---|---|---|---|
-| تبديل إلى الوضع الدفعي | button | (click) | mounts BulkScanSession; mode strip renders yellow | works |
-| استلام من الورشة (session-type card) | button | (click) | transitions to `scanning`; mode strip turns amber | works |
-| إلغاء الوضع الدفعي | button | (click) | unmounts BulkScanSession | works |
-| Mute toggle | button | (click) | data-muted flips; persisted | works |
-| إنهاء الجلسة | button | (click) | transitions to `ending` → `summary` | works |
-| جلسة جديدة (summary) | button | (click) | rows cleared; same session type | works |
-| الرجوع للوضع العادي (summary) | button | (click) | bulk mode off | works |
-| Scan-paused badge "اضغط هنا لاستئناف المسح" | span (clickable parent) | (click via container refocus) | hidden input regains focus; badge flips to "جاهز للمسح" | works |
-
-**New dead elements: 0.** All 16 new interactive elements produce observable effects. The e2e suite `tests/bulk-scan.spec.js` covers the happy paths for each session type × eligible role combo.

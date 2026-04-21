@@ -83,7 +83,8 @@ export default function TrackPage() {
     () => (order?.items ?? []).filter(it => it.approval_status === 'pending' && it.estimated_cost > 0),
     [order]
   );
-  const allDecided = decidableItems.every(it => decisions[it.sort_order]);
+  const hasDecidable = decidableItems.length > 0;
+  const allDecided = hasDecidable && decidableItems.every(it => decisions[it.sort_order]);
 
   async function handleSubmitDecisions() {
     if (!allDecided) return;
@@ -320,7 +321,13 @@ export default function TrackPage() {
                   fontFamily: 'var(--font-ui)', opacity: submitting ? 0.6 : 1,
                 }}
               >
-                {submitting ? '...' : allDecided ? 'تأكيد قراري' : `اختر لكل صنف (${decidableItems.length - Object.keys(decisions).length} متبقية)`}
+                {submitting
+                  ? '...'
+                  : allDecided
+                    ? 'تأكيد قراري'
+                    : !hasDecidable
+                      ? 'لا توجد أصناف بحاجة لقرار'
+                      : `اختر لكل صنف (${decidableItems.length - Object.keys(decisions).length} متبقية)`}
               </button>
               {submitError && <div style={{ marginTop: 10, fontSize: 12, textAlign: 'center', color: 'var(--danger)' }}>{submitError}</div>}
             </div>

@@ -43,15 +43,19 @@ function getLanIP() {
   return 'localhost';
 }
 
+const IS_PROD = process.env.NODE_ENV === 'production';
 const ALLOWED_ORIGIN = process.env.PUBLIC_HOST
   ? new RegExp(`^https?://${process.env.PUBLIC_HOST.replace('.', '\\.')}(:\\d+)?$`)
   : null;
+// In dev, Vite may serve over http OR https on localhost / 127.0.0.1 / LAN IPs.
+// In prod, only PUBLIC_HOST is allowed.
+const DEV_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$/;
 
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
     if (ALLOWED_ORIGIN && ALLOWED_ORIGIN.test(origin)) return cb(null, true);
-    if (/^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$/.test(origin)) return cb(null, true);
+    if (!IS_PROD && DEV_ORIGIN.test(origin)) return cb(null, true);
     cb(new Error('Not allowed by CORS'));
   }
 }));
@@ -80,6 +84,16 @@ app.use('/api/repair-options', repairOptsRouter);
 // 8.2 — Catch-all 404 for unmatched routes — returns JSON, not Express HTML page
 app.use((_req, res) => {
   res.status(404).json({ error: 'المسار غير موجود' });
+});
+
+// CORS rejections surface as errors from the cors() middleware — return a
+// clean 403 JSON instead of letting them fall through to a generic 500.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err && err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ error: 'CORS: origin not allowed' });
+  }
+  next(err);
 });
 
 // 8.2 — Global error handler (last middleware)
