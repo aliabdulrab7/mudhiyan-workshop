@@ -109,6 +109,10 @@ function applyDecisions(orderId, decisions, actor) {
     }
   }
 
+  // Atomic: write per-item decisions, recompute orders.cost + cost_status.
+  // orders.cost is the amount the shop will actually invoice, so it must
+  // exclude rejected items — only approved-or-skipped items count.
+  let agg, newTotal, targetStatus;
   const writeAll = db.transaction(() => {
     const upd = db.prepare(
       `UPDATE order_items SET approval_status = ? WHERE id = ? AND order_id = ?`
@@ -116,25 +120,36 @@ function applyDecisions(orderId, decisions, actor) {
     for (const { id, decision } of resolved) {
       upd.run(decision === 'approve' ? 'approved' : 'rejected', id, orderId);
     }
+
+    // Aggregate: at least one item "will be worked on" if any row ends up
+    // approved or skipped (free). Otherwise the whole order is rejected.
+    agg = db.prepare(
+      `SELECT
+         SUM(CASE WHEN approval_status IN ('approved','skipped') THEN 1 ELSE 0 END) AS workable,
+         SUM(CASE WHEN approval_status = 'rejected' THEN 1 ELSE 0 END) AS rejected
+       FROM order_items WHERE order_id = ?`
+    ).get(orderId);
+
+    targetStatus = (agg?.workable ?? 0) > 0 ? 'approved' : 'rejected';
+
+    // Recompute orders.cost from just the items we'll actually charge for.
+    // Rejected items contribute nothing; skipped (free) contribute their
+    // estimated_cost of 0; only approved items add real money.
+    newTotal = db.prepare(
+      `SELECT COALESCE(SUM(estimated_cost), 0) AS total
+       FROM order_items
+       WHERE order_id = ?
+         AND estimated_cost IS NOT NULL
+         AND approval_status IN ('approved','skipped')`
+    ).get(orderId).total;
+
+    db.prepare(
+      `UPDATE orders
+       SET cost = ?, cost_status = ?, updated_at = datetime('now','localtime')
+       WHERE id = ?`
+    ).run(newTotal, targetStatus === 'approved' ? 'APPROVED' : 'REJECTED', orderId);
   });
   writeAll();
-
-  // Aggregate: at least one item "will be worked on" if any row ends up
-  // approved or skipped (free). Otherwise the whole order is rejected.
-  const agg = db.prepare(
-    `SELECT
-       SUM(CASE WHEN approval_status IN ('approved','skipped') THEN 1 ELSE 0 END) AS workable,
-       SUM(CASE WHEN approval_status = 'rejected' THEN 1 ELSE 0 END) AS rejected
-     FROM order_items WHERE order_id = ?`
-  ).get(orderId);
-
-  const targetStatus = (agg?.workable ?? 0) > 0 ? 'approved' : 'rejected';
-
-  db.prepare(
-    `UPDATE orders
-     SET cost_status = ?, updated_at = datetime('now','localtime')
-     WHERE id = ?`
-  ).run(targetStatus === 'approved' ? 'APPROVED' : 'REJECTED', orderId);
 
   return OrderService.transition(
     orderId,
