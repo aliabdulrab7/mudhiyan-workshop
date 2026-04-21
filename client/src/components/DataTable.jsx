@@ -15,11 +15,16 @@ import Checkbox from './Checkbox';
  * selected: Set<key> | undefined — omit to hide checkboxes
  * onSelect: (newSet) => void
  * getRowKey: (row) => string|number
+ * getRowTestId?: (row) => string   — optional; falls back to getRowKey
  * onRowClick: (row) => void
+ * testIdPrefix?: string            — when set, emits `${prefix}__select-all`,
+ *                                    `${prefix}__row__${id}`, `${prefix}__row__${id}__select`.
+ *                                    Primitive is caller-scoped: only emits testids when asked.
  */
-export default function DataTable({ columns, rows, selected, onSelect, getRowKey, onRowClick }) {
+export default function DataTable({ columns, rows, selected, onSelect, getRowKey, getRowTestId, onRowClick, testIdPrefix }) {
   const allSelected = selected?.size === rows.length && rows.length > 0;
   const someSelected = selected?.size > 0 && !allSelected;
+  const rowTestId = getRowTestId || getRowKey;
 
   if (rows.length === 0) {
     return (
@@ -45,6 +50,7 @@ export default function DataTable({ columns, rows, selected, onSelect, getRowKey
                   checked={allSelected}
                   indeterminate={someSelected}
                   onChange={v => onSelect(v ? new Set(rows.map(getRowKey)) : new Set())}
+                  testId={testIdPrefix ? `${testIdPrefix}__select-all` : undefined}
                 />
               </th>
             )}
@@ -62,10 +68,12 @@ export default function DataTable({ columns, rows, selected, onSelect, getRowKey
         <tbody>
           {rows.map((row) => {
             const key = getRowKey(row);
+            const tid = testIdPrefix ? `${testIdPrefix}__row__${rowTestId(row)}` : undefined;
             const isSel = selected?.has(key);
             return (
               <tr
                 key={key}
+                data-testid={tid}
                 className={`order-row border-b border-border-faint last:border-0 cursor-pointer ${isSel ? 'bg-[var(--primary-soft)]' : ''}`}
                 onClick={() => onRowClick?.(row)}
               >
@@ -78,6 +86,7 @@ export default function DataTable({ columns, rows, selected, onSelect, getRowKey
                         v ? next.add(key) : next.delete(key);
                         onSelect(next);
                       }}
+                      testId={tid ? `${tid}__select` : undefined}
                     />
                   </td>
                 )}

@@ -590,7 +590,7 @@ let createdOrderId     = null;
 
   // Find our created order
   if (createdOrderNumber) {
-    const rowSel = `text=${createdOrderNumber}`;
+    const rowSel = `[data-testid="orders-list__row__${createdOrderNumber}"]`;
     const row = page.locator(rowSel).first();
     if (await row.count()) {
       await row.click();
@@ -711,7 +711,7 @@ let createdOrderId     = null;
   // grows its own toolbar, add assertions at that point.
 
   // Search with SQL-like string
-  const searchBox = page.locator('input[type="search"], input[placeholder*="بحث"]').first();
+  const searchBox = page.locator('[data-testid="orders-list__search-input"]').first();
   if (await searchBox.count()) {
     await searchBox.fill(`'; DROP TABLE orders;--`);
     await page.waitForTimeout(600);

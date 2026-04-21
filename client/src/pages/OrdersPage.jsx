@@ -113,6 +113,7 @@ export default function OrdersPage() {
               placeholder="بحث… ⌘F"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              data-testid="orders-list__search-input"
             />
           </div>
         </div>
@@ -123,7 +124,8 @@ export default function OrdersPage() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           <button
             className={`chip${filter === 'all' ? ' chip-active' : ''}`}
-            onClick={() => setFilterAndSync('all')}>
+            onClick={() => setFilterAndSync('all')}
+            data-testid="orders-list__filter__all">
             الكل
           </button>
           {MAIN_STATUSES.map(s => (
@@ -131,7 +133,8 @@ export default function OrdersPage() {
               key={s}
               className={`chip${filter === s ? ' chip-active' : ''}`}
               onClick={() => setFilterAndSync(s)}
-              style={filter === s ? { borderColor: STATUS_META[s]?.color, color: STATUS_META[s]?.color } : {}}>
+              style={filter === s ? { borderColor: STATUS_META[s]?.color, color: STATUS_META[s]?.color } : {}}
+              data-testid={`orders-list__filter__${s}`}>
               {STATUS_META[s]?.label || s}
             </button>
           ))}
@@ -142,11 +145,11 @@ export default function OrdersPage() {
           <div className="bulk-bar">
             <span style={{ fontSize: 13, fontWeight: 500 }}>تم تحديد {selected.size}</span>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => bulkStatus('in_progress')}>→ قيد العمل</button>
-              <button className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => bulkStatus('ready')}>→ جاهزة</button>
-              <button className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => bulkStatus('delivered')}>→ تم التسليم</button>
+              <button className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => bulkStatus('in_progress')} data-testid="orders-list__bulk__advance-in-progress">→ قيد العمل</button>
+              <button className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => bulkStatus('ready')} data-testid="orders-list__bulk__advance-ready">→ جاهزة</button>
+              <button className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => bulkStatus('delivered')} data-testid="orders-list__bulk__advance-delivered">→ تم التسليم</button>
             </div>
-            <button className="btn btn-ghost" style={{ height: 28, fontSize: 12 }} onClick={() => setSelected(new Set())}>إلغاء</button>
+            <button className="btn btn-ghost" style={{ height: 28, fontSize: 12 }} onClick={() => setSelected(new Set())} data-testid="orders-list__bulk__cancel">إلغاء</button>
           </div>
         )}
 
@@ -156,7 +159,9 @@ export default function OrdersPage() {
           selected={selected}
           onSelect={setSelected}
           getRowKey={r => r.id}
+          getRowTestId={r => r.order_number}
           onRowClick={handleRowClick}
+          testIdPrefix="orders-list"
         />
       </div>
 

@@ -100,9 +100,13 @@ Convention:
   `orders-list__bulk__advance-ready`,
   `orders-list__bulk__advance-delivered`,
   `orders-list__bulk__cancel`
-- DataTable (see §1.2 primitives) receives `testIdPrefix="orders-list"` →
-  emits `orders-list__row__{id}`, `orders-list__row__{id}__select`,
-  `orders-list__select-all`
+- DataTable (see §1.2 primitives) receives `testIdPrefix="orders-list"` and
+  `getRowTestId={r => r.order_number}` → emits
+  `orders-list__row__{order_number}`, `orders-list__row__{order_number}__select`,
+  `orders-list__select-all`.
+  Row specifier is `order_number` (stamp-style, e.g. `BR1-20260420-0022`)
+  rather than numeric DB id — harness-friendly (orders are created via API
+  which returns `order_number`) and human-readable in traces.
 
 #### `new-order` — `pages/NewOrder.jsx` · ~10 static + 6+ per-row generators
 - `new-order__customer-name-input`, `new-order__phone-input`,

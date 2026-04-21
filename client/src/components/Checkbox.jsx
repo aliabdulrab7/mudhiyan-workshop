@@ -1,8 +1,9 @@
-export default function Checkbox({ checked, indeterminate, onChange, onClick }) {
+export default function Checkbox({ checked, indeterminate, onChange, onClick, testId }) {
   return (
     <span
       role="checkbox"
       aria-checked={indeterminate ? 'mixed' : checked}
+      data-testid={testId}
       className={[
         'inline-grid place-items-center w-4 h-4 rounded border cursor-pointer flex-shrink-0 transition-colors',
         checked || indeterminate
