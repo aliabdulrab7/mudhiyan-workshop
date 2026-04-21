@@ -38,7 +38,7 @@ function formatDate(str) {
   return new Date(str).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, shopId = null }) {
+export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, shopId = null, onDisplayCount }) {
   const [orders, setOrders]       = useState([]);
   const [allOrders, setAllOrders] = useState([]);
   const [status, setStatus]       = useState(defaultStatus);
@@ -175,6 +175,8 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   }, [displayOrders, groupBy]);
 
   const activeExtraFilters = (urgentOnly ? 1 : 0) + (withPhoneOnly ? 1 : 0);
+
+  useEffect(() => { onDisplayCount?.(displayOrders.length); }, [displayOrders.length, onDisplayCount]);
 
   // Keyboard j/k navigation
   useEffect(() => {

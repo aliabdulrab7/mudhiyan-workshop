@@ -163,6 +163,29 @@ groups all rows from one session together.
 Run the bulk-scan e2e suite with `npm run test:e2e` (requires `npm run dev`
 already running — the suite seeds against the live dev DB).
 
+## Data handling
+
+### Dashboard CSV export (`client/src/utils/exportOrdersCsv.js`)
+
+- **What it includes:** `رقم الطلب, اسم العميل, الجوال, القطعة, الحالة, مستعجل,
+  التكلفة, تاريخ الاستلام, الفرع`. Full customer name and full phone
+  (`+966XXXXXXXXX`) are included — no masking, no truncation.
+- **Why:** the CSV mirrors what the operator already sees on the Dashboard row.
+  A two-tier privacy model (row visible, export masked) would be inconsistent
+  and invite workarounds (screenshot, re-type). Keeping export == display also
+  keeps the PII surface honest — anything we're uncomfortable dumping to a CSV
+  shouldn't be on the row either.
+- **Who sees it:** both roles. `workshop` sees all orders; `shop_employee` is
+  server-scoped to their own `shop_id` by `GET /api/orders` (enforced in
+  `server/routes/orders.js`), so the export for a shop_employee only ever
+  contains their own shop's rows — no client-side role hiding is required.
+- **What would change this:** if the product ever introduces real privacy
+  classes (e.g., a "VIP" flag that suppresses on-screen phone), customer
+  consent flows, or regulatory constraints on PII-on-disk, revisit this
+  default. Likely landing: mask phone to `+966•••••XXXX` in the export for
+  non-owner roles, and/or route export through a server endpoint that writes
+  an audit row. Today there's no audit trail — a CSV leaves no fingerprint.
+
 ## RTL / Arabic UI Gotchas (learned during Mudhiyan build)
 
 - **LTR content inside RTL layout**: identifiers that are

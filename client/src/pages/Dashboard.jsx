@@ -8,6 +8,7 @@ import { useApprovalNotifications } from '../hooks/useApprovalNotifications';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
 import { useToast } from '../components/ToastProvider';
+import { downloadOrdersCsv } from '../utils/exportOrdersCsv';
 
 const STAT_CARDS = [
   { key: 'new',              label: 'جديد',              color: 'var(--status-closed)',   spark: [2,3,2,4,3,4,3] },
@@ -27,9 +28,29 @@ export default function Dashboard() {
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [refresh, setRefresh]           = useState(0);
+  const [listCount, setListCount]       = useState(0);
+  const [exporting, setExporting]       = useState(false);
   const navigate   = useNavigate();
   const isWorkshop = getRole() === 'workshop';
   const toast      = useToast();
+
+  async function handleExport() {
+    if (exporting || listCount === 0) return;
+    setExporting(true);
+    try {
+      const orders = await getOrders({ status: filterStatus, shop_id: selectedBranch });
+      if (orders.length === 0) {
+        toast('لا توجد طلبات للتصدير', 'info');
+        return;
+      }
+      const name = downloadOrdersCsv(orders, { status: filterStatus });
+      toast(`تم تصدير ${orders.length} طلب — ${name}`, 'success');
+    } catch {
+      toast('فشل التصدير', 'error');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function loadData() {
     const [s, received, pending, rejected, branches] = await Promise.all([
@@ -73,7 +94,12 @@ export default function Dashboard() {
           <button className="btn btn-sm" onClick={() => setRefresh(r => r + 1)}>
             <Icons.Refresh size={12} /> تحديث
           </button>
-          <button className="btn btn-sm">
+          <button
+            className="btn btn-sm"
+            onClick={handleExport}
+            disabled={listCount === 0 || exporting}
+            title={listCount === 0 ? 'لا توجد طلبات للتصدير' : undefined}
+          >
             <Icons.Download size={12} /> تصدير
           </button>
         </div>
@@ -218,6 +244,7 @@ export default function Dashboard() {
             shopId={selectedBranch}
             refresh={refresh}
             onRefresh={() => setRefresh(r => r + 1)}
+            onDisplayCount={setListCount}
           />
         </div>
       </div>
