@@ -15,3 +15,8 @@ github-actions-deployer_accessKeys.csv
 test-results/
 playwright-report/
 .playwright-mcp/
+
+# qa-audit harness (tools/qa-audit)
+tools/qa-audit/node_modules/
+tools/qa-audit/screenshots/
+QA-REPORT.md

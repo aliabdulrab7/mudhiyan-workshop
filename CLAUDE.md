@@ -117,6 +117,13 @@ When I say "run QA" or "heavy test", follow /docs/qa-protocol.md:
 - Output findings to QA-REPORT.md with severity ratings
 - Never fix without showing the report first
 
+The scripted harness lives at `tools/qa-audit/` (see `tools/qa-audit/README.md`).
+Run it with `node tools/qa-audit/audit.mjs` (requires `npm install` once inside
+`tools/qa-audit/`, and `npm run dev` already running at repo root). It writes
+`QA-REPORT.md` at the repo root; screenshots land in
+`tools/qa-audit/screenshots/`. Both outputs are gitignored — copy or quote
+findings into commits/PRs rather than relying on the files persisting.
+
 ## QA Ground Rules (read before every QA run)
 
 Treat findings from a new or changed QA harness with suspicion until the harness itself has produced at least one clean run against known-good code. The first pass of any harness is a harness-shakedown, not a product audit.

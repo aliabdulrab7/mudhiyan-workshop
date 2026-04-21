@@ -1,0 +1,13 @@
+{
+  "name": "qa-audit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright-based QA harness for mudhiyan-workshop. Writes QA-REPORT.md at repo root.",
+  "scripts": {
+    "audit": "node audit.mjs",
+    "coverage": "node coverage-sweep.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.59.1"
+  }
+}
