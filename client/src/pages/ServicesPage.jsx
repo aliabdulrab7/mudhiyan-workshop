@@ -74,7 +74,8 @@ export default function ServicesPage() {
         <div className="page-actions">
           {!showForm && (
             <button className="btn btn-sm btn-primary"
-              onClick={() => { setForm({ name: '', description: '', default_price: '' }); setError(''); setShowForm(true); }}>
+              onClick={() => { setForm({ name: '', description: '', default_price: '' }); setError(''); setShowForm(true); }}
+              data-testid="services__add-button">
               <Icons.Plus size={12} /> إضافة خدمة
             </button>
           )}
@@ -91,20 +92,23 @@ export default function ServicesPage() {
                 <label className="field-label">اسم الخدمة</label>
                 <input className="input" value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="مثال: تنظيف الذهب" required autoFocus />
+                  placeholder="مثال: تنظيف الذهب" required autoFocus
+                  data-testid="services__form__name-input" />
               </div>
               <div>
                 <label className="field-label">الوصف</label>
                 <input className="input" value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="وصف مختصر (اختياري)" />
+                  placeholder="وصف مختصر (اختياري)"
+                  data-testid="services__form__description-input" />
               </div>
               <div>
                 <label className="field-label">السعر الافتراضي (ريال)</label>
                 <input className="input mono" type="number" min="0" step="0.01"
                   value={form.default_price}
                   onChange={e => setForm(f => ({ ...f, default_price: e.target.value }))}
-                  placeholder="0.00" style={{ direction: 'ltr', textAlign: 'left' }} />
+                  placeholder="0.00" style={{ direction: 'ltr', textAlign: 'left' }}
+                  data-testid="services__form__price-input" />
               </div>
               {error && (
                 <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
@@ -112,10 +116,10 @@ export default function ServicesPage() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
+                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="services__form__submit">
                   {submitting ? 'جاري الحفظ...' : 'حفظ'}
                 </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }}>
+                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} data-testid="services__form__cancel">
                   إلغاء
                 </button>
               </div>
@@ -167,10 +171,10 @@ export default function ServicesPage() {
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="btn btn-primary" type="submit" disabled={editSubmitting} style={{ flex: 1, justifyContent: 'center' }}>
+                      <button className="btn btn-primary" type="submit" disabled={editSubmitting} style={{ flex: 1, justifyContent: 'center' }} data-testid={`services__row__${service.id}__save`}>
                         {editSubmitting ? 'جاري الحفظ...' : 'حفظ'}
                       </button>
-                      <button className="btn btn-ghost" type="button" onClick={() => setEditingId(null)}>
+                      <button className="btn btn-ghost" type="button" onClick={() => setEditingId(null)} data-testid={`services__row__${service.id}__cancel`}>
                         إلغاء
                       </button>
                     </div>
@@ -195,7 +199,7 @@ export default function ServicesPage() {
                         </div>
                       )}
                     </div>
-                    <button className="btn btn-sm btn-ghost" type="button" onClick={() => handleStartEdit(service)}>
+                    <button className="btn btn-sm btn-ghost" type="button" onClick={() => handleStartEdit(service)} data-testid={`services__row__${service.id}__edit`}>
                       تعديل
                     </button>
                   </div>

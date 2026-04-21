@@ -103,6 +103,7 @@ export default function RepairOptionsPage() {
               type="button"
               className={'chip' + (t === activeType ? ' active' : '')}
               onClick={() => { setActiveType(t); setEditingId(null); setNewForm({ value: '', needs: '' }); setError(''); }}
+              data-testid={`repair-options__tab__${t}`}
             >
               {t}
               <span style={{ marginInlineStart: 6, opacity: 0.6, fontSize: 10 }}>
@@ -136,6 +137,7 @@ export default function RepairOptionsPage() {
                 placeholder="مثال: تغيير مقاس"
                 value={newForm.value}
                 onChange={e => setNewForm(f => ({ ...f, value: e.target.value }))}
+                data-testid="repair-options__form__name-input"
               />
             </div>
             <div style={{ flex: '1 1 160px' }}>
@@ -145,11 +147,12 @@ export default function RepairOptionsPage() {
                 aria-label="نوع التفاصيل"
                 value={newForm.needs}
                 onChange={e => setNewForm(f => ({ ...f, needs: e.target.value }))}
+                data-testid="repair-options__form__needs-select"
               >
                 {NEEDS_OPTIONS.map(o => <option key={o.value || 'none'} value={o.value}>{o.label}</option>)}
               </select>
             </div>
-            <button className="btn btn-primary" type="submit" style={{ height: 32 }}>
+            <button className="btn btn-primary" type="submit" style={{ height: 32 }} data-testid="repair-options__form__submit">
               <Icons.Plus size={12} /> إضافة
             </button>
           </form>
@@ -191,10 +194,10 @@ export default function RepairOptionsPage() {
                     </select>
                     <span />
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-sm btn-primary" onClick={e => saveEdit(e, row.id)}>
+                      <button className="btn btn-sm btn-primary" onClick={e => saveEdit(e, row.id)} data-testid={`repair-options__row__${row.id}__save`}>
                         <Icons.Check size={11} /> حفظ
                       </button>
-                      <button className="btn btn-sm btn-ghost" type="button" onClick={() => setEditingId(null)}>
+                      <button className="btn btn-sm btn-ghost" type="button" onClick={() => setEditingId(null)} data-testid={`repair-options__row__${row.id}__cancel`}>
                         إلغاء
                       </button>
                     </div>
@@ -216,6 +219,7 @@ export default function RepairOptionsPage() {
                           background: row.active ? 'var(--primary)' : 'var(--bg-soft)',
                           cursor: 'pointer',
                         }}
+                        data-testid={`repair-options__row__${row.id}__toggle-active`}
                       >
                         <span style={{
                           position: 'absolute', top: 1, insetInlineStart: row.active ? 13 : 1,
@@ -225,7 +229,7 @@ export default function RepairOptionsPage() {
                       </button>
                     </div>
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-sm btn-ghost" type="button" onClick={() => startEdit(row)}>
+                      <button className="btn btn-sm btn-ghost" type="button" onClick={() => startEdit(row)} data-testid={`repair-options__row__${row.id}__edit`}>
                         تعديل
                       </button>
                       <button
@@ -233,6 +237,7 @@ export default function RepairOptionsPage() {
                         type="button"
                         onClick={() => remove(row)}
                         title="حذف"
+                        data-testid={`repair-options__row__${row.id}__delete`}
                       >
                         <Icons.X size={12} />
                       </button>

@@ -57,7 +57,7 @@ export default function BranchesPage() {
         </div>
         <div className="page-actions">
           {!showForm && (
-            <button className="btn btn-sm btn-primary" onClick={handleShowForm}>
+            <button className="btn btn-sm btn-primary" onClick={handleShowForm} data-testid="branches__add-button">
               <Icons.Plus size={12} /> فرع جديد
             </button>
           )}
@@ -74,7 +74,8 @@ export default function BranchesPage() {
                 <label className="field-label">اسم الفرع</label>
                 <input className="input" value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="مثال: فرع الرياض" required />
+                  placeholder="مثال: فرع الرياض" required
+                  data-testid="branches__form__name-input" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
@@ -82,14 +83,16 @@ export default function BranchesPage() {
                   <input className="input mono" value={form.username}
                     onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
                     placeholder="br1" required
-                    style={{ direction: 'ltr', textAlign: 'left' }} />
+                    style={{ direction: 'ltr', textAlign: 'left' }}
+                    data-testid="branches__form__username-input" />
                 </div>
                 <div>
                   <label className="field-label">كلمة المرور</label>
                   <input className="input mono" type="password" value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                     placeholder="6 أحرف+" required minLength={6}
-                    style={{ direction: 'ltr', textAlign: 'left' }} />
+                    style={{ direction: 'ltr', textAlign: 'left' }}
+                    data-testid="branches__form__password-input" />
                 </div>
               </div>
               {error && (
@@ -98,10 +101,10 @@ export default function BranchesPage() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
+                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="branches__form__submit">
                   {submitting ? 'جاري الإنشاء...' : 'إنشاء الفرع'}
                 </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} style={{ flex: '0 0 auto' }}>
+                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} style={{ flex: '0 0 auto' }} data-testid="branches__form__cancel">
                   إلغاء
                 </button>
               </div>
@@ -146,6 +149,7 @@ export default function BranchesPage() {
                   className="btn btn-sm btn-ghost"
                   onClick={() => handleDelete(branch.id, branch.name)}
                   style={{ color: 'var(--danger)', borderColor: 'oklch(0.58 0.21 25 / 0.3)' }}
+                  data-testid={`branches__row__${branch.id}__delete`}
                 >
                   حذف
                 </button>

@@ -44,7 +44,7 @@ export default function TechniciansPage() {
         </div>
         <div className="page-actions">
           {!showForm && (
-            <button className="btn btn-sm btn-primary" onClick={() => { setForm({ specialization: '' }); setError(''); setShowForm(true); }}>
+            <button className="btn btn-sm btn-primary" onClick={() => { setForm({ specialization: '' }); setError(''); setShowForm(true); }} data-testid="technicians__add-button">
               <Icons.Plus size={12} /> إضافة فني
             </button>
           )}
@@ -61,7 +61,8 @@ export default function TechniciansPage() {
                 <label className="field-label">التخصص</label>
                 <input className="input" value={form.specialization}
                   onChange={e => setForm(f => ({ ...f, specialization: e.target.value }))}
-                  placeholder="مثال: تصليح ذهب، تركيب أحجار" required autoFocus />
+                  placeholder="مثال: تصليح ذهب، تركيب أحجار" required autoFocus
+                  data-testid="technicians__form__specialization-input" />
               </div>
               {error && (
                 <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
@@ -69,10 +70,10 @@ export default function TechniciansPage() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
+                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="technicians__form__submit">
                   {submitting ? 'جاري الحفظ...' : 'حفظ'}
                 </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }}>
+                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} data-testid="technicians__form__cancel">
                   إلغاء
                 </button>
               </div>

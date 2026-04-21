@@ -55,7 +55,8 @@ export default function InventoryPage() {
         <div className="page-actions">
           {!showForm && (
             <button className="btn btn-sm btn-primary"
-              onClick={() => { setForm({ name: '', category: '', stock_qty: 0, unit: 'قطعة', cost_per_unit: 0 }); setError(''); setShowForm(true); }}>
+              onClick={() => { setForm({ name: '', category: '', stock_qty: 0, unit: 'قطعة', cost_per_unit: 0 }); setError(''); setShowForm(true); }}
+              data-testid="inventory__add-button">
               <Icons.Plus size={12} /> إضافة مادة
             </button>
           )}
@@ -72,32 +73,37 @@ export default function InventoryPage() {
                 <label className="field-label">اسم المادة <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input className="input" value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="مثال: ذهب عيار 18" required autoFocus />
+                  placeholder="مثال: ذهب عيار 18" required autoFocus
+                  data-testid="inventory__form__name-input" />
               </div>
               <div>
                 <label className="field-label">الفئة <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>(اختياري)</span></label>
                 <input className="input" value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                  placeholder="مثال: معادن، أحجار" />
+                  placeholder="مثال: معادن، أحجار"
+                  data-testid="inventory__form__category-input" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div>
                   <label className="field-label">الكمية</label>
                   <input className="input mono" type="number" min="0" value={form.stock_qty}
                     onChange={e => setForm(f => ({ ...f, stock_qty: e.target.value }))}
-                    style={{ direction: 'ltr', textAlign: 'left' }} />
+                    style={{ direction: 'ltr', textAlign: 'left' }}
+                    data-testid="inventory__form__qty-input" />
                 </div>
                 <div>
                   <label className="field-label">الوحدة</label>
                   <input className="input" value={form.unit}
                     onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-                    placeholder="قطعة" />
+                    placeholder="قطعة"
+                    data-testid="inventory__form__unit-input" />
                 </div>
                 <div>
                   <label className="field-label">سعر الوحدة (ريال)</label>
                   <input className="input mono" type="number" min="0" step="0.01" value={form.cost_per_unit}
                     onChange={e => setForm(f => ({ ...f, cost_per_unit: e.target.value }))}
-                    style={{ direction: 'ltr', textAlign: 'left' }} />
+                    style={{ direction: 'ltr', textAlign: 'left' }}
+                    data-testid="inventory__form__cost-input" />
                 </div>
               </div>
               {error && (
@@ -106,10 +112,10 @@ export default function InventoryPage() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }}>
+                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="inventory__form__submit">
                   {submitting ? 'جاري الحفظ...' : 'حفظ'}
                 </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }}>
+                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} data-testid="inventory__form__cancel">
                   إلغاء
                 </button>
               </div>
@@ -166,12 +172,14 @@ export default function InventoryPage() {
                           disabled={adjusting[item.id]}
                           onClick={() => handleAdjust(item.id, -1)}
                           style={{ width: 28, padding: 0, justifyContent: 'center', fontFamily: 'var(--font-mono)' }}
+                          data-testid={`inventory__row__${item.id}__decrease`}
                         >−</button>
                         <button
                           className="btn btn-sm btn-primary"
                           disabled={adjusting[item.id]}
                           onClick={() => handleAdjust(item.id, 1)}
                           style={{ width: 28, padding: 0, justifyContent: 'center', fontFamily: 'var(--font-mono)' }}
+                          data-testid={`inventory__row__${item.id}__increase`}
                         >+</button>
                       </div>
                     </td>
