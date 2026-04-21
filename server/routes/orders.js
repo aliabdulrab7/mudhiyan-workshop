@@ -14,10 +14,12 @@ const STATUS_SEQUENCE = [
   'quality_check', 'ready_for_return', 'returned_to_shop', 'delivered', 'closed',
 ];
 
-// Legacy statuses kept for existing data backward compatibility
+// Legacy statuses kept for existing data backward compatibility.
+// 'ready_for_pickup' is migrated to 'ready_for_return' on startup (see db.js) — no longer listed here.
+// TODO: 'ready' is another legacy status still in live use; candidate for future cleanup once all orders have moved past it
 const ALLOWED_STATUSES = [
   ...STATUS_SEQUENCE,
-  'diagnosing', 'ready_for_pickup', 'pending_approval', 'in_progress', 'ready', 'returned', 'invoiced',
+  'diagnosing', 'pending_approval', 'in_progress', 'ready', 'returned', 'invoiced',
   'rejected', 'cancelled',
 ];
 
@@ -39,7 +41,7 @@ router.get('/stats', (req, res) => {
       SUM(status IN ('waiting_approval','pending_approval'))                      AS waiting_approval,
       SUM(status IN ('in_repair','in_progress'))                                  AS in_repair,
       SUM(status = 'quality_check')                                               AS quality_check,
-      SUM(status IN ('ready_for_return','ready_for_pickup','ready'))              AS ready_for_return,
+      SUM(status IN ('ready_for_return','ready'))                                 AS ready_for_return,
       SUM(status = 'returned_to_shop')                                            AS returned_to_shop,
       SUM(status = 'delivered')                                                   AS delivered,
       SUM(status = 'closed')                                                      AS closed
@@ -57,13 +59,13 @@ router.get('/branch-stats', requireRole('workshop'), (req, res) => {
       COALESCE(SUM(o.status IN ('new','received')), 0)                                       AS received,
       COALESCE(SUM(o.status IN ('waiting_approval','pending_approval')), 0)                  AS pending_approval,
       COALESCE(SUM(o.status IN ('in_repair','in_progress','inspection','diagnosing')), 0)    AS in_progress,
-      COALESCE(SUM(o.status IN ('ready_for_return','ready_for_pickup','ready','returned_to_shop','quality_check')), 0) AS ready,
+      COALESCE(SUM(o.status IN ('ready_for_return','ready','returned_to_shop','quality_check')), 0) AS ready,
       COALESCE(SUM(o.status = 'delivered'), 0)                                               AS delivered,
       COUNT(o.id)                                                                             AS total
     FROM shops s
     LEFT JOIN orders o ON o.shop_id = s.id
     GROUP BY s.id
-    ORDER BY (COALESCE(SUM(o.status IN ('ready_for_return','ready_for_pickup','ready','returned_to_shop','quality_check')), 0)) DESC, s.name
+    ORDER BY (COALESCE(SUM(o.status IN ('ready_for_return','ready','returned_to_shop','quality_check')), 0)) DESC, s.name
   `).all();
   res.json(rows);
 });
@@ -126,11 +128,9 @@ router.get('/', (req, res) => {
     } else if (status === 'pending_approval') {
       query += " AND o.status IN ('waiting_approval','pending_approval')";
     } else if (status === 'ready') {
-      query += " AND o.status IN ('ready_for_return','ready_for_pickup','ready','returned_to_shop','quality_check')";
+      query += " AND o.status IN ('ready_for_return','ready','returned_to_shop','quality_check')";
     } else if (status === 'diagnosing') {
       query += " AND o.status IN ('inspection','diagnosing')";
-    } else if (status === 'ready_for_pickup') {
-      query += " AND o.status IN ('ready_for_return','ready_for_pickup')";
     } else {
       query += ' AND o.status = ?';
       params.push(status);

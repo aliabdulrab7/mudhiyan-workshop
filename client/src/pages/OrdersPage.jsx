@@ -8,7 +8,7 @@ import { Icons } from '../components/icons';
 
 const ALL_STATUSES = Object.keys(STATUS_META).filter(s =>
   !['new', 'inspection', 'approved', 'quality_check', 'returned_to_shop', 'closed', 'cancelled',
-    'diagnosing', 'ready_for_pickup'].includes(s)
+    'diagnosing'].includes(s)
 );
 
 const MAIN_STATUSES = ['received', 'pending_approval', 'in_progress', 'ready', 'delivered'];

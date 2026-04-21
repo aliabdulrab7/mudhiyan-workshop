@@ -17,7 +17,6 @@ export const STATUS_META = {
   cancelled:         { color: 'oklch(0.58 0.21 25)',  label: 'ملغاة' },
   // legacy aliases
   diagnosing:        { color: 'oklch(0.55 0.16 295)', label: 'قيد الفحص' },
-  ready_for_pickup:  { color: 'oklch(0.60 0.15 150)', label: 'جاهزة للاستلام' },
   pending_approval:  { color: 'oklch(0.68 0.15 70)',  label: 'بانتظار الموافقة' },
   in_progress:       { color: 'oklch(0.60 0.13 220)', label: 'قيد العمل' },
   ready:             { color: 'oklch(0.60 0.15 150)', label: 'جاهزة' },

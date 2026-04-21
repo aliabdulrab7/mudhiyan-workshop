@@ -57,7 +57,7 @@ beforeEach(() => {
     INSERT INTO orders (order_number, customer_name, phone, piece_type, shop_id, customer_token, status, cost, locked_at)
     VALUES ('P4-DEL-001', 'Faisal', '966500000004', 'خاتم', 1, ?, 'delivered', 300, datetime('now','localtime'))
   `).run(TOKEN_DELIVERED).lastInsertRowid;
-  db.prepare(`INSERT INTO order_status_history (order_id, from_status, to_status, changed_by) VALUES (?, 'ready_for_pickup', 'delivered', 'test')`).run(orderDeliveredId);
+  db.prepare(`INSERT INTO order_status_history (order_id, from_status, to_status, changed_by) VALUES (?, 'ready_for_return', 'delivered', 'test')`).run(orderDeliveredId);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -207,13 +207,13 @@ describe('POST /api/track/:token/reject', () => {
     expect(order.cost_status).toBe('REJECTED');
   });
 
-  it('REJECTED → next state is ready_for_pickup (not in_repair)', async () => {
-    // After reject, order should be in rejected. Next valid transition is ready_for_pickup.
+  it('REJECTED → next state is ready_for_return (not in_repair)', async () => {
+    // After reject, order should be in rejected. Next valid transition is ready_for_return.
     await request(app).post(`/api/track/${TOKEN_WAITING}/reject`);
     const order = db.prepare('SELECT status FROM orders WHERE id = ?').get(orderWaitingId);
     expect(order.status).toBe('rejected');
 
-    // Verify the FSM allows rejected → ready_for_return (renamed from ready_for_pickup)
+    // Verify the FSM allows rejected → ready_for_return.
     const { isValidTransition } = require('../services/OrderService');
     expect(isValidTransition('rejected', 'ready_for_return')).toBe(true);
     expect(isValidTransition('rejected', 'in_repair')).toBe(false);

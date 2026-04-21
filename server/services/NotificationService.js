@@ -19,12 +19,6 @@ const MESSAGE_BUILDERS = {
     `تكلفة الإصلاح المقدرة: ${order.cost} ريال.\n` +
     `يرجى الموافقة أو الرفض عبر الرابط التالي:\n` +
     `https://mudhiyan.app/track/${order.customer_token}`,
-
-  ready_for_pickup: (order) =>
-    `مرحباً ${order.customer_name}،\n` +
-    `طلبك رقم ${order.order_number} جاهز للاستلام.\n` +
-    `يمكنك المجيء لاستلام قطعتك من الفرع.\n` +
-    `شكراً لثقتك بنا! 🙏`,
 };
 
 // ── Core builder ──────────────────────────────────────────────────────────────
@@ -43,7 +37,7 @@ function buildWhatsAppLink(phone, message) {
  * Build a notification payload for the given status event and order.
  *
  * @param {string} event  - Status value that triggered the notification
- *                          (e.g. 'waiting_approval', 'ready_for_pickup')
+ *                          (e.g. 'waiting_approval')
  * @param {object} order  - Order row including customer_name, phone, order_number, cost
  * @returns {{ event, message, whatsapp_url } | null}
  */
