@@ -5,6 +5,7 @@ import ManualEntryInput from '../components/ManualEntryInput';
 import ScanResult from '../components/ScanResult';
 // TODO: OrdersPage passes dead props orderId + onStatusChange — clean up when next touching OrdersPage
 import OrderDetail from '../components/OrderDetail';
+import BulkScanSession from '../components/BulkScanSession';
 import { getOrderByBarcode } from '../api/orders';
 import StatusPill from '../components/StatusPill';
 import { Icons } from '../components/icons';
@@ -22,6 +23,7 @@ export default function ScanPage() {
   const [lastScanned, setLastScanned] = useState('');
   const [manualMode, setManualMode] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [bulkMode, setBulkMode]     = useState(false);
 
   const handleScan = useCallback(async (value) => {
     if (value === lastScanned && state === 'found') return;
@@ -75,7 +77,7 @@ export default function ScanPage() {
 
   useEffect(() => {
     function onKey(e) {
-      if (drawerOpen) return;
+      if (drawerOpen || bulkMode) return;
       const tag = document.activeElement?.tagName;
       const typing = tag === 'INPUT' || tag === 'TEXTAREA';
       if (typing) return;
@@ -90,7 +92,7 @@ export default function ScanPage() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [manualMode, drawerOpen, switchToManual, switchToCamera]);
+  }, [manualMode, drawerOpen, bulkMode, switchToManual, switchToCamera]);
 
   const viaMobile = !!searchParams.get('code');
 
@@ -124,6 +126,38 @@ export default function ScanPage() {
   // Desktop camera scan flow — new 2-column layout
   return (
     <div>
+      {/* Mode strip — always top-of-page, color-coded. Single-mode is compact; BulkScanSession owns bulk variants. */}
+      {!bulkMode && (
+        <div
+          data-testid="mode-strip-single"
+          style={{
+            width: '100%',
+            minHeight: 56,
+            padding: '0 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            background: 'var(--bg-raised)',
+            borderBottom: '1px solid var(--border)',
+            fontFamily: 'Almarai, sans-serif',
+            fontSize: 14,
+            color: 'var(--text-muted)',
+          }}
+        >
+          <span style={{ fontWeight: 700, color: 'var(--text)' }}>الوضع العادي — مسح فردي</span>
+          <button className="btn btn-sm btn-primary" onClick={() => setBulkMode(true)}>
+            تبديل إلى الوضع الدفعي
+          </button>
+        </div>
+      )}
+
+      {bulkMode && (
+        <BulkScanSession onExitBulk={() => setBulkMode(false)} />
+      )}
+
+      {bulkMode ? null : (
+      <>
       <div className="page-head">
         <div>
           <h1 className="page-title">مسح الباركود</h1>
@@ -231,6 +265,8 @@ export default function ScanPage() {
           onClose={handleDrawerClose}
           onUpdated={setOrder}
         />
+      )}
+      </>
       )}
     </div>
   );
