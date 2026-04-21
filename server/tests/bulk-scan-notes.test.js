@@ -5,10 +5,13 @@ const { db }  = require('../db');
 const { JWT_SECRET } = require('../middleware/auth');
 
 let workshopToken;
+let shopBToken;
 
 beforeAll(() => {
   db.prepare(`INSERT OR IGNORE INTO shops (id, name) VALUES (1, 'Shop A')`).run();
+  db.prepare(`INSERT OR IGNORE INTO shops (id, name) VALUES (2, 'Shop B')`).run();
   workshopToken = jwt.sign({ id: 10, role: 'workshop', shop_id: null, username: 'workshop' }, JWT_SECRET);
+  shopBToken    = jwt.sign({ id: 20, role: 'shop_employee', shop_id: 2, username: 'empB' }, JWT_SECRET);
 });
 
 function auth(t) { return { Authorization: `Bearer ${t}` }; }
@@ -144,5 +147,31 @@ describe('bulk-scan notes threading', () => {
       .set(auth(workshopToken))
       .send({ status: 'received' });
     expect(res.status).toBe(404);
+  });
+
+  it('by-barcode path scopes shop_employee — cross-shop barcode is 404, own-shop works', async () => {
+    // Order belongs to shop 1; requester is employee of shop 2.
+    seedOrder('BULK-SCOPE-001', 'new'); // shop_id = 1 per seedOrder
+    const res = await request(app)
+      .patch(`/api/orders/by-barcode/BULK-SCOPE-001/status`)
+      .set(auth(shopBToken))
+      .send({ status: 'received' });
+    expect(res.status).toBe(404);
+
+    // Confirm no transition occurred
+    const order = db.prepare(`SELECT status FROM orders WHERE order_number = ?`).get('BULK-SCOPE-001');
+    expect(order.status).toBe('new');
+
+    // Sanity: same employee succeeds on own-shop order
+    db.prepare(`DELETE FROM orders WHERE order_number = ?`).run('BULK-SCOPE-002');
+    db.prepare(
+      `INSERT INTO orders (order_number, customer_name, phone, piece_type, shop_id, customer_token, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run('BULK-SCOPE-002', 'Bulk QA', '966500000778', 'خاتم', 2, 'tk-scope-2', 'ready_for_return');
+    const res2 = await request(app)
+      .patch(`/api/orders/by-barcode/BULK-SCOPE-002/status`)
+      .set(auth(shopBToken))
+      .send({ status: 'returned_to_shop' });
+    expect(res2.status).toBe(200);
   });
 });
