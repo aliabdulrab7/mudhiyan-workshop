@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ManualEntryInput from '../components/ManualEntryInput';
 import ScanResult from '../components/ScanResult';
+// TODO: OrdersPage passes dead props orderId + onStatusChange — clean up when next touching OrdersPage
+import OrderDetail from '../components/OrderDetail';
 import { getOrderByBarcode } from '../api/orders';
 import StatusPill from '../components/StatusPill';
 import { Icons } from '../components/icons';
@@ -19,6 +21,7 @@ export default function ScanPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [lastScanned, setLastScanned] = useState('');
   const [manualMode, setManualMode] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleScan = useCallback(async (value) => {
     if (value === lastScanned && state === 'found') return;
@@ -46,6 +49,11 @@ export default function ScanPage() {
     setSearchParams({});
   }
 
+  const handleDrawerClose = useCallback(() => {
+    setDrawerOpen(false);
+    resetScanner();
+  }, []);
+
   const switchToManual = useCallback(() => {
     setState('scanning');
     setOrder(null);
@@ -67,6 +75,7 @@ export default function ScanPage() {
 
   useEffect(() => {
     function onKey(e) {
+      if (drawerOpen) return;
       const tag = document.activeElement?.tagName;
       const typing = tag === 'INPUT' || tag === 'TEXTAREA';
       if (typing) return;
@@ -81,7 +90,7 @@ export default function ScanPage() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [manualMode, switchToManual, switchToCamera]);
+  }, [manualMode, drawerOpen, switchToManual, switchToCamera]);
 
   const viaMobile = !!searchParams.get('code');
 
@@ -200,7 +209,7 @@ export default function ScanPage() {
           <div className="sec-head">
             <span className="sec-title">نتيجة المسح</span>
             {order && (
-              <button className="btn btn-sm btn-primary" onClick={() => {}}>
+              <button className="btn btn-sm btn-primary" onClick={() => setDrawerOpen(true)}>
                 <Icons.Arrow size={12} /> فتح الطلب
               </button>
             )}
@@ -215,6 +224,14 @@ export default function ScanPage() {
           )}
         </div>
       </div>
+
+      {drawerOpen && order && (
+        <OrderDetail
+          order={order}
+          onClose={handleDrawerClose}
+          onUpdated={setOrder}
+        />
+      )}
     </div>
   );
 }
