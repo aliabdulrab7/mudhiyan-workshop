@@ -1,7 +1,22 @@
 # Bulk-scan sessions on /scan
 
-Status: **Spec** — no code yet. Awaiting human review before build.
+Status: **SHIPPED** (2026-04-21)
 Last updated: 2026-04-21
+
+## SHIPPED
+
+All four steps delivered to `master`:
+
+| Step | Scope | Commit |
+|------|-------|--------|
+| 1 | Server: PATCH by-barcode route + `source`/`session_id`/`session_type` fields + notes threading + 7 tests | `892397b` (+ scope test `fc25dbd`) |
+| 2 | Client: bulk-mode toggle, mode strip (4 states), session-type selector with role gating | `1625cb9` |
+| 3 | Client: hidden-input scan flow, running list, error taxonomy, 6 focus rules, 150ms lockout, duplicate flash | `60637cd` |
+| 4 | Client: lazy AudioContext + mute toggle, `ending` state with 10s timeout, summary screen with full list, Playwright e2e suite, docs | *this commit* |
+
+Audio autoplay notes: `primeAudio()` is called inside the session-type click so the AudioContext is created within a user gesture (satisfies Safari + iOS). `visibilitychange` resumes a suspended context after the tab is backgrounded.
+
+Playwright coverage: `tests/bulk-scan.spec.js` — intake × workshop, prepare × workshop, pickup × shop_employee, plus mute persistence. Run with `npm run test:e2e` (dev servers must be running).
 
 ## Decisions already made
 
@@ -406,10 +421,10 @@ Don't sandbag this one. Features like this routinely hit unexpected scope on the
 
 ## Open questions for the human
 
-1. **Session-id echo in the success response body.** Do we want the `PATCH` response to include the session_id so the client can sanity-check it matches? Spec currently says no — server just passes it into notes and moves on. Changing this is trivial but I don't see the value today.
-2. **Audio autoplay gesture.** The spec assumes the session-start click satisfies the browser's autoplay policy. If a shop uses a PWA/kiosk setup where the scan station auto-loads `/scan` and the operator never clicks, the first beep will be silent until they click anywhere. Low risk but mentioning in case there's a kiosk deployment I don't know about.
-3. **Should the summary screen be printable?** The running list is ephemeral — if the operator wants a record of "I received 17 pieces at 08:14 from branch 1," they currently must screenshot or read from `order_status_history`. Out of scope for V1, but worth an explicit "no" so we don't get asked post-ship.
-4. **Bulk-scan history browser** — out of scope; is that OK? `order_status_history.notes` supports it trivially but no UI is proposed. The 3-party audit trail through existing per-order detail views covers the critical path.
+1. ~~**Session-id echo in the success response body.** Do we want the `PATCH` response to include the session_id so the client can sanity-check it matches? Spec currently says no — server just passes it into notes and moves on. Changing this is trivial but I don't see the value today.~~ **Resolved as "no" — shipped without echo; client generates and trusts its own session_id.**
+2. ~~**Audio autoplay gesture.** The spec assumes the session-start click satisfies the browser's autoplay policy. If a shop uses a PWA/kiosk setup where the scan station auto-loads `/scan` and the operator never clicks, the first beep will be silent until they click anywhere. Low risk but mentioning in case there's a kiosk deployment I don't know about.~~ **Resolved — `primeAudio()` is called inside the session-type click (a user gesture) and `visibilitychange` resumes a suspended context. No known kiosk deployment yet; if one appears, the mute toggle is also a user gesture that primes the context.**
+3. **Should the summary screen be printable?** — still open. V1 does not print. Operator can screenshot or query `order_status_history`.
+4. **Bulk-scan history browser** — still open / out of scope. No UI for browsing sessions; per-order history shows each scan's `session:{uuid}` tag.
 
 ### Resolved (recorded here for traceability)
 

@@ -74,17 +74,19 @@ export default function BulkScanInput({
     }
   }, [active, focusInput, onFocusChange]);
 
-  // Click-anywhere-on-page refocus. Skip clicks into modal-exempt containers.
+  // Click-anywhere-on-page refocus. Listen on `click` (not `mousedown`) so the
+  // button's own onClick handler runs *before* refocus fires — otherwise a
+  // mousedown-triggered refocus can race with the click and in some browsers
+  // (Safari in particular) cancel the click altogether. Skip modal-exempt.
   useEffect(() => {
     if (!active) return;
     const container = containerRef?.current || document;
-    function onMouseDown(e) {
+    function onClick(e) {
       if (isModalExempt(e.target)) return;
-      // Let the click resolve first, then refocus.
-      setTimeout(focusInput, 0);
+      focusInput();
     }
-    container.addEventListener('mousedown', onMouseDown);
-    return () => container.removeEventListener('mousedown', onMouseDown);
+    container.addEventListener('click', onClick);
+    return () => container.removeEventListener('click', onClick);
   }, [active, containerRef, focusInput]);
 
   // Re-assert focus when the tab comes back (mobile browsers suspend focus).

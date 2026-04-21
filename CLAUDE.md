@@ -107,3 +107,72 @@ Single SQLite file at `server/data/workshop.db` (git-ignored). Tests use `:memor
 ### Route ordering gotcha
 
 In `server/routes/orders.js`, `GET /barcode/:value` must stay declared **before** `GET /:id` or Express will match `barcode` as an id. Same pattern applies to any new literal segment under `/orders`.
+
+## QA / Test Protocol
+
+When I say "run QA" or "heavy test", follow /docs/qa-protocol.md:
+
+- Use Playwright MCP to exercise every user flow
+- Check console, network, and logical consistency
+- Output findings to QA-REPORT.md with severity ratings
+- Never fix without showing the report first
+
+## QA Ground Rules (read before every QA run)
+
+Treat findings from a new or changed QA harness with suspicion until the harness itself has produced at least one clean run against known-good code. The first pass of any harness is a harness-shakedown, not a product audit.
+
+When diagnosing a "component X has/doesn't have feature Y" finding, first verify which file is actually imported by the route/parent, not just which file contains the feature. Grep the import chain or inspect the rendered DOM — reading a file is not the same as verifying it's the one being used.
+
+Preconditions — abort the run if any fail:
+
+- curl http://localhost:3737/api/auth/login with seeded creds
+  returns 200 and a JWT for BOTH http and https origins.
+- The string "Not allowed by CORS" appears nowhere in any
+  page body or network error.
+
+If a precondition fails, emit ONE finding:
+"Setup failed: <which precondition> — aborting QA."
+Do NOT continue and generate cascading findings.
+
+When grouping findings:
+
+- If a write endpoint (POST/PATCH/PUT/DELETE) returned 4xx/5xx,
+  flag any downstream UI-state findings as "blocked by <endpoint>"
+  instead of as independent issues.
+- Dedupe: if the same issue appears on N pages, emit ONE finding.
+
+Skip in automated QA (manual only, note in report):
+
+- Niimbot B21 Bluetooth printing (Web Bluetooth unsupported in Playwright)
+- Camera barcode scanning (html5-qrcode needs a real camera)
+- WebAudio output (can't reliably assert a beep fired — unit-test the audio
+  util's mute state instead, and ear-check manually)
+
+Bulk-scan sessions produce N history rows per session; filter
+`notes LIKE 'bulk-scan %'` to separate from single-scan transitions. The
+shape is `bulk-scan · session:{uuid8} · type:{slug}` — the `session:` segment
+groups all rows from one session together.
+
+Run the bulk-scan e2e suite with `npm run test:e2e` (requires `npm run dev`
+already running — the suite seeds against the live dev DB).
+
+## RTL / Arabic UI Gotchas (learned during Mudhiyan build)
+
+- **LTR content inside RTL layout**: identifiers that are
+  ASCII (order numbers, barcodes, emails, URLs, IBAN) should
+  be `dir="ltr"` on the input itself, even inside an
+  `dir="rtl"` page. Otherwise the cursor and hyphens render
+  in the wrong visual order.
+
+- **Off-screen positioning uses `position: fixed` in RTL,
+  not `left: -9999px`**. The latter shifts the viewport
+  scroll origin in RTL writing mode. Hidden-focused inputs
+  (barcode scanner pattern) should be
+  `position: fixed; width: 1px; height: 1px; overflow: hidden`
+  with no large negative offset.
+
+- **Playwright text selectors on SVG-plus-text buttons are
+  fragile in RTL**. Prefer `getByRole('button', { name: '...' })`
+  over `:has-text()` or `hasText`. The accessible-name query
+  reads the computed a11y name, which handles icon-plus-text
+  concatenation correctly.

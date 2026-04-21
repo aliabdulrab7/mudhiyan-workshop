@@ -10,3 +10,8 @@ dist/
 github-actions-deployer_accessKeys.csv
 .worktrees/
 .claude/
+
+# playwright
+test-results/
+playwright-report/
+.playwright-mcp/
