@@ -208,6 +208,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
               key={f.value}
               className={`chip${status === f.value ? ' active' : ''}`}
               onClick={() => setStatus(f.value)}
+              data-testid={`order-list__filter__${f.value}`}
             >
               {f.label}
               {chipCount > 0 && <span className="count">{chipCount}</span>}
@@ -242,6 +243,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
               placeholder="بحث باسم العميل أو رقم الطلب…"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              data-testid="order-list__search-input"
             />
             <div style={{ flex: 1 }} />
 
@@ -295,7 +297,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
               <MenuRadio label="حسب التاريخ" checked={groupBy === 'date'}   onChange={() => setGroupBy('date')} />
             </MenuButton>
             <div className="divider" />
-            <button className="btn btn-sm btn-ghost btn-icon" onClick={() => onRefresh?.()}>
+            <button className="btn btn-sm btn-ghost btn-icon" onClick={() => onRefresh?.()} data-testid="order-list__toolbar__refresh">
               <Icons.Refresh size={13} />
             </button>
             <button className="btn btn-sm btn-ghost btn-icon">
@@ -323,6 +325,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                       checked={allSelected}
                       indeterminate={!allSelected && bulkSelected.size > 0}
                       onChange={toggleAll}
+                      testId="order-list__select-all"
                     />
                   </th>
                   <th className="sortable" onClick={() => toggleSort('order_number')}>رقم الطلب <SortIcon col="order_number" /></th>
@@ -364,9 +367,10 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                         className={`${isSel ? 'selected' : ''} ${isFoc ? 'focused' : ''}`}
                         onClick={() => setSelected(o)}
                         onMouseEnter={() => setFocusRow(globalIdx)}
+                        data-testid={`order-list__row__${o.order_number}`}
                       >
                         <td className="col-check" onClick={e => e.stopPropagation()}>
-                          <Checkbox checked={isSel} onChange={() => toggleBulk(o.id)} />
+                          <Checkbox checked={isSel} onChange={() => toggleBulk(o.id)} testId={`order-list__row__${o.order_number}__select`} />
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -401,13 +405,15 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                         <td onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             {isWorkshop && NEXT_STATUS[o.status] && (
-                              <button className="btn btn-sm btn-ghost" onClick={() => changeStatus(o, NEXT_STATUS[o.status])}>
+                              <button className="btn btn-sm btn-ghost" onClick={() => changeStatus(o, NEXT_STATUS[o.status])}
+                                data-testid={`order-list__row__${o.order_number}__advance`}>
                                 {NEXT_LABEL[o.status]}
                               </button>
                             )}
                             {!isWorkshop && o.status === 'ready_for_return' && (
                               <button className="btn btn-sm btn-ghost" style={{ color: 'var(--success)', borderColor: 'var(--success)' }}
-                                onClick={() => changeStatus(o, 'returned_to_shop')}>
+                                onClick={() => changeStatus(o, 'returned_to_shop')}
+                                data-testid={`order-list__row__${o.order_number}__confirm-returned`}>
                                 تأكيد الوصول
                               </button>
                             )}
@@ -417,6 +423,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                                 onClick={e => copyTrackingLink(o, e)}
                                 title="نسخ رابط المتابعة"
                                 style={copiedId === o.id ? { color: 'var(--success)' } : {}}
+                                data-testid={`order-list__row__${o.order_number}__copy-tracking-link`}
                               >
                                 {copiedId === o.id ? <Icons.Check size={12} /> : <Icons.Link size={12} />}
                               </button>
@@ -454,12 +461,12 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
             <span className="count">{bulkSelected.size}</span>
             <span style={{ opacity: 0.7 }}>محدد</span>
             <div className="divider" />
-            <button className="b-btn"><Icons.User size={12} /> تعيين</button>
-            <button className="b-btn"><Icons.Sparkle size={12} /> الحالة</button>
-            <button className="b-btn"><Icons.Printer size={12} /> طباعة</button>
-            <button className="b-btn"><Icons.Bell size={12} /> إشعار</button>
+            <button className="b-btn" data-testid="order-list__bulk__assign"><Icons.User size={12} /> تعيين</button>
+            <button className="b-btn" data-testid="order-list__bulk__status"><Icons.Sparkle size={12} /> الحالة</button>
+            <button className="b-btn" data-testid="order-list__bulk__print"><Icons.Printer size={12} /> طباعة</button>
+            <button className="b-btn" data-testid="order-list__bulk__notify"><Icons.Bell size={12} /> إشعار</button>
             <div className="divider" />
-            <button className="b-btn close" onClick={() => setBulkSelected(new Set())}>
+            <button className="b-btn close" onClick={() => setBulkSelected(new Set())} data-testid="order-list__bulk__close">
               <Icons.X size={12} />
             </button>
           </div>
@@ -488,13 +495,14 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   );
 }
 
-function Checkbox({ checked, indeterminate, onChange }) {
+function Checkbox({ checked, indeterminate, onChange, testId }) {
   return (
     <span
       role="checkbox"
       aria-checked={indeterminate ? 'mixed' : checked}
       className={`cb${checked || indeterminate ? ' checked' : ''}`}
       onClick={e => { e.stopPropagation(); onChange(); }}
+      data-testid={testId}
     >
       {checked && (
         <svg viewBox="0 0 10 8"><path d="M1 4l3 3 5-6" /></svg>

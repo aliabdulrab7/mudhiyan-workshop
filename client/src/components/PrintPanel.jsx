@@ -98,7 +98,7 @@ export default function PrintPanel({ labelData, onClose }) {
           طباعة الملصق
         </div>
         {onClose && (
-          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '2px 8px' }}>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '2px 8px' }} data-testid="print-panel__close">
             <Icons.X size={13} />
           </button>
         )}
@@ -119,6 +119,7 @@ export default function PrintPanel({ labelData, onClose }) {
             value={selected}
             onChange={e => setSelected(e.target.value)}
             style={{ direction: 'ltr', textAlign: 'left' }}
+            data-testid="print-panel__printer-select"
           >
             {printers.map(p => (
               <option key={p.name} value={p.name}>{p.name}</option>
@@ -199,11 +200,12 @@ export default function PrintPanel({ labelData, onClose }) {
           disabled={!selected || printing || loading || capsLoading}
           onClick={handlePrint}
           style={{ flex: 1, justifyContent: 'center' }}
+          data-testid="print-panel__print"
         >
           {printing ? 'جاري الطباعة...' : <><Icons.Printer size={13} /> طباعة</>}
         </button>
         {onClose && (
-          <button className="btn btn-ghost" onClick={onClose}>إغلاق</button>
+          <button className="btn btn-ghost" onClick={onClose} data-testid="print-panel__close-footer">إغلاق</button>
         )}
       </div>
     </div>

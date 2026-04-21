@@ -403,6 +403,7 @@ export default function LabelCanvas({ order, autoPrint = false }) {
           value={sizeId}
           onChange={e => setSizeId(e.target.value)}
           style={{ height: 30, fontSize: "0.82rem", minWidth: 180 }}
+          data-testid="label-canvas__size-select"
         >
           {LABEL_SIZES.map(s => (
             <option key={s.id} value={s.id}>{s.label}</option>
@@ -418,6 +419,7 @@ export default function LabelCanvas({ order, autoPrint = false }) {
           disabled={!ready}
           onClick={handleUniversalPrint}
           title="طباعة عبر المتصفح — تدعم أي طابعة مثبتة في النظام"
+          data-testid="label-canvas__universal-print"
         >
           طباعة
         </button>
@@ -426,9 +428,9 @@ export default function LabelCanvas({ order, autoPrint = false }) {
         {bluetoothAvailable && sizeId === '50x30' && (
           !isConnected ? (
             <>
-              <button className="btn-ghost" onClick={() => connect('bluetooth')}>: بلوتوث</button>
+              <button className="btn-ghost" onClick={() => connect('bluetooth')} data-testid="label-canvas__connect-bluetooth">: بلوتوث</button>
               {supportsSerial && (
-                <button className="btn-ghost" onClick={() => connect('serial')}>: USB-C</button>
+                <button className="btn-ghost" onClick={() => connect('serial')} data-testid="label-canvas__connect-usb">: USB-C</button>
               )}
             </>
           ) : (
@@ -441,6 +443,7 @@ export default function LabelCanvas({ order, autoPrint = false }) {
                 className="btn-ghost"
                 disabled={isPrinting || !ready}
                 onClick={handlePrint}
+                data-testid="label-canvas__niimbot-print"
               >
                 {isPrinting ? "جاري الطباعة..." : "طباعة "}
               </button>
@@ -449,11 +452,12 @@ export default function LabelCanvas({ order, autoPrint = false }) {
                   className="btn-ghost-sm"
                   style={{ color: '#DC2626', border: '1px solid rgba(220,38,38,0.2)' }}
                   onClick={disconnect}
+                  data-testid="label-canvas__abort"
                 >
                   ⚠ إيقاف
                 </button>
               )}
-              {!isPrinting && <button className="btn-ghost-sm" onClick={disconnect}>قطع الاتصال</button>}
+              {!isPrinting && <button className="btn-ghost-sm" onClick={disconnect} data-testid="label-canvas__disconnect">قطع الاتصال</button>}
             </>
           )
         )}

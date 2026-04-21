@@ -31,12 +31,14 @@ export default function ManualEntryInput({ onSubmit }) {
         autoComplete="off"
         spellCheck={false}
         style={{ direction: 'ltr', textAlign: 'left', fontSize: 14 }}
+        data-testid="manual-entry__input"
       />
       <div>
         <button
           type="submit"
           className="btn btn-sm btn-primary"
           disabled={!value.trim()}
+          data-testid="manual-entry__submit"
         >
           <Icons.Arrow size={12} /> بحث
         </button>

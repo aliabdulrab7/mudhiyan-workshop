@@ -97,7 +97,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             أرسل رابط الموافقة للعميل ({order.cost} ريال)
           </div>
-          <a href={approvalWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+          <a href={approvalWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }} data-testid="scan-result__approval-link">
             <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
               <Icons.Phone size={13} /> إرسال رابط الموافقة ↗
             </button>
@@ -122,6 +122,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
             onClick={markReady}
             disabled={promoting}
             style={{ width: '100%', justifyContent: 'center' }}
+            data-testid="scan-result__mark-ready"
           >
             <Icons.Check size={12} /> {promoting ? 'جاري...' : 'تعيين جاهزة للإرجاع'}
           </button>
@@ -139,7 +140,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600, marginBottom: 8 }}>
             القطعة جاهزة — أبلغ الفرع بالاستلام
           </div>
-          <a href={readyWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+          <a href={readyWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }} data-testid="scan-result__ready-link">
             <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
               <Icons.Phone size={13} /> إرسال رسالة الاستلام (WhatsApp) ↗
             </button>
@@ -176,7 +177,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       )}
 
       {/* Scan again */}
-      <button className="btn btn-sm btn-ghost" onClick={onScanAgain} style={{ width: '100%', justifyContent: 'center' }}>
+      <button className="btn btn-sm btn-ghost" onClick={onScanAgain} style={{ width: '100%', justifyContent: 'center' }} data-testid="scan-result__scan-again">
         <Icons.Refresh size={12} /> مسح آخر
       </button>
     </div>

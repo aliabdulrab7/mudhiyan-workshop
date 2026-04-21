@@ -81,6 +81,7 @@ export default function CommandPalette({ open, onClose, orders = [] }) {
           value={q}
           onChange={e => setQ(e.target.value)}
           onKeyDown={onKey}
+          data-testid="command-palette__input"
         />
         <div className="palette-list">
           {filtered.length === 0 && (
@@ -100,6 +101,7 @@ export default function CommandPalette({ open, onClose, orders = [] }) {
                     className={`palette-item${isFocused ? ' focused' : ''}`}
                     onClick={it.fn}
                     onMouseEnter={() => setFocus(flat.findIndex(x => x.id === it.id))}
+                    data-testid={`command-palette__item__${it.id}`}
                   >
                     <span className="icon">{it.icon}</span>
                     <span style={{ flex: 1 }}>{it.label}</span>

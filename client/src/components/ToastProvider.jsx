@@ -20,7 +20,9 @@ function ToastItem({ id, text, variant = 'info', onDismiss }) {
   }, [id, onDismiss]);
 
   return (
-    <div style={{
+    <div
+      data-testid={`toast__${variant}`}
+      style={{
       display: 'flex', alignItems: 'flex-start', gap: 10,
       background: 'var(--bg-raised)',
       border: `1px solid ${v.border}`,
@@ -44,6 +46,7 @@ function ToastItem({ id, text, variant = 'info', onDismiss }) {
       <button
         onClick={() => onDismiss(id)}
         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 16, lineHeight: 1, padding: 0, marginTop: 1 }}
+        data-testid="toast__dismiss"
       >×</button>
     </div>
   );

@@ -47,6 +47,7 @@ export default function CostEditor({ order, onUpdated }) {
             onChange={e => setCost(e.target.value)}
             required
             style={{ direction: 'ltr', textAlign: 'left' }}
+            data-testid="cost-editor__input"
           />
           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
             بالريال السعودي — أدخل 0 للخدمة المجانية
@@ -57,6 +58,7 @@ export default function CostEditor({ order, onUpdated }) {
           className="btn-primary"
           disabled={loading || cost === ''}
           style={{ padding: '10px 16px', fontSize: '0.88rem', flexShrink: 0 }}
+          data-testid="cost-editor__submit"
         >
           {loading ? '...' : 'تأكيد'}
         </button>

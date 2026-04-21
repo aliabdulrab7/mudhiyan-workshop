@@ -94,6 +94,7 @@ export default function Layout({ children }) {
               to={to}
               end={to === '/'}
               className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              data-testid={`layout__nav__${to === '/' ? 'orders' : to.slice(1)}`}
             >
               <NavIcon size={14} />
               <span style={{ flex: 1 }}>{label}</span>
@@ -108,6 +109,7 @@ export default function Layout({ children }) {
             onClick={() => setPaletteOpen(true)}
             className="nav-item"
             style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 5, background: 'var(--bg-soft)' }}
+            data-testid="layout__sidebar__search-button"
           >
             <Icons.Search size={13} />
             <span style={{ flex: 1, color: 'var(--text-faint)', fontSize: 12 }}>بحث سريع…</span>
@@ -117,6 +119,7 @@ export default function Layout({ children }) {
             onClick={handleLogout}
             className="nav-item"
             style={{ width: '100%', marginTop: 2 }}
+            data-testid="layout__sidebar__logout"
           >
             <Icons.Logout size={14} />
             <span style={{ flex: 1 }}>تسجيل الخروج</span>
@@ -139,6 +142,7 @@ export default function Layout({ children }) {
           <button
             className="topbar-search"
             onClick={() => setPaletteOpen(true)}
+            data-testid="layout__topbar__search-button"
           >
             <Icons.Search size={13} style={{ flexShrink: 0 }} />
             <span style={{ flex: 1 }}>بحث أو تنقل…</span>
@@ -146,13 +150,13 @@ export default function Layout({ children }) {
           </button>
 
           <div className="topbar-actions">
-            <NavLink to="/new" className="btn btn-sm btn-primary">
+            <NavLink to="/new" className="btn btn-sm btn-primary" data-testid="layout__topbar__new-order-link">
               <Icons.Plus size={12} /> صيانة جديدة
             </NavLink>
-            <button className="btn btn-sm btn-ghost btn-icon">
+            <button className="btn btn-sm btn-ghost btn-icon" data-testid="layout__topbar__action__notifications">
               <Icons.Bell size={13} />
             </button>
-            <button className="btn btn-sm btn-ghost btn-icon">
+            <button className="btn btn-sm btn-ghost btn-icon" data-testid="layout__topbar__action__settings">
               <Icons.Settings size={13} />
             </button>
           </div>
@@ -172,6 +176,7 @@ export default function Layout({ children }) {
             to={to}
             end={to === '/'}
             className={({ isActive }) => `tab-item${isActive ? ' active' : ''}`}
+            data-testid={`layout__tab__${to === '/' ? 'orders' : to.slice(1)}`}
           >
             <TabIcon size={20} className="tab-icon" />
             <span>{label}</span>
@@ -181,6 +186,7 @@ export default function Layout({ children }) {
           onClick={handleLogout}
           className="tab-item"
           style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+          data-testid="layout__tab__logout"
         >
           <Icons.Logout size={20} className="tab-icon" />
           <span>خروج</span>

@@ -211,6 +211,7 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
           value={sizeId}
           onChange={e => setSizeId(e.target.value)}
           style={{ flex: 1, height: 30, fontSize: "0.82rem" }}
+          data-testid="ready-label-canvas__size-select"
         >
           {LABEL_SIZES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
@@ -224,6 +225,7 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
           onClick={handleUniversalPrint}
           style={{ flex: 1, justifyContent: "center" }}
           title="طباعة عبر المتصفح — تدعم أي طابعة"
+          data-testid="ready-label-canvas__universal-print"
         >
           طباعة
         </button>
@@ -231,11 +233,11 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
         {bluetoothAvailable && sizeId === '50x30' && (
           !isConnected ? (
             <>
-              <button className="btn-ghost" onClick={() => connect('bluetooth')} disabled={isPrinting}>
+              <button className="btn-ghost" onClick={() => connect('bluetooth')} disabled={isPrinting} data-testid="ready-label-canvas__connect-bluetooth">
                 بلوتوث
               </button>
               {supportsSerial && (
-                <button className="btn-ghost" onClick={() => connect('serial')} disabled={isPrinting}>
+                <button className="btn-ghost" onClick={() => connect('serial')} disabled={isPrinting} data-testid="ready-label-canvas__connect-usb">
                   USB-C
                 </button>
               )}
@@ -246,10 +248,11 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
                 className="btn-ghost"
                 onClick={() => printAll([labelRef.current], { copiesPerCanvas: 1, maxLabels: 1 })}
                 disabled={isPrinting || !ready}
+                data-testid="ready-label-canvas__niimbot-print"
               >
                 {isPrinting ? "..." : ""}
               </button>
-              <button className="btn-ghost" onClick={disconnect} disabled={isPrinting} title="قطع الاتصال">✖</button>
+              <button className="btn-ghost" onClick={disconnect} disabled={isPrinting} title="قطع الاتصال" data-testid="ready-label-canvas__disconnect">✖</button>
             </>
           )
         )}
