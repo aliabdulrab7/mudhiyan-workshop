@@ -91,7 +91,7 @@ export default function Dashboard() {
           <div className="page-sub">{dateStr}</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-sm" onClick={() => setRefresh(r => r + 1)}>
+          <button className="btn btn-sm" onClick={() => setRefresh(r => r + 1)} data-testid="dashboard__refresh">
             <Icons.Refresh size={12} /> تحديث
           </button>
           <button
@@ -99,6 +99,7 @@ export default function Dashboard() {
             onClick={handleExport}
             disabled={listCount === 0 || exporting}
             title={listCount === 0 ? 'لا توجد طلبات للتصدير' : undefined}
+            data-testid="dashboard__export"
           >
             <Icons.Download size={12} /> تصدير
           </button>
@@ -115,6 +116,7 @@ export default function Dashboard() {
                 onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
                 className={`stat-card card${filterStatus === key ? ' active' : ''}`}
                 style={filterStatus === key ? { borderColor: color, background: `color-mix(in oklch, ${color} 9%, var(--bg-raised))` } : {}}
+                data-testid={`dashboard__stat__${key}`}
               >
                 <div className="stat-label">
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' }} />
@@ -141,6 +143,7 @@ export default function Dashboard() {
               orders={actionOrders.received}
               active={filterStatus === 'received'}
               onFilterClick={() => setFilterStatus(filterStatus === 'received' ? 'all' : 'received')}
+              testId="dashboard__action__received"
             />
             <ActionPanel
               icon={<Icons.Clock size={14} />}
@@ -152,6 +155,7 @@ export default function Dashboard() {
               active={filterStatus === 'waiting_approval'}
               onFilterClick={() => setFilterStatus(filterStatus === 'waiting_approval' ? 'all' : 'waiting_approval')}
               highlight={actionOrders.pending.length > 0}
+              testId="dashboard__action__waiting-approval"
             />
           </div>
         )}
@@ -250,18 +254,19 @@ export default function Dashboard() {
       </div>
 
       {/* Mobile FAB */}
-      <button className="fab-new-order" onClick={() => navigate('/new')} aria-label="صيانة جديدة">
+      <button className="fab-new-order" onClick={() => navigate('/new')} aria-label="صيانة جديدة" data-testid="dashboard__fab-new-order">
         +
       </button>
     </div>
   );
 }
 
-function ActionPanel({ icon, title, count, color, emptyText, orders, active, onFilterClick, highlight }) {
+function ActionPanel({ icon, title, count, color, emptyText, orders, active, onFilterClick, highlight, testId }) {
   return (
     <div
       onClick={onFilterClick}
       className="card"
+      data-testid={testId}
       style={{
         cursor: 'pointer',
         borderTopWidth: highlight && count > 0 ? 2 : 1,

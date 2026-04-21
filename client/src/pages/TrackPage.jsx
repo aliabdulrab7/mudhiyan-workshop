@@ -312,6 +312,7 @@ export default function TrackPage() {
               <button
                 onClick={handleSubmitDecisions}
                 disabled={!allDecided || submitting}
+                data-testid="track__confirm"
                 style={{
                   width: '100%', padding: '14px 0', borderRadius: 'var(--radius)',
                   background: allDecided ? 'var(--status-waiting)' : 'var(--bg-soft)',
@@ -444,6 +445,7 @@ function DecisionRow({ item, decision, onDecide }) {
         <button
           type="button"
           onClick={() => onDecide('approve')}
+          data-testid={`track__item__${item.sort_order}__approve`}
           style={{
             flex: 1, padding: '8px 0', borderRadius: 'var(--radius-sm)',
             background: decision === 'approve' ? 'var(--success)' : 'transparent',
@@ -457,6 +459,7 @@ function DecisionRow({ item, decision, onDecide }) {
         <button
           type="button"
           onClick={() => onDecide('reject')}
+          data-testid={`track__item__${item.sort_order}__reject`}
           style={{
             flex: 1, padding: '8px 0', borderRadius: 'var(--radius-sm)',
             background: decision === 'reject' ? 'var(--danger)' : 'transparent',

@@ -62,6 +62,7 @@ export default function LabelPrintPage() {
           onClick={() => navigate('/')}
           className="btn-ghost"
           style={{ padding: '8px 14px', fontSize: '0.88rem' }}
+          data-testid="label-print__back"
         >
           ← رجوع
         </button>

@@ -62,6 +62,7 @@ export default function ReportsPage() {
               username: getUsername(),
               workshopName: WORKSHOP_NAME,
             })}
+            data-testid="reports__export"
           >
             <Icons.Download size={12} /> تصدير
           </button>

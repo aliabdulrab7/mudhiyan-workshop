@@ -146,7 +146,7 @@ export default function ScanPage() {
           }}
         >
           <span style={{ fontWeight: 700, color: 'var(--text)' }}>الوضع العادي — مسح فردي</span>
-          <button className="btn btn-sm btn-primary" onClick={() => setBulkMode(true)}>
+          <button className="btn btn-sm btn-primary" onClick={() => setBulkMode(true)} data-testid="scan__toggle-bulk-mode">
             تبديل إلى الوضع الدفعي
           </button>
         </div>
@@ -168,11 +168,12 @@ export default function ScanPage() {
             <button
               className="btn btn-sm"
               onClick={switchToCamera}
+              data-testid="scan__switch-camera"
             >
               <Icons.QR size={13} /> مسح بالكاميرا
             </button>
           )}
-          <button className="btn btn-sm btn-primary" onClick={resetScanner}>
+          <button className="btn btn-sm btn-primary" onClick={resetScanner} data-testid="scan__reset">
             <Icons.Refresh size={12} /> مسح آخر
           </button>
         </div>
@@ -243,7 +244,7 @@ export default function ScanPage() {
           <div className="sec-head">
             <span className="sec-title">نتيجة المسح</span>
             {order && (
-              <button className="btn btn-sm btn-primary" onClick={() => setDrawerOpen(true)}>
+              <button className="btn btn-sm btn-primary" onClick={() => setDrawerOpen(true)} data-testid="scan__open-order">
                 <Icons.Arrow size={12} /> فتح الطلب
               </button>
             )}
