@@ -66,6 +66,41 @@ export async function updateOrderStatus(id, status) {
   return res.json();
 }
 
+// Bulk-scan PATCH: resolve order by barcode + transition in one round-trip.
+// Throws a structured Error with { kind, status, code, currentStatus } so the
+// caller can map to a specific Arabic row message via bulkScanErrors.js.
+export async function patchStatusByBarcode(barcode, body) {
+  let res;
+  try {
+    res = await fetch(`${BASE}/by-barcode/${encodeURIComponent(barcode)}/status`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+    });
+  } catch (networkErr) {
+    const e = new Error('network');
+    e.kind = 'network';
+    throw e;
+  }
+
+  if (res.ok) return res.json();
+
+  const data = await res.json().catch(() => ({}));
+  const e = new Error(data.error || `HTTP ${res.status}`);
+  e.status        = res.status;
+  e.code          = data.code;
+  e.currentStatus = data.details?.current_status;
+
+  if (res.status === 404)                                     e.kind = 'not_found';
+  else if (res.status === 401 || res.status === 403)          e.kind = 'permission';
+  else if (res.status === 409 && data.code === 'INVALID_TRANSITION') e.kind = 'invalid_transition';
+  else if (res.status === 409)                                e.kind = 'locked';
+  else if (res.status >= 500)                                 e.kind = 'server_error';
+  else                                                        e.kind = 'other';
+
+  throw e;
+}
+
 export async function setOrderUrgent(id, isUrgent) {
   const res = await fetch(`${BASE}/${id}`, {
     method: 'PUT',
