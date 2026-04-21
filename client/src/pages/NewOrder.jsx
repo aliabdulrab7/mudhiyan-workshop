@@ -94,7 +94,7 @@ function SuccessScreen({ order, onNewOrder }) {
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <a href={waUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 38 }}>
+            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 38 }} data-testid="new-order__success__whatsapp">
               <Icons.Phone size={13} /> إرسال إيصال الاستلام (WhatsApp) ↗
             </button>
           </a>
@@ -278,7 +278,7 @@ export default function NewOrder() {
           <button className="btn btn-sm" onClick={() => navigate('/')}>
             إلغاء <span className="kbd">esc</span>
           </button>
-          <button className="btn btn-sm btn-primary" disabled={loading} onClick={handleSubmit}>
+          <button className="btn btn-sm btn-primary" disabled={loading} onClick={handleSubmit} data-testid="new-order__submit">
             <Icons.Check size={12} /> {loading ? 'جاري الحفظ...' : 'حفظ الطلب'}
             <span className="kbd" style={{ opacity: 0.7 }}>⌘S</span>
           </button>
@@ -298,6 +298,7 @@ export default function NewOrder() {
                 onChange={e => updateForm('customerName', e.target.value)}
                 style={errors.customerName ? { borderColor: 'var(--danger)' } : {}}
                 autoFocus
+                data-testid="new-order__customer-name-input"
               />
               {errors.customerName && (
                 <div style={{ color: 'var(--danger)', fontSize: 11.5, marginTop: 4 }}>{errors.customerName}</div>
@@ -317,6 +318,7 @@ export default function NewOrder() {
                   value={form.phoneDigits}
                   onChange={e => updateForm('phoneDigits', e.target.value.replace(/\D/g, '').slice(0, 9))}
                   style={errors.phone ? { borderColor: 'var(--danger)' } : {}}
+                  data-testid="new-order__phone-input"
                 />
               </div>
               {errors.phone && (
@@ -339,6 +341,7 @@ export default function NewOrder() {
                   className={'chip' + (form.urgency === opt.value ? ' active' : '')}
                   onClick={() => updateForm('urgency', opt.value)}
                   style={{ flex: 1, height: 32, fontSize: 12 }}
+                  data-testid={`new-order__urgency__${opt.value}`}
                 >
                   {opt.value === 'rush' && <Icons.Bell size={11} style={{ marginInlineEnd: 4 }} />}
                   {opt.label}
@@ -372,6 +375,7 @@ export default function NewOrder() {
                     }));
                   }}
                   style={{ height: 30 }}
+                  data-testid={`new-order__item__${i}__type-select`}
                 >
                   {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -382,6 +386,7 @@ export default function NewOrder() {
                   type="number" min="1" max="99"
                   value={row.quantity}
                   onChange={e => updateItem(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                  data-testid={`new-order__item__${i}__count-input`}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {row.repairs.map((rep, j) => {
@@ -407,6 +412,7 @@ export default function NewOrder() {
                               updateRepair(i, j, 'detail', '');
                             }}
                             style={{ height: 30, flex: 1, borderColor: errors[errKey] ? 'var(--danger)' : undefined }}
+                            data-testid={`new-order__item__${i}__repair__${j}__type-select`}
                           >
                             <option value="" disabled>
                               {opts.length === 0 ? 'لا توجد خيارات — اضبطها من "خيارات الإصلاح"' : 'اختر نوع الإصلاح…'}
@@ -420,6 +426,7 @@ export default function NewOrder() {
                               onClick={() => removeRepair(i, j)}
                               title="إزالة"
                               style={{ height: 30, width: 28, flexShrink: 0 }}
+                              data-testid={`new-order__item__${i}__repair__${j}__remove`}
                             >
                               <Icons.X size={11} />
                             </button>
@@ -429,13 +436,15 @@ export default function NewOrder() {
                           <input className="input mono" style={{ height: 28 }}
                             placeholder="المقاس الجديد" inputMode="decimal"
                             value={rep.detail}
-                            onChange={e => updateRepair(i, j, 'detail', e.target.value)} />
+                            onChange={e => updateRepair(i, j, 'detail', e.target.value)}
+                            data-testid={`new-order__item__${i}__repair__${j}__need__size`} />
                         )}
                         {meta?.needs === 'stone' && (
                           <input className="input" style={{ height: 28 }}
                             placeholder="نوع الحجر / الموضع"
                             value={rep.detail}
-                            onChange={e => updateRepair(i, j, 'detail', e.target.value)} />
+                            onChange={e => updateRepair(i, j, 'detail', e.target.value)}
+                            data-testid={`new-order__item__${i}__repair__${j}__need__stone`} />
                         )}
                         {meta?.needs === 'color' && (
                           <div style={{ display: 'flex', gap: 4 }}>
@@ -446,6 +455,7 @@ export default function NewOrder() {
                                 className={'chip' + (rep.detail === c ? ' active' : '')}
                                 onClick={() => updateRepair(i, j, 'detail', c)}
                                 style={{ flex: 1, height: 28, fontSize: 11 }}
+                                data-testid={`new-order__item__${i}__repair__${j}__need__color__${c}`}
                               >
                                 {c}
                               </button>
@@ -456,7 +466,8 @@ export default function NewOrder() {
                           <input className="input" style={{ height: 28 }}
                             placeholder="اكتب التفاصيل"
                             value={rep.detail}
-                            onChange={e => updateRepair(i, j, 'detail', e.target.value)} />
+                            onChange={e => updateRepair(i, j, 'detail', e.target.value)}
+                            data-testid={`new-order__item__${i}__repair__${j}__need__text`} />
                         )}
                       </div>
                     );
@@ -470,6 +481,7 @@ export default function NewOrder() {
                       background: 'transparent', color: 'var(--primary)',
                       fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
                     }}
+                    data-testid={`new-order__item__${i}__add-repair`}
                   >
                     <Icons.Plus size={10} /> إضافة إصلاح
                   </button>
@@ -480,18 +492,20 @@ export default function NewOrder() {
                   placeholder="خدش طفيف، سلسلة تالفة…"
                   value={row.notes}
                   onChange={e => updateItem(i, 'notes', e.target.value)}
+                  data-testid={`new-order__item__${i}__notes-input`}
                 />
                 <button
                   className="btn btn-ghost btn-icon btn-sm"
                   onClick={() => removeItem(i)}
                   disabled={form.items.length === 1}
                   style={{ opacity: form.items.length === 1 ? 0.3 : 1 }}
+                  data-testid={`new-order__item__${i}__remove`}
                 >
                   <Icons.X size={13} />
                 </button>
               </div>
             ))}
-            <button className="items-add" onClick={addItem}>
+            <button className="items-add" onClick={addItem} data-testid="new-order__add-item">
               <Icons.Plus size={12} /> &nbsp;إضافة صنف
             </button>
           </div>

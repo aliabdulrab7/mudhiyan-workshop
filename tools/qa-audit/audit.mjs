@@ -483,7 +483,7 @@ let createdOrderId     = null;
   await shot(page, '03-new-order-empty');
 
   // Empty submit
-  const submitBtn = page.locator('button[type="submit"]').first();
+  const submitBtn = page.locator('[data-testid="new-order__submit"]').first();
   const disabledEmpty = await submitBtn.isDisabled().catch(() => false);
   if (!disabledEmpty) {
     await submitBtn.click().catch(() => {});
@@ -505,7 +505,7 @@ let createdOrderId     = null;
 
   // Huge inputs
   const longName = 'ع'.repeat(500);
-  const nameInput = page.locator('input[type="text"]').first();
+  const nameInput = page.locator('[data-testid="new-order__customer-name-input"]').first();
   await nameInput.fill(longName).catch(() => {});
   await shot(page, '03-new-order-huge-input');
 
