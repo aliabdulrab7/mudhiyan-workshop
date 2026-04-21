@@ -426,9 +426,19 @@ router.post('/:id/send-for-approval', requireRole('workshop'), (req, res) => {
     ? 'in_repair'
     : 'waiting_approval';
 
-  let updated;
-  try {
-    updated = OrderService.transition(
+  // Auto-skip free items (cost NULL or 0) atomically with the transition.
+  // The customer never sees or decides on free items — they're included in the
+  // repair "for free" and must not contribute to orders.cost (see refreshOrderCost).
+  // Idempotent: only flips items still in 'pending'.
+  const autoSkipAndTransition = db.transaction(() => {
+    db.prepare(`
+      UPDATE order_items
+         SET approval_status = 'skipped'
+       WHERE order_id = ?
+         AND approval_status = 'pending'
+         AND (estimated_cost IS NULL OR estimated_cost = 0)
+    `).run(order.id);
+    return OrderService.transition(
       order.id,
       targetStatus,
       req.user,
@@ -436,6 +446,11 @@ router.post('/:id/send-for-approval', requireRole('workshop'), (req, res) => {
           ? 'إرسال التسعيرة للعميل للموافقة'
           : 'جميع الأصناف مجانية — بدء الإصلاح مباشرة' }
     );
+  });
+
+  let updated;
+  try {
+    updated = autoSkipAndTransition();
   } catch (err) {
     if (err.name === 'InvalidTransitionError') {
       return res.status(409).json({
