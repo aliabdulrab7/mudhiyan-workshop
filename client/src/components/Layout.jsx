@@ -5,6 +5,7 @@ import { getOrders } from '../api/orders';
 import { useSettings } from '../contexts/SettingsContext';
 import { isMuted, setMuted } from '../utils/bulkScanAudio';
 import CommandPalette from './CommandPalette';
+import ChangePasswordDialog from './ChangePasswordDialog';
 import Dropdown from './ui/Dropdown';
 import Dialog from './ui/Dialog';
 import Button from './ui/Button';
@@ -69,6 +70,7 @@ export default function Layout({ children }) {
   const { settings, status: settingsStatus, ensureLoaded, updateSetting } = useSettings();
   const [labelDialogOpen, setLabelDialogOpen]     = useState(false);
   const [printerDialogOpen, setPrinterDialogOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [muted, setMutedState] = useState(() => isMuted());
 
   function toggleSound() {
@@ -266,6 +268,15 @@ export default function Layout({ children }) {
               <Dropdown.Separator />
 
               <Dropdown.Item
+                testId="user-menu__change-password"
+                onSelect={() => setChangePasswordOpen(true)}
+              >
+                تغيير كلمة المرور
+              </Dropdown.Item>
+
+              <Dropdown.Separator />
+
+              <Dropdown.Item
                 testId="user-menu__logout"
                 destructive
                 icon={<Icons.Logout size={14} />}
@@ -332,6 +343,11 @@ export default function Layout({ children }) {
         currentValue={settings?.default_printer_mode || ''}
         options={PRINTER_MODE_OPTIONS}
         onSave={(v) => updateSetting('default_printer_mode', v || null)}
+      />
+
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
       />
     </div>
   );

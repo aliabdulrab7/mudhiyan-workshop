@@ -28,3 +28,19 @@ export async function patchMySettings(patch) {
   }
   return res.json();
 }
+
+export async function changeMyPassword(current_password, new_password) {
+  const res = await fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ current_password, new_password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const e = new Error(err.error || 'فشل تغيير كلمة المرور');
+    if (res.status === 401) e.code = 'wrong_current';
+    e.status = res.status;
+    throw e;
+  }
+  return res.json();
+}

@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../api/auth';
 import { Icons } from '../components/icons';
+import { useToast } from '../components/ToastProvider';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -9,6 +10,16 @@ export default function LoginPage() {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
+
+  useEffect(() => {
+    const msg = location.state?.reloginToast;
+    if (msg) {
+      toast?.(msg, 'info');
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, toast, navigate]);
 
   async function handleSubmit(e) {
     e.preventDefault();

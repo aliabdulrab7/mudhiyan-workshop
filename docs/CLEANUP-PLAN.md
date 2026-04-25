@@ -417,23 +417,37 @@ tests where non-trivial. Each primitive lives at
 `client/src/components/ui/{Name}.jsx`. `ui/` is the canonical home;
 anything there is harness-stable, tested, and documented in CLAUDE.md.
 
+> **Out-of-order builds (settings menu work, 2026-04-25):** `Dialog`
+> (slot #11) and a new `Dropdown` primitive (not in original list) were
+> built ahead of order to unblock the user-menu / change-password flow.
+> Both live in `client/src/components/ui/` per the canonical home rule
+> and accept `testId` per the convention. **Phase 3 resumes from #6
+> Chip** — items #1–#5 already shipped or pre-existed; #11 Dialog is
+> done; the remaining slots (#6 Chip, #7 Alert, #8 Card, #9 FormField,
+> #10 SegmentedGroup) build in original order. The `Dropdown` primitive
+> stays — it isn't on the migration list (no legacy CSS class to
+> replace), so it doesn't enter Phase 4.
+
 1. **Button** (expand existing) — no dependencies.
 2. **Input** — no dependencies.
 3. **Select** — no dependencies.
 4. **Textarea** — no dependencies.
 5. **Checkbox** — already exists; expand API (`testId`) and ship in this
    slot for consistency.
-6. **Chip** — no dependencies.
+6. **Chip** — no dependencies. **← Phase 3 resumes here.**
 7. **Alert** — no dependencies. Must meet §2.1 structural requirements.
 8. **Card** — no dependencies.
 9. **FormField** — depends on Input, Select, Textarea.
 10. **SegmentedGroup** — depends on Button.
-11. **Dialog** — depends on Button. Roll-your-own: focus-trap + ESC +
-    backdrop-click, using RTL logical-property conventions from
-    CLAUDE.md. Target ~80 LOC. **Escalation trigger:** if implementation
-    exceeds 150 LOC or surfaces multiple accessibility edge cases
-    (e.g. nested focus traps, iOS VoiceOver quirks), stop and escalate
-    before pulling in `@radix-ui/react-dialog`.
+11. **Dialog** — depends on Button. **Built out of order, 2026-04-25.**
+    Roll-your-own: focus-trap + ESC + backdrop-click, using RTL
+    logical-property conventions from CLAUDE.md. Final size landed under
+    the 150 LOC escalation trigger.
+12. **Dropdown** (added out of band, 2026-04-25). Portal-rendered menu
+    with `Section` / `Item` / `Separator` slots, RTL-aware alignment,
+    click-outside via `pointerdown` (touch-friendly), keyboard nav
+    (arrows / Home / End / Tab cycle). Not on the migration list — no
+    legacy CSS class to replace.
 
 ### 3.3 Phase 4 — migration strategy
 

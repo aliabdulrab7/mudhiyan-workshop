@@ -100,6 +100,26 @@ Two paths, same canvas:
 
 "Premium Artisan Light" — CSS variables in `client/src/index.css`. Gold accent `#D4A843`, subtle shadows, white surfaces. Fonts: Almarai (Arabic UI) + JetBrains Mono (stamps, barcodes, phones). Key classes: `.stamp`, `.btn-gold`, `.btn-ghost`, `.chip`, `.order-row`.
 
+### UI primitives (`client/src/components/ui/`)
+
+`Button`, `Select`, `Checkbox`, `Dropdown`, `Dialog`. Each accepts a `testId` prop (no auto-emitted testids — caller owns the namespace). `Dropdown` and `Dialog` were built ahead of the canonical Phase 3 build order in `docs/CLEANUP-PLAN.md` to support the user-menu work; Phase 3 resumes from primitive #6 (`Chip`).
+
+- **`Dropdown`** — portal-rendered menu, `Section` / `Item` / `Separator` slots, click-outside via `pointerdown`, ESC-to-close with stack disambiguation, RTL-aware `align="start" | "end"`. `Dropdown.Item.onSelect` closes the menu.
+- **`Dialog`** — portal-rendered modal with focus-trap, iOS scroll-lock (`position: fixed`), restore-focus-per-open, ESC-to-close. Backdrop `mousedown` closes; backdrop `preventDefault` so the cleanup's `trigger.focus()` isn't stomped by a focus-to-body. **HMR caveat:** the module-level `dialogStack` is preserved across hot reloads, so editing `Dialog.jsx` while a dialog is open can leave a stale stack entry — close the dialog before saving, or hard-refresh.
+
+### Settings & user preferences
+
+User-menu sits in the top bar (gear icon) and surfaces the user's settings + change-password + logout. Settings split by where the value belongs:
+
+- **Server-side (operational, cross-device):** `default_label_preset`, `default_printer_mode` — in `user_settings`. Wrappers: `client/src/api/settings.js`. Provider: `SettingsProvider` (`client/src/contexts/SettingsContext.jsx`) — lazy-fetch on first menu open with retry-on-failure (failed GETs leave `status='error'` and the next `ensureLoaded()` retries; the failure is never permanently cached). Updates are optimistic with revert + toast on PATCH failure.
+- **Client-side (per-device):** sound mute (`bulkScanMuted` in `localStorage`). Survives reload, doesn't sync across devices — by design (per-station preference, not per-account).
+
+**Hide-not-disable rule.** Menu sections that aren't wired are hidden, not greyed-out. Disabled stubs in a brand-new menu confuse users; hiding is cleaner. Change-password lives in the dropdown; the workshop admin section is intentionally not in the user menu (admin links live in the sidebar).
+
+**Force-relogin after password change is client-only.** `POST /api/auth/change-password` returns `{ ok: true, must_relogin: true }` on success and the client immediately replaces history with `/login` + clears local auth. JWTs minted before the change remain valid until natural expiry — the server does not maintain a token blacklist. Treat this as an availability tradeoff: an attacker who already exfiltrated a token before the change keeps it until expiry. If that becomes unacceptable, introduce a `password_changed_at` column + verify against `iat` in `requireAuth`.
+
+**ChangePasswordDialog** (`client/src/components/ChangePasswordDialog.jsx`) — three `type="password"` inputs, client-side validation (current required, new ≥ 8 chars, new === confirm). On validation error, focus jumps to the first invalid field. Wrong current password (`401`) renders **inline** under the current-password field — not as a toast — because the user is mid-typing and may need to re-read the message. Success path is ordered: `200` → `navigate('/login', { replace: true, state: { reloginToast } })` → `setTimeout(clearAuth, 0)` → `LoginPage` reads `location.state.reloginToast` on mount and fires the toast.
+
 ### Database
 
 Single SQLite file at `server/data/workshop.db` (git-ignored). Tests use `:memory:` (triggered by `NODE_ENV=test`). Phone stored as `966XXXXXXXXX` with no `+`; `wa.me` URLs use this format directly.
