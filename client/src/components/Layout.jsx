@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { clearAuth, getRole } from '../api/auth';
+import { clearAuth, getRole, getUsername } from '../api/auth';
 import { getOrders } from '../api/orders';
 import CommandPalette from './CommandPalette';
+import Dropdown from './ui/Dropdown';
 import { Icons } from './icons';
 
 const navItems = [
@@ -39,6 +40,7 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const role = getRole();
+  const username = getUsername();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [orders, setOrders] = useState([]);
 
@@ -156,9 +158,61 @@ export default function Layout({ children }) {
             <button className="btn btn-sm btn-ghost btn-icon" data-testid="layout__topbar__action__notifications">
               <Icons.Bell size={13} />
             </button>
-            <button className="btn btn-sm btn-ghost btn-icon" data-testid="layout__topbar__action__settings">
-              <Icons.Settings size={13} />
-            </button>
+            <Dropdown
+              align="end"
+              testId="layout__user-menu"
+              trigger={
+                <button
+                  className="btn btn-sm btn-ghost btn-icon"
+                  data-testid="layout__topbar__action__settings"
+                  aria-label="القائمة"
+                >
+                  <Icons.Settings size={13} />
+                </button>
+              }
+            >
+              <div className="px-3 py-2 border-b border-border">
+                <div className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint">المستخدم</div>
+                <div className="text-sm font-semibold text-text mt-0.5" dir="ltr" style={{ textAlign: 'start' }}>
+                  {username}
+                </div>
+                <div className="text-[11px] text-text-faint mt-0.5">
+                  {role === 'workshop' ? 'مدير الورشة' : 'موظف الفرع'}
+                </div>
+              </div>
+
+              <Dropdown.Section title="إعدادات شخصية">
+                <Dropdown.Item testId="user-menu__label-preset" disabled>
+                  حجم الملصق الافتراضي
+                </Dropdown.Item>
+                <Dropdown.Item testId="user-menu__printer-mode" disabled>
+                  وضع الطابعة الافتراضي
+                </Dropdown.Item>
+              </Dropdown.Section>
+
+              {role === 'workshop' && (
+                <Dropdown.Section title="إعدادات الورشة">
+                  <Dropdown.Item testId="user-menu__workshop-placeholder" disabled>
+                    إعدادات مشتركة (قريبًا)
+                  </Dropdown.Item>
+                </Dropdown.Section>
+              )}
+
+              <Dropdown.Separator />
+
+              <Dropdown.Item testId="user-menu__change-password" disabled>
+                تغيير كلمة المرور
+              </Dropdown.Item>
+
+              <Dropdown.Item
+                testId="user-menu__logout"
+                destructive
+                icon={<Icons.Logout size={14} />}
+                onSelect={handleLogout}
+              >
+                تسجيل الخروج
+              </Dropdown.Item>
+            </Dropdown>
           </div>
         </div>
 
