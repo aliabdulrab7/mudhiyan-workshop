@@ -26,6 +26,17 @@ small), but worth revisiting if presets become user-configurable — likely
 landing: serve presets from a single GET /api/label-presets and let the
 PATCH validator reuse the list.
 
+## Dialog dialogStack — HMR-only caveat
+
+The Dialog primitive uses a module-level `dialogStack` array so only the
+topmost open Dialog responds to ESC when several are nested. This is the
+correct shape for production: each instance pushes on open, pops on close
+cleanup. During Vite HMR in dev, a hot-reloaded Dialog may leave a stale
+entry in the stack (the old instance's cleanup didn't run before the new
+module replaced it), which can manifest as ESC only being honored by the
+last-mounted instance. If this surfaces during Phase D wiring, the fix is
+HMR-only — full reload clears it; no production behavior change.
+
 ## bcrypt rounds = 10
 
 `/api/auth/change-password` hashes with bcrypt rounds=10 (production) and
