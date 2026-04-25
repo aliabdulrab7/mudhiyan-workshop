@@ -46,6 +46,22 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_created   ON orders(created_at DESC);
 `);
 
+// ── User settings ────────────────────────────────────────────────────────────
+// One-to-one with users.id. Holds operational preferences that follow the
+// user across devices. Per-device toggles (e.g. "sound on scan") live in
+// localStorage, NOT here — anything in this table is server-authoritative.
+// Rows are created lazily on first GET; users created without a settings row
+// behave identically to users with an all-NULL row (= "use app defaults").
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_settings (
+    user_id              INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    default_label_preset TEXT,
+    default_printer_mode TEXT,
+    created_at           TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at           TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+`);
+
 // ── Additive migrations (idempotent) ─────────────────────────────────────────
 
 function columnExists(table, col) {
