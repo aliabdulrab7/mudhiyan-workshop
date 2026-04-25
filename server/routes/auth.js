@@ -7,10 +7,13 @@ const { JWT_SECRET, requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// 8.7 — Brute-force protection: 10 attempts per 15 minutes per IP
+// 8.7 — Brute-force protection: 10 attempts per 15 minutes per IP.
+// QA_HARNESS=1 raises the cap so the Playwright audit (3+ login attempts
+// per run) can complete repeatedly without tripping the limiter. Honored
+// only when explicitly opted in via env — never auto-set in production.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 1000 : 10,
+  max: (process.env.NODE_ENV === 'test' || process.env.QA_HARNESS === '1') ? 1000 : 10,
   message: { error: 'محاولات كثيرة، حاول بعد قليل' },
   standardHeaders: true,
   legacyHeaders: false,
