@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
+import { useSettings } from "../contexts/SettingsContext";
 
 // Base design-canvas (NIIMBOT B21S @ 203 DPI): 400×240 px = 50×30 mm.
 // Drawing uses base coords; fitCanvas scales/centers onto the real canvas.
@@ -114,9 +115,17 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
   const labelRef = useRef(null);
   const autoPrintedOrderRef = useRef(null);
   const [ready, setReady] = useState(false);
+  const { settings, ensureLoaded } = useSettings() || {};
+  useEffect(() => { ensureLoaded?.(); }, [ensureLoaded]);
   const [sizeId, setSizeId] = useState(() => {
     try { return localStorage.getItem(SIZE_STORAGE_KEY) || '50x30'; } catch (_) { return '50x30'; }
   });
+  const serverDefault = settings?.default_label_preset;
+  useEffect(() => {
+    if (serverDefault && LABEL_SIZES.some(s => s.id === serverDefault)) {
+      setSizeId(serverDefault);
+    }
+  }, [serverDefault]);
   const size = LABEL_SIZES.find(s => s.id === sizeId) || LABEL_SIZES[0];
   useEffect(() => {
     try { localStorage.setItem(SIZE_STORAGE_KEY, sizeId); } catch (_) {}

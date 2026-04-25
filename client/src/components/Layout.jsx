@@ -2,9 +2,32 @@ import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { clearAuth, getRole, getUsername } from '../api/auth';
 import { getOrders } from '../api/orders';
+import { useSettings } from '../contexts/SettingsContext';
+import { isMuted, setMuted } from '../utils/bulkScanAudio';
 import CommandPalette from './CommandPalette';
 import Dropdown from './ui/Dropdown';
+import Dialog from './ui/Dialog';
+import Button from './ui/Button';
+import Select from './ui/Select';
 import { Icons } from './icons';
+
+const LABEL_PRESET_OPTIONS = [
+  { value: '50x30',   label: '50×30 مم (Niimbot)' },
+  { value: '57x32',   label: '57×32 مم' },
+  { value: '80x50',   label: '80×50 مم' },
+  { value: '100x50',  label: '100×50 مم' },
+  { value: '100x100', label: '100×100 مم (شحن)' },
+  { value: 'a4',      label: 'A4 (ورقة عادية)' },
+];
+
+const PRINTER_MODE_OPTIONS = [
+  { value: 'universal', label: 'متصفح / طابعة النظام' },
+  { value: 'niimbot',   label: 'Niimbot B21 (بلوتوث)' },
+];
+
+function labelFor(options, value, fallback) {
+  return options.find((o) => o.value === value)?.label ?? fallback;
+}
 
 const navItems = [
   { to: '/',            icon: Icons.Orders,    label: 'الطلبات',      badge: null },
@@ -43,6 +66,16 @@ export default function Layout({ children }) {
   const username = getUsername();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [orders, setOrders] = useState([]);
+  const { settings, status: settingsStatus, ensureLoaded, updateSetting } = useSettings();
+  const [labelDialogOpen, setLabelDialogOpen]     = useState(false);
+  const [printerDialogOpen, setPrinterDialogOpen] = useState(false);
+  const [muted, setMutedState] = useState(() => isMuted());
+
+  function toggleSound() {
+    const next = !muted;
+    setMuted(next);
+    setMutedState(next);
+  }
 
   const visible       = navItems.filter(n => !n.roles || n.roles.includes(role));
   const visibleMobile = mobileNav.filter(n => !n.roles || n.roles.includes(role));
@@ -161,6 +194,7 @@ export default function Layout({ children }) {
             <Dropdown
               align="end"
               testId="layout__user-menu"
+              onOpenChange={(open) => { if (open) ensureLoaded(); }}
               trigger={
                 <button
                   className="btn btn-sm btn-ghost btn-icon"
@@ -181,28 +215,55 @@ export default function Layout({ children }) {
                 </div>
               </div>
 
-              <Dropdown.Section title="إعدادات شخصية">
-                <Dropdown.Item testId="user-menu__label-preset" disabled>
-                  حجم الملصق الافتراضي
+              <Dropdown.Section title="خيارات الطباعة">
+                <Dropdown.Item
+                  testId="user-menu__label-preset"
+                  onSelect={() => setLabelDialogOpen(true)}
+                >
+                  <span className="flex-1 truncate">حجم الملصق الافتراضي</span>
+                  <span className="text-[11px] text-text-faint flex-shrink-0">
+                    {settingsStatus === 'error'
+                      ? 'تعذر التحميل'
+                      : settingsStatus !== 'ready'
+                        ? '…'
+                        : labelFor(LABEL_PRESET_OPTIONS, settings?.default_label_preset, 'افتراضي')}
+                  </span>
                 </Dropdown.Item>
-                <Dropdown.Item testId="user-menu__printer-mode" disabled>
-                  وضع الطابعة الافتراضي
+                <Dropdown.Item
+                  testId="user-menu__printer-mode"
+                  onSelect={() => setPrinterDialogOpen(true)}
+                >
+                  <span className="flex-1 truncate">وضع الطابعة الافتراضي</span>
+                  <span className="text-[11px] text-text-faint flex-shrink-0">
+                    {settingsStatus === 'error'
+                      ? 'تعذر التحميل'
+                      : settingsStatus !== 'ready'
+                        ? '…'
+                        : labelFor(PRINTER_MODE_OPTIONS, settings?.default_printer_mode, 'افتراضي')}
+                  </span>
                 </Dropdown.Item>
               </Dropdown.Section>
 
-              {role === 'workshop' && (
-                <Dropdown.Section title="إعدادات الورشة">
-                  <Dropdown.Item testId="user-menu__workshop-placeholder" disabled>
-                    إعدادات مشتركة (قريبًا)
-                  </Dropdown.Item>
-                </Dropdown.Section>
-              )}
+              <Dropdown.Section title="الصوت">
+                <button
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  data-testid="user-menu__sound-toggle"
+                  aria-checked={!muted}
+                  onClick={toggleSound}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-start outline-none focus:bg-bg-soft transition-colors text-text hover:bg-bg-soft"
+                >
+                  <span className="flex-1 truncate">صوت المسح</span>
+                  <span
+                    className={`text-[11px] flex-shrink-0 ${muted ? 'text-text-faint' : 'text-[var(--success)]'}`}
+                  >
+                    {muted ? 'إيقاف' : 'تشغيل'}
+                  </span>
+                </button>
+              </Dropdown.Section>
 
               <Dropdown.Separator />
-
-              <Dropdown.Item testId="user-menu__change-password" disabled>
-                تغيير كلمة المرور
-              </Dropdown.Item>
 
               <Dropdown.Item
                 testId="user-menu__logout"
@@ -253,6 +314,69 @@ export default function Layout({ children }) {
         onClose={() => setPaletteOpen(false)}
         orders={orders}
       />
+
+      <SettingDialog
+        open={labelDialogOpen}
+        onClose={() => setLabelDialogOpen(false)}
+        title="حجم الملصق الافتراضي"
+        testId="settings-dialog__label-preset"
+        currentValue={settings?.default_label_preset || ''}
+        options={LABEL_PRESET_OPTIONS}
+        onSave={(v) => updateSetting('default_label_preset', v || null)}
+      />
+      <SettingDialog
+        open={printerDialogOpen}
+        onClose={() => setPrinterDialogOpen(false)}
+        title="وضع الطابعة الافتراضي"
+        testId="settings-dialog__printer-mode"
+        currentValue={settings?.default_printer_mode || ''}
+        options={PRINTER_MODE_OPTIONS}
+        onSave={(v) => updateSetting('default_printer_mode', v || null)}
+      />
     </div>
+  );
+}
+
+function SettingDialog({ open, onClose, title, testId, currentValue, options, onSave }) {
+  const [value, setValue] = useState(currentValue);
+  const [saving, setSaving] = useState(false);
+
+  // Reset draft to current server value every time the dialog opens, so reopening
+  // after a cancel or after another path changed the value never shows stale draft.
+  useEffect(() => {
+    if (open) setValue(currentValue);
+  }, [open, currentValue]);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await onSave(value);
+      onClose();
+    } catch (_) {
+      // SettingsContext already toasted + reverted; keep dialog open so user can retry.
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onClose={saving ? () => {} : onClose} title={title} size="sm" testId={testId}>
+      <Dialog.Body>
+        <Select
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          options={[{ value: '', label: 'استخدام الإعداد الافتراضي للتطبيق' }, ...options]}
+          testId={`${testId}__select`}
+        />
+      </Dialog.Body>
+      <Dialog.Footer>
+        <Button variant="ghost" onClick={onClose} disabled={saving} testId={`${testId}__cancel`}>
+          إلغاء
+        </Button>
+        <Button variant="primary" onClick={handleSave} loading={saving} testId={`${testId}__save`}>
+          حفظ
+        </Button>
+      </Dialog.Footer>
+    </Dialog>
   );
 }
