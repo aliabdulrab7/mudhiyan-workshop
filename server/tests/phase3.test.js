@@ -559,16 +559,17 @@ describe('POST /api/order-items/:id/parts', () => {
 // 9. ORDER ITEMS — TECHNICIAN ASSIGNMENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('POST /api/order-items/:id/technicians', () => {
-  let orderId, itemId, techId;
+describe('POST /api/order-items/:id/technicians (replace-style)', () => {
+  let orderId, itemId, techId, techIdAlt;
   beforeEach(() => {
     db.prepare('DELETE FROM order_item_technicians').run();
     db.prepare('DELETE FROM technicians').run();
     db.prepare('DELETE FROM order_items').run();
     db.prepare('DELETE FROM orders').run();
-    orderId = makeOrder({ order_number: `P3-TK-${Date.now()}` }).lastInsertRowid;
-    itemId  = makeItem(orderId).lastInsertRowid;
-    techId  = db.prepare(`INSERT INTO technicians (specialization) VALUES ('ذهب')`).run().lastInsertRowid;
+    orderId   = makeOrder({ order_number: `P3-TK-${Date.now()}` }).lastInsertRowid;
+    itemId    = makeItem(orderId).lastInsertRowid;
+    techId    = db.prepare(`INSERT INTO technicians (specialization) VALUES ('ذهب')`).run().lastInsertRowid;
+    techIdAlt = db.prepare(`INSERT INTO technicians (specialization) VALUES ('فضة')`).run().lastInsertRowid;
   });
 
   it('assigns technician to item', async () => {
@@ -576,21 +577,35 @@ describe('POST /api/order-items/:id/technicians', () => {
       .post(`/api/order-items/${itemId}/technicians`)
       .set(auth(wsToken))
       .send({ technician_id: techId });
-    expect(res.status).toBe(201);
-    expect(res.body.technician_id).toBe(techId);
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.technician.id).toBe(techId);
   });
 
-  it('prevents duplicate assignment', async () => {
-    await request(app)
-      .post(`/api/order-items/${itemId}/technicians`)
-      .set(auth(wsToken))
-      .send({ technician_id: techId });
+  it('re-assigning the same technician is idempotent (no 409)', async () => {
+    await request(app).post(`/api/order-items/${itemId}/technicians`)
+      .set(auth(wsToken)).send({ technician_id: techId });
 
-    const res = await request(app)
-      .post(`/api/order-items/${itemId}/technicians`)
-      .set(auth(wsToken))
-      .send({ technician_id: techId });
-    expect(res.status).toBe(409);
+    const res = await request(app).post(`/api/order-items/${itemId}/technicians`)
+      .set(auth(wsToken)).send({ technician_id: techId });
+    expect(res.status).toBe(200);
+
+    const rows = db.prepare(
+      'SELECT technician_id FROM order_item_technicians WHERE order_item_id = ?'
+    ).all(itemId);
+    expect(rows).toEqual([{ technician_id: techId }]);
+  });
+
+  it('replaces the prior assignment when a different tech is assigned', async () => {
+    await request(app).post(`/api/order-items/${itemId}/technicians`)
+      .set(auth(wsToken)).send({ technician_id: techId });
+    await request(app).post(`/api/order-items/${itemId}/technicians`)
+      .set(auth(wsToken)).send({ technician_id: techIdAlt });
+
+    const rows = db.prepare(
+      'SELECT technician_id FROM order_item_technicians WHERE order_item_id = ?'
+    ).all(itemId);
+    expect(rows).toEqual([{ technician_id: techIdAlt }]);
   });
 
   it('rejects non-existent technician', async () => {
@@ -599,6 +614,40 @@ describe('POST /api/order-items/:id/technicians', () => {
       .set(auth(wsToken))
       .send({ technician_id: 99999 });
     expect(res.status).toBe(404);
+  });
+});
+
+describe('DELETE /api/order-items/:id/technicians', () => {
+  let orderId, itemId, techId;
+  beforeEach(() => {
+    db.prepare('DELETE FROM order_item_technicians').run();
+    db.prepare('DELETE FROM technicians').run();
+    db.prepare('DELETE FROM order_items').run();
+    db.prepare('DELETE FROM orders').run();
+    orderId = makeOrder({ order_number: `P3-TKD-${Date.now()}` }).lastInsertRowid;
+    itemId  = makeItem(orderId).lastInsertRowid;
+    techId  = db.prepare(`INSERT INTO technicians (specialization) VALUES ('ذهب')`).run().lastInsertRowid;
+  });
+
+  it('unassigns the technician from the item', async () => {
+    await request(app).post(`/api/order-items/${itemId}/technicians`)
+      .set(auth(wsToken)).send({ technician_id: techId });
+
+    const del = await request(app).delete(`/api/order-items/${itemId}/technicians`)
+      .set(auth(wsToken));
+    expect(del.status).toBe(200);
+    expect(del.body.ok).toBe(true);
+
+    const rows = db.prepare(
+      'SELECT id FROM order_item_technicians WHERE order_item_id = ?'
+    ).all(itemId);
+    expect(rows.length).toBe(0);
+  });
+
+  it('is a no-op when nothing is assigned', async () => {
+    const res = await request(app).delete(`/api/order-items/${itemId}/technicians`)
+      .set(auth(wsToken));
+    expect(res.status).toBe(200);
   });
 });
 

@@ -10,6 +10,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const OrderService  = require('../services/OrderService');
 const { syncItemCost, refreshOrderCost } = require('../helpers/costHelpers');
 const { errorToHttpStatus } = require('../errors');
+const { ITEMS_WITH_TECH_SQL } = require('../helpers/itemQueries');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -116,7 +117,7 @@ router.post('/:id/diagnosis', requireRole('workshop'), (req, res) => {
     WHERE o.id = ?
   `).get(order.id);
   const updatedItem = db.prepare('SELECT * FROM order_items WHERE id = ?').get(item.id);
-  const allItems    = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order').all(order.id);
+  const allItems    = db.prepare(ITEMS_WITH_TECH_SQL).all(order.id);
 
   res.json({
     order: { ...freshOrder, items: allItems },
@@ -251,7 +252,11 @@ router.post('/:id/parts', requireRole('workshop'), (req, res) => {
   }
 });
 
-// ── POST /api/order-items/:id/technicians — assign technician to item ─────────
+// ── POST /api/order-items/:id/technicians — set the technician for this item ──
+// Replace-style: each item has at most one technician at a time. Idempotent —
+// re-assigning the same tech is a no-op success, not 409. The schema is M:M
+// (order_item_technicians) but the product treats it as 1:1; this endpoint is
+// the source of truth for that semantic.
 router.post('/:id/technicians', requireRole('workshop'), (req, res) => {
   const item = getItem(req.params.id);
   if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
@@ -266,27 +271,36 @@ router.post('/:id/technicians', requireRole('workshop'), (req, res) => {
   const tech = db.prepare('SELECT * FROM technicians WHERE id = ?').get(technician_id);
   if (!tech) return res.status(404).json({ error: 'الفني غير موجود' });
 
-  // Prevent duplicate assignment
-  const existing = db.prepare(`
-    SELECT id FROM order_item_technicians
-    WHERE order_item_id = ? AND technician_id = ?
-  `).get(item.id, tech.id);
-  if (existing) return res.status(409).json({ error: 'الفني مُعيَّن بالفعل لهذا الصنف' });
-
-  const result = db.prepare(`
-    INSERT INTO order_item_technicians (order_item_id, technician_id)
-    VALUES (?, ?)
-  `).run(item.id, tech.id);
-
-  res.status(201).json(
+  const replace = db.transaction(() => {
+    db.prepare('DELETE FROM order_item_technicians WHERE order_item_id = ?').run(item.id);
     db.prepare(`
-      SELECT oit.*, t.specialization, u.username
-      FROM order_item_technicians oit
-      JOIN technicians t ON t.id = oit.technician_id
-      LEFT JOIN users u ON u.id = t.user_id
-      WHERE oit.id = ?
-    `).get(result.lastInsertRowid)
-  );
+      INSERT INTO order_item_technicians (order_item_id, technician_id)
+      VALUES (?, ?)
+    `).run(item.id, tech.id);
+  });
+  replace();
+
+  res.json({
+    ok: true,
+    technician: db.prepare(`
+      SELECT t.*, u.username
+      FROM technicians t LEFT JOIN users u ON u.id = t.user_id
+      WHERE t.id = ?
+    `).get(tech.id),
+  });
+});
+
+// ── DELETE /api/order-items/:id/technicians — unassign all technicians ────────
+router.delete('/:id/technicians', requireRole('workshop'), (req, res) => {
+  const item = getItem(req.params.id);
+  if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
+
+  const order = getOrder(item.order_id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  if (checkLocked(order, res)) return;
+
+  db.prepare('DELETE FROM order_item_technicians WHERE order_item_id = ?').run(item.id);
+  res.json({ ok: true });
 });
 
 module.exports = router;
