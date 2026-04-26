@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getRepairOptions, createRepairOption, updateRepairOption, deleteRepairOption } from '../api/repair-options';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Chip from '../components/ui/Chip';
 import Input from '../components/ui/Input';
@@ -115,13 +116,8 @@ export default function RepairOptionsPage() {
         </div>
 
         {error && (
-          <div style={{
-            color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px',
-            background: 'oklch(0.58 0.21 25 / 0.06)',
-            border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-            borderRadius: 'var(--radius-sm)', marginBottom: 12,
-          }}>
-            {error}
+          <div style={{ marginBottom: 12 }}>
+            <Alert variant="danger">{error}</Alert>
           </div>
         )}
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getTechnicians, createTechnician } from '../api/technicians';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 
@@ -72,11 +73,7 @@ export default function TechniciansPage() {
                   placeholder="مثال: تصليح ذهب، تركيب أحجار" required autoFocus
                   testId="technicians__form__specialization-input" />
               </div>
-              {error && (
-                <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
-                  {error}
-                </div>
-              )}
+              {error && <Alert variant="danger">{error}</Alert>}
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button
                   variant="primary"
@@ -102,8 +99,8 @@ export default function TechniciansPage() {
 
         {/* Error outside form */}
         {error && !showForm && (
-          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 12 }}>
-            {error}
+          <div style={{ marginBottom: 12 }}>
+            <Alert variant="danger">{error}</Alert>
           </div>
         )}
 

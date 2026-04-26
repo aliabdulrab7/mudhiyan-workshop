@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../api/auth';
 import { Icons } from '../components/icons';
 import { useToast } from '../components/ToastProvider';
+import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 
@@ -88,16 +89,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && (
-            <div style={{
-              background: 'oklch(0.58 0.21 25 / 0.06)',
-              border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 14px', color: 'var(--danger)', fontSize: 12.5,
-            }}>
-              {error}
-            </div>
-          )}
+          {error && <Alert variant="danger">{error}</Alert>}
 
           <Button
             type="submit"

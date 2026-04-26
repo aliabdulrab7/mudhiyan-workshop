@@ -3,6 +3,7 @@ import { getStats, getBranchStats } from '../api/orders';
 import { getUsername } from '../api/auth';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import { openReportPrintWindow } from '../utils/reportPrint';
 
@@ -105,8 +106,8 @@ export default function ReportsPage() {
         {loading ? (
           <SkeletonLoader type="stats" />
         ) : error ? (
-          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 20 }}>
-            {error}
+          <div style={{ marginBottom: 20 }}>
+            <Alert variant="danger">{error}</Alert>
           </div>
         ) : stats && (
           <div className="grid-stats" style={{ marginBottom: 28 }}>

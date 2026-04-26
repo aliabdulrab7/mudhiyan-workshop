@@ -5,6 +5,7 @@ import { getRole } from '../api/auth';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 import { Icons } from './icons';
+import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Input from './ui/Input';
 
@@ -244,14 +245,8 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
 
       {/* Error */}
       {scanError && (
-        <div style={{
-          padding: '10px 14px', marginBottom: 12,
-          background: 'oklch(0.58 0.21 25 / 0.06)',
-          border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-          borderRadius: 'var(--radius-sm)',
-          color: 'var(--danger)', fontSize: 12.5,
-        }}>
-          {scanError}
+        <div style={{ marginBottom: 12 }}>
+          <Alert variant="danger">{scanError}</Alert>
         </div>
       )}
 

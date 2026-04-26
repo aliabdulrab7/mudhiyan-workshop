@@ -6,6 +6,7 @@ import { getRole } from '../api/auth';
 import { buildTrackingUrl } from '../utils/whatsapp';
 import SkeletonLoader from './SkeletonLoader';
 import { Icons } from './icons';
+import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Checkbox from './ui/Checkbox';
 import Chip from './ui/Chip';
@@ -223,12 +224,8 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
 
       {/* Error */}
       {listError && (
-        <div style={{
-          margin: '0 24px 10px', padding: '10px 14px', fontSize: 12.5,
-          background: 'oklch(0.58 0.21 25 / 0.06)', color: 'var(--danger)',
-          border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)',
-        }}>
-          {listError}
+        <div style={{ margin: '0 24px 10px' }}>
+          <Alert variant="danger">{listError}</Alert>
         </div>
       )}
 

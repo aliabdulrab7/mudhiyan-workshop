@@ -4,6 +4,7 @@ import { createOrder } from '../api/orders';
 import { getRepairOptions } from '../api/repair-options';
 import LabelCanvas from '../components/LabelCanvas';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Chip from '../components/ui/Chip';
 import Input from '../components/ui/Input';
@@ -530,13 +531,8 @@ export default function NewOrder() {
 
           {/* Submit error */}
           {submitError && (
-            <div style={{
-              marginTop: 14, padding: '10px 14px',
-              background: 'oklch(0.58 0.21 25 / 0.06)',
-              border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-              borderRadius: 'var(--radius-sm)', color: 'var(--danger)', fontSize: 12.5,
-            }}>
-              {submitError}
+            <div style={{ marginTop: 14 }}>
+              <Alert variant="danger">{submitError}</Alert>
             </div>
           )}
         </div>

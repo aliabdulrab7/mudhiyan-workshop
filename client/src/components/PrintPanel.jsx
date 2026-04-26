@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getPrinters, getPrinterCapabilities, printLabel, getPreview } from '../api/print';
 import { Icons } from './icons';
+import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Select from './ui/Select';
 
@@ -178,21 +179,13 @@ export default function PrintPanel({ labelData, onClose }) {
 
       {/* Error / success */}
       {error && (
-        <div style={{
-          color: 'var(--danger)', fontSize: 12, padding: '8px 12px', marginBottom: 10,
-          background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-          borderRadius: 'var(--radius-sm)',
-        }}>
-          {error}
+        <div style={{ marginBottom: 10 }}>
+          <Alert variant="danger">{error}</Alert>
         </div>
       )}
       {success && (
-        <div style={{
-          color: 'var(--success)', fontSize: 12, padding: '8px 12px', marginBottom: 10,
-          background: 'oklch(0.60 0.15 150 / 0.06)', border: '1px solid oklch(0.60 0.15 150 / 0.2)',
-          borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: 6,
-        }}>
-          <Icons.Check size={12} /> {success}
+        <div style={{ marginBottom: 10 }}>
+          <Alert variant="success">{success}</Alert>
         </div>
       )}
 

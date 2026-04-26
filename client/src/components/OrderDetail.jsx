@@ -5,6 +5,7 @@ import StatusPill from './StatusPill';
 import { Icons } from './icons';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
+import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Textarea from './ui/Textarea';
@@ -426,12 +427,8 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   )}
 
                   {error && (
-                    <div style={{
-                      padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)',
-                      border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-                      borderRadius: 'var(--radius)', color: 'var(--danger)', fontSize: 12.5, marginBottom: 12,
-                    }}>
-                      {error}
+                    <div style={{ marginBottom: 12 }}>
+                      <Alert variant="danger">{error}</Alert>
                     </div>
                   )}
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getInventory, createInventoryItem, adjustInventoryStock } from '../api/inventory';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 
@@ -110,11 +111,7 @@ export default function InventoryPage() {
                     testId="inventory__form__cost-input" />
                 </div>
               </div>
-              {error && (
-                <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
-                  {error}
-                </div>
-              )}
+              {error && <Alert variant="danger">{error}</Alert>}
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button variant="primary" type="submit" loading={submitting} className="flex-1 justify-center" testId="inventory__form__submit">
                   {submitting ? 'جاري الحفظ...' : 'حفظ'}
@@ -129,8 +126,8 @@ export default function InventoryPage() {
 
         {/* Error */}
         {error && !showForm && (
-          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 12 }}>
-            {error}
+          <div style={{ marginBottom: 12 }}>
+            <Alert variant="danger">{error}</Alert>
           </div>
         )}
 
