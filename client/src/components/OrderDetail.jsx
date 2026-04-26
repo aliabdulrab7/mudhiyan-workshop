@@ -8,6 +8,7 @@ import ReadyLabelCanvas from './ReadyLabelCanvas';
 import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Card from './ui/Card';
+import Dialog from './ui/Dialog';
 import Input from './ui/Input';
 import Textarea from './ui/Textarea';
 
@@ -442,49 +443,50 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 
                   {!['delivered', 'closed', 'cancelled'].includes(order.status) && (
                     <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-                      {!confirmingCancel ? (
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => setConfirmingCancel(true)}
-                          testId="order-detail__cancel-button"
-                          className="w-full justify-center"
-                          style={{ height: 32 }}
-                        >
-                          إلغاء الطلب
-                        </Button>
-                      ) : (
-                        <div style={{
-                          padding: 14, background: 'oklch(0.58 0.21 25 / 0.05)',
-                          border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius)',
-                        }}>
-                          <div style={{ fontSize: 12.5, color: 'var(--danger)', fontWeight: 600, marginBottom: 10 }}>
-                            هل أنت متأكد من إلغاء هذا الطلب؟
-                          </div>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <Button
-                              size="sm"
-                              loading={savingCancel}
-                              onClick={handleCancel}
-                              testId="order-detail__cancel-confirm"
-                              className="flex-1 justify-center"
-                              style={{ background: 'var(--danger)', borderColor: 'var(--danger)', color: '#fff' }}
-                            >
-                              {savingCancel ? 'جاري الإلغاء...' : 'نعم، إلغاء'}
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => setConfirmingCancel(false)}
-                              testId="order-detail__cancel-deny"
-                              className="flex-1 justify-center"
-                            >
-                              لا، تراجع
-                            </Button>
-                          </div>
-                        </div>
-                      )}
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setConfirmingCancel(true)}
+                        testId="order-detail__cancel-button"
+                        className="w-full justify-center"
+                        style={{ height: 32 }}
+                      >
+                        إلغاء الطلب
+                      </Button>
                     </div>
                   )}
+
+                  <Dialog
+                    open={confirmingCancel}
+                    onClose={() => !savingCancel && setConfirmingCancel(false)}
+                    title="إلغاء الطلب"
+                    size="sm"
+                    testId="order-detail__cancel-dialog"
+                  >
+                    <Dialog.Body>
+                      <div style={{ fontSize: 13, color: 'var(--text-soft)' }}>
+                        هل أنت متأكد من إلغاء هذا الطلب؟
+                      </div>
+                    </Dialog.Body>
+                    <Dialog.Footer>
+                      <Button
+                        size="sm"
+                        onClick={() => setConfirmingCancel(false)}
+                        testId="order-detail__cancel-deny"
+                      >
+                        لا، تراجع
+                      </Button>
+                      <Button
+                        size="sm"
+                        loading={savingCancel}
+                        onClick={handleCancel}
+                        testId="order-detail__cancel-confirm"
+                        style={{ background: 'var(--danger)', borderColor: 'var(--danger)', color: '#fff' }}
+                      >
+                        {savingCancel ? 'جاري الإلغاء...' : 'نعم، إلغاء'}
+                      </Button>
+                    </Dialog.Footer>
+                  </Dialog>
                 </>
               )}
             </div>
