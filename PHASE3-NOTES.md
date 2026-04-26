@@ -101,3 +101,28 @@ changing now: rotation cost (every existing user would log in with an
 old-format hash and we'd need a transparent rehash-on-login path) is bigger
 than the marginal security gain for this app's threat model. Revisit if we
 add SSO, expand the user base, or get a security review.
+
+## Technician assignment UX gap — RESOLVED
+
+Pre-feature state: per-item endpoint existed but was additive (multiple
+techs per item with 409 on duplicate) and unused by any UI; the bulk-bar
+"تعيين" button rendered as a styled no-op; no per-order or bulk endpoints.
+
+Resolved in this branch:
+
+- Per-item endpoint flipped to replace-style (idempotent), DELETE added
+  for unassign. Source of truth for the "1 tech per item" semantic — the
+  schema is still M:M but the writes guarantee a single row per item
+  (commit `31eb639`).
+- New per-order + bulk endpoints, both transactional with full rollback
+  on partial failure (commit `31eb639`).
+- Per-item Dropdown in OrderDetail item rows (commit `f676536`).
+- Per-order Dropdown in OrderDetail header with overwrite-confirm Dialog
+  for heterogeneous → homogeneous reassignment (commit `f87cd51`).
+- Bulk-bar "تعيين" button wired to a dialog → bulk endpoint (commit
+  `dce4ac1`).
+- OrderList rows now show the assigned technician (or "متعدد" / "—") +
+  CLAUDE.md updated with the 3-level model.
+
+Technician roster is fetched once per session via `TechniciansContext`
+(mirrors `SettingsContext`). Schema is unchanged — still `order_item_technicians`.

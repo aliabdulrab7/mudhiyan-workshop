@@ -441,7 +441,27 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                           </div>
                         </td>
                         <td>
-                          <div style={{ fontWeight: 500 }}>{o.piece_type}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 500 }}>{o.piece_type}</span>
+                            {isWorkshop && (
+                              <span
+                                data-testid={`order-list__row__${o.order_number}__technician`}
+                                title={o.technician_summary ? `الفني: ${o.technician_summary}` : 'لم يُعيَّن فني'}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 3,
+                                  fontSize: 10.5, lineHeight: 1.2,
+                                  padding: '1px 6px', borderRadius: 3,
+                                  background: o.technician_summary ? 'var(--bg-soft)' : 'transparent',
+                                  border: o.technician_summary ? '1px solid var(--border)' : '1px dashed var(--border)',
+                                  color: o.technician_summary ? 'var(--text-soft)' : 'var(--text-faint)',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                <Icons.User size={9} />
+                                {o.technician_summary || '—'}
+                              </span>
+                            )}
+                          </div>
                           {o.notes && <div className="subline">{o.notes.slice(0, 35)}</div>}
                         </td>
                         <td className="mono text-sm text-mute">{formatDate(o.created_at)}</td>

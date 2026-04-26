@@ -108,7 +108,17 @@ router.get('/', (req, res) => {
     SELECT o.*, COALESCE(s.name, '') AS shop_name,
       (SELECT GROUP_CONCAT(oi.item_name, '، ')
        FROM order_items oi WHERE oi.order_id = o.id
-       ORDER BY oi.sort_order) AS items_summary
+       ORDER BY oi.sort_order) AS items_summary,
+      (SELECT
+         CASE
+           WHEN COUNT(DISTINCT t.id) = 0 THEN NULL
+           WHEN COUNT(DISTINCT t.id) = 1 THEN MAX(t.specialization)
+           ELSE 'متعدد'
+         END
+       FROM order_items oi
+       LEFT JOIN order_item_technicians oit ON oit.order_item_id = oi.id
+       LEFT JOIN technicians t ON t.id = oit.technician_id
+       WHERE oi.order_id = o.id) AS technician_summary
     FROM orders o
     LEFT JOIN shops s ON s.id = o.shop_id
     WHERE 1=1`;
