@@ -7,6 +7,7 @@ import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 import Button from './ui/Button';
 import Input from './ui/Input';
+import Textarea from './ui/Textarea';
 
 // Status advance buttons — omit transitions that require explicit workflow:
 //   inspection → waiting_approval: use "Send for Approval" button (per-item cost)
@@ -537,13 +538,12 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 
             {isWorkshop && (
               <form onSubmit={handleAddComment} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <textarea
-                  className="textarea"
+                <Textarea
                   rows={3}
                   placeholder="أضف تعليقاً..."
                   value={newComment}
                   onChange={e => setNewComment(e.target.value)}
-                  data-testid="order-detail__comment__textarea"
+                  testId="order-detail__comment__textarea"
                 />
                 <Button size="sm" type="submit" loading={savingComment} disabled={!newComment.trim()} testId="order-detail__comment__submit">
                   {savingComment ? 'جاري الإرسال...' : 'إضافة تعليق'}
