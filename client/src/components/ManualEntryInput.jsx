@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icons } from './icons';
+import Button from './ui/Button';
 
 export default function ManualEntryInput({ onSubmit }) {
   const [value, setValue] = useState('');
@@ -34,14 +35,16 @@ export default function ManualEntryInput({ onSubmit }) {
         data-testid="manual-entry__input"
       />
       <div>
-        <button
+        <Button
           type="submit"
-          className="btn btn-sm btn-primary"
+          variant="primary"
+          size="sm"
+          icon={<Icons.Arrow size={12} />}
           disabled={!value.trim()}
-          data-testid="manual-entry__submit"
+          testId="manual-entry__submit"
         >
-          <Icons.Arrow size={12} /> بحث
-        </button>
+          بحث
+        </Button>
       </div>
     </form>
   );

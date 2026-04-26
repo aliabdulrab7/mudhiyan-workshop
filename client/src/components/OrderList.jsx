@@ -6,6 +6,7 @@ import { getRole } from '../api/auth';
 import { buildTrackingUrl } from '../utils/whatsapp';
 import SkeletonLoader from './SkeletonLoader';
 import { Icons } from './icons';
+import Button from './ui/Button';
 
 const FILTER_DEFS = [
   { value: 'all',              label: 'الكل',             statusKeys: null },
@@ -297,12 +298,20 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
               <MenuRadio label="حسب التاريخ" checked={groupBy === 'date'}   onChange={() => setGroupBy('date')} />
             </MenuButton>
             <div className="divider" />
-            <button className="btn btn-sm btn-ghost btn-icon" onClick={() => onRefresh?.()} data-testid="order-list__toolbar__refresh">
-              <Icons.Refresh size={13} />
-            </button>
-            <button className="btn btn-sm btn-ghost btn-icon">
-              <Icons.Settings size={13} />
-            </button>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Icons.Refresh size={13} />}
+              onClick={() => onRefresh?.()}
+              testId="order-list__toolbar__refresh"
+              className="!px-1.5"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Icons.Settings size={13} />}
+              className="!px-1.5"
+            />
           </div>
 
           {/* Table */}
@@ -405,35 +414,40 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                         <td onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             {isWorkshop && NEXT_STATUS[o.status] && (
-                              <button className="btn btn-sm btn-ghost" onClick={() => changeStatus(o, NEXT_STATUS[o.status])}
-                                data-testid={`order-list__row__${o.order_number}__advance`}>
+                              <Button variant="ghost" size="sm" onClick={() => changeStatus(o, NEXT_STATUS[o.status])}
+                                testId={`order-list__row__${o.order_number}__advance`}>
                                 {NEXT_LABEL[o.status]}
-                              </button>
+                              </Button>
                             )}
                             {!isWorkshop && o.status === 'ready_for_return' && (
-                              <button className="btn btn-sm btn-ghost" style={{ color: 'var(--success)', borderColor: 'var(--success)' }}
+                              <Button variant="ghost" size="sm" style={{ color: 'var(--success)', borderColor: 'var(--success)' }}
                                 onClick={() => changeStatus(o, 'returned_to_shop')}
-                                data-testid={`order-list__row__${o.order_number}__confirm-returned`}>
+                                testId={`order-list__row__${o.order_number}__confirm-returned`}>
                                 تأكيد الوصول
-                              </button>
+                              </Button>
                             )}
                             {o.customer_token && (
-                              <button
-                                className="btn btn-sm btn-ghost btn-icon"
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon={copiedId === o.id ? <Icons.Check size={12} /> : <Icons.Link size={12} />}
                                 onClick={e => copyTrackingLink(o, e)}
                                 title="نسخ رابط المتابعة"
                                 style={copiedId === o.id ? { color: 'var(--success)' } : {}}
-                                data-testid={`order-list__row__${o.order_number}__copy-tracking-link`}
-                              >
-                                {copiedId === o.id ? <Icons.Check size={12} /> : <Icons.Link size={12} />}
-                              </button>
+                                testId={`order-list__row__${o.order_number}__copy-tracking-link`}
+                                className="!px-1.5"
+                              />
                             )}
                           </div>
                         </td>
                         <td>
-                          <button className="btn btn-ghost btn-icon btn-sm" onClick={e => e.stopPropagation()}>
-                            <Icons.Ellipsis size={13} />
-                          </button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icons.Ellipsis size={13} />}
+                            onClick={e => e.stopPropagation()}
+                            className="!px-1.5"
+                          />
                         </td>
                       </tr>
                     );
@@ -517,13 +531,14 @@ function Checkbox({ checked, indeterminate, onChange, testId }) {
 function MenuButton({ open, onToggle, label, active, children }) {
   return (
     <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-      <button
-        className={`btn btn-sm btn-ghost${active ? ' active' : ''}`}
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={onToggle}
         style={active ? { color: 'var(--primary)' } : undefined}
       >
         {label}
-      </button>
+      </Button>
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 4px)', insetInlineEnd: 0,

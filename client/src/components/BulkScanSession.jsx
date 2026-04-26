@@ -12,6 +12,7 @@ import {
 } from '../utils/bulkScanAudio';
 import BulkScanInput from './BulkScanInput';
 import BulkScanList from './BulkScanList';
+import Button from './ui/Button';
 
 const BARCODE_RE = /^BR\d+-\d{8}-\d{4}$/;
 const ENDING_TIMEOUT_MS = 10_000;
@@ -245,7 +246,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
           {muteButton}
         </div>
         <span style={{ textAlign: 'center' }}>الوضع الدفعي — اختر نوع الجلسة</span>
-        <button className="btn btn-sm" onClick={onExitBulk}>إلغاء الوضع الدفعي</button>
+        <Button size="sm" onClick={onExitBulk}>إلغاء الوضع الدفعي</Button>
       </div>
     );
   }
@@ -260,7 +261,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
         <span style={{ textAlign: 'center' }}>
           مسح دفعي · {sessionType?.label} · {counters.done} تمّ · {counters.rejected} مرفوض
         </span>
-        <button className="btn btn-sm" onClick={onEndSession} data-testid="bulk-scan__end-session-button">إنهاء الجلسة</button>
+        <Button size="sm" onClick={onEndSession} testId="bulk-scan__end-session-button">إنهاء الجلسة</Button>
       </div>
     );
   }
@@ -291,8 +292,8 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
         اكتملت الجلسة — {counters.done} طلب تمّ معالجته{counters.rejected > 0 ? ` · ${counters.rejected} مرفوض` : ''}
       </span>
       <span style={{ display: 'flex', gap: 8 }}>
-        <button className="btn btn-sm" onClick={onNewSession} data-testid="bulk-scan__new-session-button">جلسة جديدة</button>
-        <button className="btn btn-sm" onClick={onExitBulk} data-testid="bulk-scan__exit-button">الرجوع للوضع العادي</button>
+        <Button size="sm" onClick={onNewSession} testId="bulk-scan__new-session-button">جلسة جديدة</Button>
+        <Button size="sm" onClick={onExitBulk} testId="bulk-scan__exit-button">الرجوع للوضع العادي</Button>
       </span>
     </div>
   );
@@ -510,12 +511,12 @@ function SummaryCard({ sessionType, counters, rows, onNewSession, onExitBulk }) 
           justifyContent: 'flex-end',
           gap: 10,
         }}>
-          <button className="btn btn-primary" onClick={onNewSession} data-testid="bulk-scan__summary__new-session-button">
+          <Button variant="primary" onClick={onNewSession} testId="bulk-scan__summary__new-session-button">
             جلسة جديدة
-          </button>
-          <button className="btn" onClick={onExitBulk} data-testid="bulk-scan__summary__exit-button">
+          </Button>
+          <Button onClick={onExitBulk} testId="bulk-scan__summary__exit-button">
             الرجوع للوضع العادي
-          </button>
+          </Button>
         </div>
       </div>
     </div>

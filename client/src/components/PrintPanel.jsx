@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getPrinters, getPrinterCapabilities, printLabel, getPreview } from '../api/print';
 import { Icons } from './icons';
+import Button from './ui/Button';
 
 /**
  * PrintPanel
@@ -98,9 +99,14 @@ export default function PrintPanel({ labelData, onClose }) {
           طباعة الملصق
         </div>
         {onClose && (
-          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '2px 8px' }} data-testid="print-panel__close">
-            <Icons.X size={13} />
-          </button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Icons.X size={13} />}
+            onClick={onClose}
+            testId="print-panel__close"
+            className="!px-2"
+          />
         )}
       </div>
 
@@ -195,17 +201,19 @@ export default function PrintPanel({ labelData, onClose }) {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          className="btn btn-primary"
+        <Button
+          variant="primary"
           disabled={!selected || printing || loading || capsLoading}
+          loading={printing}
+          icon={!printing ? <Icons.Printer size={13} /> : null}
           onClick={handlePrint}
-          style={{ flex: 1, justifyContent: 'center' }}
-          data-testid="print-panel__print"
+          className="flex-1 justify-center"
+          testId="print-panel__print"
         >
-          {printing ? 'جاري الطباعة...' : <><Icons.Printer size={13} /> طباعة</>}
-        </button>
+          {printing ? 'جاري الطباعة...' : 'طباعة'}
+        </Button>
         {onClose && (
-          <button className="btn btn-ghost" onClick={onClose} data-testid="print-panel__close-footer">إغلاق</button>
+          <Button variant="ghost" onClick={onClose} testId="print-panel__close-footer">إغلاق</Button>
         )}
       </div>
     </div>

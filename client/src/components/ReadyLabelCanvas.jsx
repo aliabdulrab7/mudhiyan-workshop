@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 import { useSettings } from "../contexts/SettingsContext";
+import Button from "./ui/Button";
 
 // Base design-canvas (NIIMBOT B21S @ 203 DPI): 400×240 px = 50×30 mm.
 // Drawing uses base coords; fitCanvas scales/centers onto the real canvas.
@@ -228,40 +229,40 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
 
       {/* Print buttons */}
       <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 320, flexWrap: "wrap" }}>
-        <button
-          className="btn-gold"
+        <Button
+          variant="gold"
           disabled={!ready}
           onClick={handleUniversalPrint}
-          style={{ flex: 1, justifyContent: "center" }}
+          className="flex-1 justify-center"
           title="طباعة عبر المتصفح — تدعم أي طابعة"
-          data-testid="ready-label-canvas__universal-print"
+          testId="ready-label-canvas__universal-print"
         >
           طباعة
-        </button>
+        </Button>
 
         {bluetoothAvailable && sizeId === '50x30' && (
           !isConnected ? (
             <>
-              <button className="btn-ghost" onClick={() => connect('bluetooth')} disabled={isPrinting} data-testid="ready-label-canvas__connect-bluetooth">
+              <Button variant="ghost" onClick={() => connect('bluetooth')} disabled={isPrinting} testId="ready-label-canvas__connect-bluetooth">
                 بلوتوث
-              </button>
+              </Button>
               {supportsSerial && (
-                <button className="btn-ghost" onClick={() => connect('serial')} disabled={isPrinting} data-testid="ready-label-canvas__connect-usb">
+                <Button variant="ghost" onClick={() => connect('serial')} disabled={isPrinting} testId="ready-label-canvas__connect-usb">
                   USB-C
-                </button>
+                </Button>
               )}
             </>
           ) : (
             <>
-              <button
-                className="btn-ghost"
+              <Button
+                variant="ghost"
                 onClick={() => printAll([labelRef.current], { copiesPerCanvas: 1, maxLabels: 1 })}
                 disabled={isPrinting || !ready}
-                data-testid="ready-label-canvas__niimbot-print"
+                testId="ready-label-canvas__niimbot-print"
               >
                 {isPrinting ? "..." : ""}
-              </button>
-              <button className="btn-ghost" onClick={disconnect} disabled={isPrinting} title="قطع الاتصال" data-testid="ready-label-canvas__disconnect">✖</button>
+              </Button>
+              <Button variant="ghost" onClick={disconnect} disabled={isPrinting} title="قطع الاتصال" testId="ready-label-canvas__disconnect">✖</Button>
             </>
           )
         )}

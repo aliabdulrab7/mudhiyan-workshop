@@ -5,6 +5,7 @@ import { getRole } from '../api/auth';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 import { Icons } from './icons';
+import Button from './ui/Button';
 
 export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUpdated }) {
   const [order, setOrder]         = useState(initialOrder);
@@ -132,15 +133,16 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
                 بالريال السعودي — أدخل 0 للخدمة المجانية
               </div>
             </div>
-            <button
+            <Button
               type="submit"
-              className="btn-primary"
-              disabled={costSaving || cost === ''}
+              variant="primary"
+              loading={costSaving}
+              disabled={cost === ''}
               style={{ padding: '10px 16px', fontSize: '0.88rem', flexShrink: 0 }}
-              data-testid="cost-editor__submit"
+              testId="cost-editor__submit"
             >
               {costSaving ? '...' : 'تأكيد'}
-            </button>
+            </Button>
           </form>
           {costError && (
             <div style={{ color: '#DC2626', fontSize: '0.82rem', marginTop: '8px' }}>{costError}</div>
@@ -160,11 +162,18 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             أرسل رابط الموافقة للعميل ({order.cost} ريال)
           </div>
-          <a href={approvalWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }} data-testid="scan-result__approval-link">
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-              <Icons.Phone size={13} /> إرسال رابط الموافقة ↗
-            </button>
-          </a>
+          <Button
+            as="a"
+            href={approvalWaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="primary"
+            icon={<Icons.Phone size={13} />}
+            className="w-full justify-center no-underline"
+            testId="scan-result__approval-link"
+          >
+            إرسال رابط الموافقة ↗
+          </Button>
         </div>
       )}
 
@@ -180,15 +189,16 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             هل الصيانة جاهزة للإرجاع للفرع؟
           </div>
-          <button
-            className="btn btn-primary"
+          <Button
+            variant="primary"
             onClick={markReady}
-            disabled={promoting}
-            style={{ width: '100%', justifyContent: 'center' }}
-            data-testid="scan-result__mark-ready"
+            loading={promoting}
+            icon={!promoting ? <Icons.Check size={12} /> : null}
+            className="w-full justify-center"
+            testId="scan-result__mark-ready"
           >
-            <Icons.Check size={12} /> {promoting ? 'جاري...' : 'تعيين جاهزة للإرجاع'}
-          </button>
+            {promoting ? 'جاري...' : 'تعيين جاهزة للإرجاع'}
+          </Button>
         </div>
       )}
 
@@ -203,11 +213,18 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600, marginBottom: 8 }}>
             القطعة جاهزة — أبلغ الفرع بالاستلام
           </div>
-          <a href={readyWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }} data-testid="scan-result__ready-link">
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-              <Icons.Phone size={13} /> إرسال رسالة الاستلام (WhatsApp) ↗
-            </button>
-          </a>
+          <Button
+            as="a"
+            href={readyWaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="primary"
+            icon={<Icons.Phone size={13} />}
+            className="w-full justify-center no-underline"
+            testId="scan-result__ready-link"
+          >
+            إرسال رسالة الاستلام (WhatsApp) ↗
+          </Button>
         </div>
       )}
 
@@ -240,9 +257,16 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       )}
 
       {/* Scan again */}
-      <button className="btn btn-sm btn-ghost" onClick={onScanAgain} style={{ width: '100%', justifyContent: 'center' }} data-testid="scan-result__scan-again">
-        <Icons.Refresh size={12} /> مسح آخر
-      </button>
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={<Icons.Refresh size={12} />}
+        onClick={onScanAgain}
+        className="w-full justify-center"
+        testId="scan-result__scan-again"
+      >
+        مسح آخر
+      </Button>
     </div>
   );
 }

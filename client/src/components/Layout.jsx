@@ -187,24 +187,37 @@ export default function Layout({ children }) {
           </button>
 
           <div className="topbar-actions">
-            <NavLink to="/new" className="btn btn-sm btn-primary" data-testid="layout__topbar__new-order-link">
-              <Icons.Plus size={12} /> صيانة جديدة
-            </NavLink>
-            <button className="btn btn-sm btn-ghost btn-icon" data-testid="layout__topbar__action__notifications">
-              <Icons.Bell size={13} />
-            </button>
+            <Button
+              as={NavLink}
+              to="/new"
+              variant="primary"
+              size="sm"
+              icon={<Icons.Plus size={12} />}
+              testId="layout__topbar__new-order-link"
+            >
+              صيانة جديدة
+            </Button>
+            <Button
+              variant="subtle"
+              size="sm"
+              icon={<Icons.Bell size={13} />}
+              testId="layout__topbar__action__notifications"
+              aria-label="إشعارات"
+              className="!px-1.5"
+            />
             <Dropdown
               align="end"
               testId="layout__user-menu"
               onOpenChange={(open) => { if (open) ensureLoaded(); }}
               trigger={
-                <button
-                  className="btn btn-sm btn-ghost btn-icon"
-                  data-testid="layout__topbar__action__settings"
+                <Button
+                  variant="subtle"
+                  size="sm"
+                  icon={<Icons.Settings size={13} />}
+                  testId="layout__topbar__action__settings"
                   aria-label="القائمة"
-                >
-                  <Icons.Settings size={13} />
-                </button>
+                  className="!px-1.5"
+                />
               }
             >
               <div className="px-3 py-2 border-b border-border">
