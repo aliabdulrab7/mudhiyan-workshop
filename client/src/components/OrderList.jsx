@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getOrders, updateOrderStatus } from '../api/orders';
+import { getOrders, updateOrderStatus, bulkAssignTechnician } from '../api/orders';
 import StatusPill, { PriorityDot, Avatar } from './StatusPill';
 import OrderDetail from './OrderDetail';
 import { getRole } from '../api/auth';
@@ -10,7 +10,11 @@ import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Checkbox from './ui/Checkbox';
 import Chip from './ui/Chip';
+import Dialog from './ui/Dialog';
 import Input from './ui/Input';
+import Select from './ui/Select';
+import { useTechnicians } from '../contexts/TechniciansContext';
+import { useToast } from './ToastProvider';
 
 const FILTER_DEFS = [
   { value: 'all',              label: 'الكل',             statusKeys: null },
@@ -61,6 +65,35 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   const [withPhoneOnly, setWithPhoneOnly] = useState(false);
   const [groupBy, setGroupBy]     = useState('none'); // 'none' | 'status' | 'date'
   const isWorkshop = getRole() === 'workshop';
+  const techCtx = useTechnicians();
+  const toast = useToast();
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+  const [bulkAssignTechId, setBulkAssignTechId] = useState('');
+  const [bulkAssigning, setBulkAssigning] = useState(false);
+
+  function openBulkAssign() {
+    setBulkAssignTechId('');
+    setBulkAssignOpen(true);
+    techCtx?.ensureLoaded?.().catch(() => { /* surfaced inline */ });
+  }
+
+  async function submitBulkAssign() {
+    const techId = parseInt(bulkAssignTechId, 10);
+    if (!techId) return;
+    const orderIds = [...bulkSelected];
+    setBulkAssigning(true);
+    try {
+      const res = await bulkAssignTechnician(orderIds, techId);
+      toast?.(`تم تعيين الفني لـ ${res.orders_updated} طلب`, 'success');
+      setBulkAssignOpen(false);
+      setBulkSelected(new Set());
+      onRefresh?.();
+    } catch (e) {
+      toast?.(e.message || 'فشل التعيين الجماعي', 'error');
+    } finally {
+      setBulkAssigning(false);
+    }
+  }
 
   // Counts for filter chips — computed from the full unfiltered list
   const counts = useMemo(() => {
@@ -476,7 +509,15 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
             <span className="count">{bulkSelected.size}</span>
             <span style={{ opacity: 0.7 }}>محدد</span>
             <div className="divider" />
-            <button className="b-btn" data-testid="order-list__bulk__assign"><Icons.User size={12} /> تعيين</button>
+            {isWorkshop && (
+              <button
+                className="b-btn"
+                data-testid="orders-list__bulk__assign-button"
+                onClick={openBulkAssign}
+              >
+                <Icons.User size={12} /> تعيين
+              </button>
+            )}
             <button className="b-btn" data-testid="order-list__bulk__status"><Icons.Sparkle size={12} /> الحالة</button>
             <button className="b-btn" data-testid="order-list__bulk__print"><Icons.Printer size={12} /> طباعة</button>
             <button className="b-btn" data-testid="order-list__bulk__notify"><Icons.Bell size={12} /> إشعار</button>
@@ -506,6 +547,63 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
           onUpdated={handleOrderUpdated}
         />
       )}
+
+      <Dialog
+        open={bulkAssignOpen}
+        onClose={() => !bulkAssigning && setBulkAssignOpen(false)}
+        title={`تعيين الفني لـ ${bulkSelected.size} طلب`}
+        size="sm"
+        testId="orders-list__bulk__assign-dialog"
+      >
+        <Dialog.Body>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--text-soft)' }}>
+              سيتم تعيين الفني لكل أصناف الطلبات المحددة. أي تعيين قائم سيتم استبداله.
+            </div>
+            {techCtx?.status === 'loading' && (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>جاري التحميل...</div>
+            )}
+            {techCtx?.status === 'error' && (
+              <Alert variant="danger">فشل تحميل الفنيين. حاول مرة أخرى.</Alert>
+            )}
+            {techCtx?.status === 'ready' && techCtx.technicians?.length === 0 && (
+              <Alert variant="warning">لا يوجد فنيون مسجلون. أضف فنياً أولاً من صفحة الفنيين.</Alert>
+            )}
+            {techCtx?.status === 'ready' && techCtx.technicians?.length > 0 && (
+              <Select
+                value={bulkAssignTechId}
+                onChange={(e) => setBulkAssignTechId(e.target.value)}
+                placeholder="اختر فنياً"
+                testId="orders-list__bulk__assign-dialog__technician-select"
+                options={techCtx.technicians.map(t => ({
+                  value: String(t.id),
+                  label: t.specialization || t.username || `#${t.id}`,
+                }))}
+              />
+            )}
+          </div>
+        </Dialog.Body>
+        <Dialog.Footer>
+          <Button
+            size="sm"
+            onClick={() => setBulkAssignOpen(false)}
+            disabled={bulkAssigning}
+            testId="orders-list__bulk__assign-dialog__cancel"
+          >
+            إلغاء
+          </Button>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={!bulkAssignTechId || techCtx?.status !== 'ready'}
+            loading={bulkAssigning}
+            onClick={submitBulkAssign}
+            testId="orders-list__bulk__assign-dialog__confirm"
+          >
+            {bulkAssigning ? 'جاري التعيين...' : 'تأكيد التعيين'}
+          </Button>
+        </Dialog.Footer>
+      </Dialog>
     </div>
   );
 }
