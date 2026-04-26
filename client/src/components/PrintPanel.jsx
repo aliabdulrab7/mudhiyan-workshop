@@ -3,6 +3,7 @@ import { getPrinters, getPrinterCapabilities, printLabel, getPreview } from '../
 import { Icons } from './icons';
 import Alert from './ui/Alert';
 import Button from './ui/Button';
+import Card from './ui/Card';
 import Select from './ui/Select';
 
 /**
@@ -93,7 +94,7 @@ export default function PrintPanel({ labelData, onClose }) {
   const adapterLabel = caps?.adapter === 'zebra' ? 'ZPL (Zebra)' : 'Generic (CUPS/HTML)';
 
   return (
-    <div className="card" style={{ padding: '20px 24px', maxWidth: 520 }}>
+    <Card style={{ padding: '20px 24px', maxWidth: 520 }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14 }}>
@@ -206,6 +207,6 @@ export default function PrintPanel({ labelData, onClose }) {
           <Button variant="ghost" onClick={onClose} testId="print-panel__close-footer">إغلاق</Button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

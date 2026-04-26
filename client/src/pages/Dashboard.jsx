@@ -9,6 +9,7 @@ import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
 import { useToast } from '../components/ToastProvider';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 import { downloadOrdersCsv } from '../utils/exportOrdersCsv';
 
 const STAT_CARDS = [
@@ -164,7 +165,7 @@ export default function Dashboard() {
 
         {/* Rejected alert */}
         {isWorkshop && actionOrders.rejected.length > 0 && (
-          <div className="card" style={{ borderTop: '2px solid var(--danger)', overflow: 'hidden' }}>
+          <Card style={{ borderTop: '2px solid var(--danger)' }}>
             <div className="sec-head">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.Warn size={14} stroke="var(--danger)" />
@@ -195,12 +196,12 @@ export default function Dashboard() {
                 <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{o.piece_type}</span>
               </div>
             ))}
-          </div>
+          </Card>
         )}
 
         {/* Branch load — workshop only */}
         {isWorkshop && branchStats.length > 0 && (
-          <div className="card">
+          <Card>
             <div className="sec-head">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icons.Branch size={13} />
@@ -240,7 +241,7 @@ export default function Dashboard() {
                 );
               })}
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Orders table */}
@@ -266,10 +267,9 @@ export default function Dashboard() {
 
 function ActionPanel({ icon, title, count, color, emptyText, orders, active, onFilterClick, highlight, testId }) {
   return (
-    <div
+    <Card
       onClick={onFilterClick}
-      className="card"
-      data-testid={testId}
+      testId={testId}
       style={{
         cursor: 'pointer',
         borderTopWidth: highlight && count > 0 ? 2 : 1,
@@ -307,6 +307,6 @@ function ActionPanel({ icon, title, count, color, emptyText, orders, active, onF
           +{count - 4} أخرى
         </div>
       )}
-    </div>
+    </Card>
   );
 }

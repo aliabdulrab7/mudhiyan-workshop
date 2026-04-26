@@ -5,6 +5,7 @@ import { Icons } from '../components/icons';
 import { useToast } from '../components/ToastProvider';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 
 export default function LoginPage() {
@@ -44,7 +45,7 @@ export default function LoginPage() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '20px',
     }}>
-      <div className="card" style={{ width: '100%', maxWidth: '340px', padding: '32px 28px' }}>
+      <Card style={{ width: '100%', maxWidth: '340px', padding: '32px 28px' }}>
         {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{
@@ -102,7 +103,7 @@ export default function LoginPage() {
             {loading ? 'جاري الدخول...' : 'تسجيل الدخول'}
           </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

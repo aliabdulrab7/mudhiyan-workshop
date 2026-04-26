@@ -7,6 +7,7 @@ import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 import Alert from './ui/Alert';
 import Button from './ui/Button';
+import Card from './ui/Card';
 import Input from './ui/Input';
 import Textarea from './ui/Textarea';
 
@@ -264,7 +265,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
           <div className="detail-section">
             <div className="detail-section-label">الأصناف</div>
             {order.items && order.items.length > 0 ? (
-              <div className="card" style={{ overflowX: 'auto' }}>
+              <Card style={{ overflowX: 'auto' }}>
                 <div style={{
                   display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 120px',
                   minWidth: 500,
@@ -290,7 +291,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     isLast={i === order.items.length - 1}
                   />
                 ))}
-              </div>
+              </Card>
             ) : (
               <div className="kv-grid">
                 <div className="kv-key">القطعة</div>

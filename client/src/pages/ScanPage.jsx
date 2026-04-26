@@ -10,6 +10,7 @@ import { getOrderByBarcode } from '../api/orders';
 import StatusPill from '../components/StatusPill';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 
 const cameraSupported =
   typeof navigator !== 'undefined' &&
@@ -183,7 +184,7 @@ export default function ScanPage() {
 
       <div style={{ padding: '0 24px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* Camera card */}
-        <div className="card" style={{ padding: 16 }}>
+        <Card style={{ padding: 16 }}>
           {manualMode ? (
             <ManualEntryInput
               onSubmit={(v) => handleScan(v)}
@@ -239,10 +240,10 @@ export default function ScanPage() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Result card */}
-        <div className="card">
+        <Card>
           <div className="sec-head">
             <span className="sec-title">نتيجة المسح</span>
             {order && (
@@ -259,7 +260,7 @@ export default function ScanPage() {
           ) : (
             <ScanResult order={order} onScanAgain={resetScanner} onOrderUpdated={setOrder} />
           )}
-        </div>
+        </Card>
       </div>
 
       {drawerOpen && order && (

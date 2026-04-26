@@ -3,6 +3,7 @@ import { getBranches, createBranch, deleteBranch } from '../api/admin';
 import { Icons } from '../components/icons';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 
 export default function BranchesPage() {
@@ -76,7 +77,7 @@ export default function BranchesPage() {
       <div style={{ padding: '0 24px 24px', maxWidth: 680 }}>
         {/* Create form */}
         {showForm && (
-          <div className="card" style={{ padding: '20px 24px', marginBottom: 16 }}>
+          <Card style={{ padding: '20px 24px', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إنشاء فرع جديد</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -123,7 +124,7 @@ export default function BranchesPage() {
                 </Button>
               </div>
             </form>
-          </div>
+          </Card>
         )}
 
         {/* Error outside form */}
@@ -137,13 +138,13 @@ export default function BranchesPage() {
         {loading ? (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
         ) : branches.length === 0 ? (
-          <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+          <Card style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا توجد فروع بعد — أنشئ أول فرع
-          </div>
+          </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {branches.map(branch => (
-              <div key={branch.id} className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <Card key={branch.id} style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 'var(--radius-sm)',
                   background: 'var(--primary-soft)', border: '1px solid var(--border)',
@@ -167,7 +168,7 @@ export default function BranchesPage() {
                 >
                   حذف
                 </Button>
-              </div>
+              </Card>
             ))}
           </div>
         )}

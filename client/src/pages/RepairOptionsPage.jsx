@@ -3,6 +3,7 @@ import { getRepairOptions, createRepairOption, updateRepairOption, deleteRepairO
 import { Icons } from '../components/icons';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 import Chip from '../components/ui/Chip';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -122,7 +123,7 @@ export default function RepairOptionsPage() {
         )}
 
         {/* Add form */}
-        <div className="card" style={{ padding: '14px 18px', marginBottom: 12 }}>
+        <Card style={{ padding: '14px 18px', marginBottom: 12 }}>
           <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 10, color: 'var(--text-muted)' }}>
             إضافة خيار إلى قائمة <span style={{ color: 'var(--text)' }}>{activeType}</span>
           </div>
@@ -150,15 +151,15 @@ export default function RepairOptionsPage() {
               إضافة
             </Button>
           </form>
-        </div>
+        </Card>
 
         {/* List */}
         {loading ? (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
         ) : visible.length === 0 ? (
-          <div className="card" style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+          <Card style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا توجد خيارات لهذا النوع — أضف الأول أعلاه
-          </div>
+          </Card>
         ) : (
           <div className="items-table">
             <div className="items-thead" style={{ gridTemplateColumns: '1.5fr 1.2fr 80px 120px' }}>

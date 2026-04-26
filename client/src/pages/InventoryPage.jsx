@@ -3,6 +3,7 @@ import { getInventory, createInventoryItem, adjustInventoryStock } from '../api/
 import { Icons } from '../components/icons';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 
 export default function InventoryPage() {
@@ -73,7 +74,7 @@ export default function InventoryPage() {
       <div style={{ padding: '0 24px 24px' }}>
         {/* Create form */}
         {showForm && (
-          <div className="card" style={{ padding: '20px 24px', marginBottom: 16, maxWidth: 680 }}>
+          <Card style={{ padding: '20px 24px', marginBottom: 16, maxWidth: 680 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة مادة جديدة</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -121,7 +122,7 @@ export default function InventoryPage() {
                 </Button>
               </div>
             </form>
-          </div>
+          </Card>
         )}
 
         {/* Error */}
@@ -135,9 +136,9 @@ export default function InventoryPage() {
         {loading ? (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
         ) : items.length === 0 ? (
-          <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+          <Card style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا يوجد مواد في المخزون
-          </div>
+          </Card>
         ) : (
           <div className="table-wrap">
             <table className="table">

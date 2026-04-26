@@ -3,6 +3,7 @@ import { getTechnicians, createTechnician } from '../api/technicians';
 import { Icons } from '../components/icons';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 
 export default function TechniciansPage() {
@@ -63,7 +64,7 @@ export default function TechniciansPage() {
       <div style={{ padding: '0 24px 24px', maxWidth: 680 }}>
         {/* Create form */}
         {showForm && (
-          <div className="card" style={{ padding: '20px 24px', marginBottom: 16 }}>
+          <Card style={{ padding: '20px 24px', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة فني جديد</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -94,7 +95,7 @@ export default function TechniciansPage() {
                 </Button>
               </div>
             </form>
-          </div>
+          </Card>
         )}
 
         {/* Error outside form */}
@@ -108,13 +109,13 @@ export default function TechniciansPage() {
         {loading ? (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
         ) : technicians.length === 0 ? (
-          <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+          <Card style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا يوجد فنيون مسجلون
-          </div>
+          </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {technicians.map(tech => (
-              <div key={tech.id} className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <Card key={tech.id} style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 'var(--radius-sm)',
                   background: 'var(--primary-soft)', border: '1px solid var(--border)',
@@ -131,7 +132,7 @@ export default function TechniciansPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}

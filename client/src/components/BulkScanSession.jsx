@@ -13,6 +13,7 @@ import {
 import BulkScanInput from './BulkScanInput';
 import BulkScanList from './BulkScanList';
 import Button from './ui/Button';
+import Card from './ui/Card';
 
 const BARCODE_RE = /^BR\d+-\d{8}-\d{4}$/;
 const ENDING_TIMEOUT_MS = 10_000;
@@ -363,16 +364,15 @@ function SessionTypeSelector({ types, onPick }) {
     <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {types.map((t) => (
-          <button
+          <Card
+            as="button"
             key={t.id}
             onClick={() => onPick(t)}
-            className="card"
             style={{
               textAlign: 'right', padding: '18px 20px', minHeight: 80,
-              border: '1px solid var(--border)', background: 'var(--bg-raised)',
               cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
             }}
-            data-testid={`bulk-scan__session-type__${t.id}`}
+            testId={`bulk-scan__session-type__${t.id}`}
           >
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{t.label}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
@@ -382,7 +382,7 @@ function SessionTypeSelector({ types, onPick }) {
               <span>·</span>
               <span>{t.roleHint}</span>
             </div>
-          </button>
+          </Card>
         ))}
       </div>
     </div>
@@ -401,7 +401,7 @@ function ScanningSurface({ sessionType, rows, inputFocused, onScan, onFocusChang
         containerRef={containerRef}
       />
 
-      <div className="card" style={{ padding: 0, position: 'relative' }}>
+      <Card style={{ padding: 0, position: 'relative' }}>
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '12px 16px', borderBottom: '1px solid var(--border)',
@@ -413,7 +413,7 @@ function ScanningSurface({ sessionType, rows, inputFocused, onScan, onFocusChang
         </div>
 
         <BulkScanList rows={rows} />
-      </div>
+      </Card>
     </div>
   );
 }
@@ -479,10 +479,9 @@ function SummaryCard({ sessionType, counters, rows, onNewSession, onExitBulk }) 
 
   return (
     <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
-      <div
-        className="card"
-        data-testid="bulk-scan__summary-card"
-        style={{ width: '100%', maxWidth: 720, padding: 0, overflow: 'hidden' }}
+      <Card
+        testId="bulk-scan__summary-card"
+        style={{ width: '100%', maxWidth: 720, padding: 0 }}
       >
         <div style={{
           padding: '18px 20px',
@@ -518,7 +517,7 @@ function SummaryCard({ sessionType, counters, rows, onNewSession, onExitBulk }) 
             الرجوع للوضع العادي
           </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
