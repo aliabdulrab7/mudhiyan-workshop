@@ -12,6 +12,8 @@ import {
 } from '../utils/bulkScanAudio';
 import BulkScanInput from './BulkScanInput';
 import BulkScanList from './BulkScanList';
+import Button from './ui/Button';
+import Card from './ui/Card';
 
 const BARCODE_RE = /^BR\d+-\d{8}-\d{4}$/;
 const ENDING_TIMEOUT_MS = 10_000;
@@ -245,7 +247,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
           {muteButton}
         </div>
         <span style={{ textAlign: 'center' }}>الوضع الدفعي — اختر نوع الجلسة</span>
-        <button className="btn btn-sm" onClick={onExitBulk}>إلغاء الوضع الدفعي</button>
+        <Button size="sm" onClick={onExitBulk}>إلغاء الوضع الدفعي</Button>
       </div>
     );
   }
@@ -260,7 +262,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
         <span style={{ textAlign: 'center' }}>
           مسح دفعي · {sessionType?.label} · {counters.done} تمّ · {counters.rejected} مرفوض
         </span>
-        <button className="btn btn-sm" onClick={onEndSession} data-testid="bulk-scan__end-session-button">إنهاء الجلسة</button>
+        <Button size="sm" onClick={onEndSession} testId="bulk-scan__end-session-button">إنهاء الجلسة</Button>
       </div>
     );
   }
@@ -291,8 +293,8 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
         اكتملت الجلسة — {counters.done} طلب تمّ معالجته{counters.rejected > 0 ? ` · ${counters.rejected} مرفوض` : ''}
       </span>
       <span style={{ display: 'flex', gap: 8 }}>
-        <button className="btn btn-sm" onClick={onNewSession} data-testid="bulk-scan__new-session-button">جلسة جديدة</button>
-        <button className="btn btn-sm" onClick={onExitBulk} data-testid="bulk-scan__exit-button">الرجوع للوضع العادي</button>
+        <Button size="sm" onClick={onNewSession} testId="bulk-scan__new-session-button">جلسة جديدة</Button>
+        <Button size="sm" onClick={onExitBulk} testId="bulk-scan__exit-button">الرجوع للوضع العادي</Button>
       </span>
     </div>
   );
@@ -362,26 +364,25 @@ function SessionTypeSelector({ types, onPick }) {
     <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {types.map((t) => (
-          <button
+          <Card
+            as="button"
             key={t.id}
             onClick={() => onPick(t)}
-            className="card"
             style={{
               textAlign: 'right', padding: '18px 20px', minHeight: 80,
-              border: '1px solid var(--border)', background: 'var(--bg-raised)',
               cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
             }}
-            data-testid={`bulk-scan__session-type__${t.id}`}
+            testId={`bulk-scan__session-type__${t.id}`}
           >
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{t.label}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-              <span className="chip mono">[{t.sourceStates.join(' | ')}]</span>
+              <span className="font-mono inline-flex items-center h-[22px] px-2 rounded-sm bg-bg-raised border border-border text-text-muted text-[10.5px] uppercase tracking-[0.06em] font-semibold">[{t.sourceStates.join(' | ')}]</span>
               <span>→</span>
-              <span className="chip mono">[{t.targetState}]</span>
+              <span className="font-mono inline-flex items-center h-[22px] px-2 rounded-sm bg-bg-raised border border-border text-text-muted text-[10.5px] uppercase tracking-[0.06em] font-semibold">[{t.targetState}]</span>
               <span>·</span>
               <span>{t.roleHint}</span>
             </div>
-          </button>
+          </Card>
         ))}
       </div>
     </div>
@@ -400,7 +401,7 @@ function ScanningSurface({ sessionType, rows, inputFocused, onScan, onFocusChang
         containerRef={containerRef}
       />
 
-      <div className="card" style={{ padding: 0, position: 'relative' }}>
+      <Card style={{ padding: 0, position: 'relative' }}>
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '12px 16px', borderBottom: '1px solid var(--border)',
@@ -412,7 +413,7 @@ function ScanningSurface({ sessionType, rows, inputFocused, onScan, onFocusChang
         </div>
 
         <BulkScanList rows={rows} />
-      </div>
+      </Card>
     </div>
   );
 }
@@ -478,10 +479,9 @@ function SummaryCard({ sessionType, counters, rows, onNewSession, onExitBulk }) 
 
   return (
     <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
-      <div
-        className="card"
-        data-testid="bulk-scan__summary-card"
-        style={{ width: '100%', maxWidth: 720, padding: 0, overflow: 'hidden' }}
+      <Card
+        testId="bulk-scan__summary-card"
+        style={{ width: '100%', maxWidth: 720, padding: 0 }}
       >
         <div style={{
           padding: '18px 20px',
@@ -510,14 +510,14 @@ function SummaryCard({ sessionType, counters, rows, onNewSession, onExitBulk }) 
           justifyContent: 'flex-end',
           gap: 10,
         }}>
-          <button className="btn btn-primary" onClick={onNewSession} data-testid="bulk-scan__summary__new-session-button">
+          <Button variant="primary" onClick={onNewSession} testId="bulk-scan__summary__new-session-button">
             جلسة جديدة
-          </button>
-          <button className="btn" onClick={onExitBulk} data-testid="bulk-scan__summary__exit-button">
+          </Button>
+          <Button onClick={onExitBulk} testId="bulk-scan__summary__exit-button">
             الرجوع للوضع العادي
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

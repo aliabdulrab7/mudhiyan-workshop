@@ -3,6 +3,8 @@ import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 import { useSettings } from "../contexts/SettingsContext";
+import Button from "./ui/Button";
+import Select from "./ui/Select";
 
 // Base design-canvas (NIIMBOT B21S @ 203 DPI): 400×240 px = 50×30 mm.
 // All draw code below is expressed in these base coordinates. A `fit` transform
@@ -410,39 +412,35 @@ export default function LabelCanvas({ order, autoPrint = false }) {
       {/* Label size selector */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
         <label style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>مقاس الملصق:</label>
-        <select
-          className="select"
+        <Select
           value={sizeId}
           onChange={e => setSizeId(e.target.value)}
-          style={{ height: 30, fontSize: "0.82rem", minWidth: 180 }}
-          data-testid="label-canvas__size-select"
-        >
-          {LABEL_SIZES.map(s => (
-            <option key={s.id} value={s.id}>{s.label}</option>
-          ))}
-        </select>
+          options={LABEL_SIZES.map(s => ({ value: s.id, label: s.label }))}
+          style={{ minWidth: 180 }}
+          testId="label-canvas__size-select"
+        />
       </div>
 
       {/* Print controls */}
       <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
         {/* Universal browser print — works with any OS-installed printer */}
-        <button
-          className="btn-gold"
+        <Button
+          variant="gold"
           disabled={!ready}
           onClick={handleUniversalPrint}
           title="طباعة عبر المتصفح — تدعم أي طابعة مثبتة في النظام"
-          data-testid="label-canvas__universal-print"
+          testId="label-canvas__universal-print"
         >
           طباعة
-        </button>
+        </Button>
 
         {/* Niimbot B21 direct path — only valid at the printer's native 50×30 */}
         {bluetoothAvailable && sizeId === '50x30' && (
           !isConnected ? (
             <>
-              <button className="btn-ghost" onClick={() => connect('bluetooth')} data-testid="label-canvas__connect-bluetooth">: بلوتوث</button>
+              <Button variant="ghost" onClick={() => connect('bluetooth')} testId="label-canvas__connect-bluetooth">: بلوتوث</Button>
               {supportsSerial && (
-                <button className="btn-ghost" onClick={() => connect('serial')} data-testid="label-canvas__connect-usb">: USB-C</button>
+                <Button variant="ghost" onClick={() => connect('serial')} testId="label-canvas__connect-usb">: USB-C</Button>
               )}
             </>
           ) : (
@@ -451,25 +449,26 @@ export default function LabelCanvas({ order, autoPrint = false }) {
                 <span className="pulse-gold" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#16A34A", display: "inline-block" }} />
                 متصل {printerMeta?.transport === 'serial' ? 'USB' : 'Bluetooth'}
               </span>
-              <button
-                className="btn-ghost"
+              <Button
+                variant="ghost"
                 disabled={isPrinting || !ready}
                 onClick={handlePrint}
-                data-testid="label-canvas__niimbot-print"
+                testId="label-canvas__niimbot-print"
               >
                 {isPrinting ? "جاري الطباعة..." : "طباعة "}
-              </button>
+              </Button>
               {isPrinting && (
-                <button
-                  className="btn-ghost-sm"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   style={{ color: '#DC2626', border: '1px solid rgba(220,38,38,0.2)' }}
                   onClick={disconnect}
-                  data-testid="label-canvas__abort"
+                  testId="label-canvas__abort"
                 >
                   ⚠ إيقاف
-                </button>
+                </Button>
               )}
-              {!isPrinting && <button className="btn-ghost-sm" onClick={disconnect} data-testid="label-canvas__disconnect">قطع الاتصال</button>}
+              {!isPrinting && <Button variant="ghost" size="sm" onClick={disconnect} testId="label-canvas__disconnect">قطع الاتصال</Button>}
             </>
           )
         )}

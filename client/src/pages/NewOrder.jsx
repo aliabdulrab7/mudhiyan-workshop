@@ -4,6 +4,12 @@ import { createOrder } from '../api/orders';
 import { getRepairOptions } from '../api/repair-options';
 import LabelCanvas from '../components/LabelCanvas';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
+import Chip from '../components/ui/Chip';
+import Input from '../components/ui/Input';
+import SegmentedGroup from '../components/ui/SegmentedGroup';
+import Select from '../components/ui/Select';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 const COLOR_OPTIONS = ['أصفر', 'روز جولد', 'أبيض'];
@@ -52,12 +58,12 @@ function SuccessScreen({ order, onNewOrder }) {
           <div className="page-sub">{order.customer_name} · {order.piece_type}</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-sm" onClick={() => navigate('/')}>
+          <Button size="sm" onClick={() => navigate('/')}>
             العودة للطلبات
-          </button>
-          <button className="btn btn-sm btn-primary" onClick={onNewOrder}>
-            <Icons.Plus size={12} /> صيانة جديدة
-          </button>
+          </Button>
+          <Button variant="primary" size="sm" icon={<Icons.Plus size={12} />} onClick={onNewOrder}>
+            صيانة جديدة
+          </Button>
         </div>
       </div>
 
@@ -93,18 +99,26 @@ function SuccessScreen({ order, onNewOrder }) {
 
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <a href={waUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 38 }} data-testid="new-order__success__whatsapp">
-              <Icons.Phone size={13} /> إرسال إيصال الاستلام (WhatsApp) ↗
-            </button>
-          </a>
+          <Button
+            as="a"
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="primary"
+            icon={<Icons.Phone size={13} />}
+            className="w-full justify-center no-underline"
+            style={{ height: 38 }}
+            testId="new-order__success__whatsapp"
+          >
+            إرسال إيصال الاستلام (WhatsApp) ↗
+          </Button>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/')}>
+            <Button className="flex-1 justify-center" onClick={() => navigate('/')}>
               العودة للطلبات
-            </button>
-            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={onNewOrder}>
-              <Icons.Plus size={12} /> صيانة جديدة
-            </button>
+            </Button>
+            <Button variant="primary" icon={<Icons.Plus size={12} />} className="flex-1 justify-center" onClick={onNewOrder}>
+              صيانة جديدة
+            </Button>
           </div>
         </div>
       </div>
@@ -275,13 +289,13 @@ export default function NewOrder() {
           <div className="page-sub">أنشئ طلب صيانة — سيُرسَل رقم تتبّع للعميل تلقائيًا</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-sm" onClick={() => navigate('/')}>
+          <Button size="sm" onClick={() => navigate('/')}>
             إلغاء <span className="kbd">esc</span>
-          </button>
-          <button className="btn btn-sm btn-primary" disabled={loading} onClick={handleSubmit} data-testid="new-order__submit">
-            <Icons.Check size={12} /> {loading ? 'جاري الحفظ...' : 'حفظ الطلب'}
+          </Button>
+          <Button variant="primary" size="sm" loading={loading} icon={!loading ? <Icons.Check size={12} /> : null} onClick={handleSubmit} testId="new-order__submit">
+            {loading ? 'جاري الحفظ...' : 'حفظ الطلب'}
             <span className="kbd" style={{ opacity: 0.7 }}>⌘S</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -291,14 +305,13 @@ export default function NewOrder() {
           <div className="form-row" style={{ marginBottom: 16 }}>
             <div>
               <label className="field-label">اسم العميل</label>
-              <input
-                className="input"
+              <Input
                 placeholder="محمد"
                 value={form.customerName}
                 onChange={e => updateForm('customerName', e.target.value)}
-                style={errors.customerName ? { borderColor: 'var(--danger)' } : {}}
+                invalid={!!errors.customerName}
                 autoFocus
-                data-testid="new-order__customer-name-input"
+                testId="new-order__customer-name-input"
               />
               {errors.customerName && (
                 <div style={{ color: 'var(--danger)', fontSize: 11.5, marginTop: 4 }}>{errors.customerName}</div>
@@ -307,18 +320,20 @@ export default function NewOrder() {
             <div>
               <label className="field-label">رقم الجوال</label>
               <div style={{ display: 'flex', gap: 6 }}>
-                <span className="input mono" style={{
-                  width: 66, display: 'grid', placeItems: 'center',
+                <span className="font-mono" style={{
+                  width: 66, height: 30, display: 'grid', placeItems: 'center',
                   background: 'var(--bg-soft)', color: 'var(--text-muted)', flexShrink: 0,
+                  border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                  fontSize: 13,
                 }}>+966</span>
-                <input
-                  className="input mono"
+                <Input
+                  mono
                   placeholder="5XXXXXXXX"
                   inputMode="numeric"
                   value={form.phoneDigits}
                   onChange={e => updateForm('phoneDigits', e.target.value.replace(/\D/g, '').slice(0, 9))}
-                  style={errors.phone ? { borderColor: 'var(--danger)' } : {}}
-                  data-testid="new-order__phone-input"
+                  invalid={!!errors.phone}
+                  testId="new-order__phone-input"
                 />
               </div>
               {errors.phone && (
@@ -330,24 +345,16 @@ export default function NewOrder() {
           {/* Urgency */}
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">الأولوية</label>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[
+            <SegmentedGroup
+              value={form.urgency}
+              onChange={(v) => updateForm('urgency', v)}
+              options={[
                 { value: 'normal', label: 'عادي' },
-                { value: 'rush',   label: 'مستعجل' },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={'chip' + (form.urgency === opt.value ? ' active' : '')}
-                  onClick={() => updateForm('urgency', opt.value)}
-                  style={{ flex: 1, height: 32, fontSize: 12 }}
-                  data-testid={`new-order__urgency__${opt.value}`}
-                >
-                  {opt.value === 'rush' && <Icons.Bell size={11} style={{ marginInlineEnd: 4 }} />}
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+                { value: 'rush',   label: 'مستعجل', icon: Icons.Bell },
+              ]}
+              testIdPrefix="new-order__urgency"
+              ariaLabel="الأولوية"
+            />
           </div>
 
           {/* Items table */}
@@ -362,8 +369,7 @@ export default function NewOrder() {
             </div>
             {form.items.map((row, i) => (
               <div key={i} className="items-row">
-                <select
-                  className="select"
+                <Select
                   aria-label="نوع الصنف"
                   value={row.item_type}
                   onChange={e => {
@@ -374,19 +380,17 @@ export default function NewOrder() {
                       }),
                     }));
                   }}
-                  style={{ height: 30 }}
-                  data-testid={`new-order__item__${i}__type-select`}
-                >
-                  {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <input
-                  className="input mono"
+                  options={ITEM_TYPES.map(t => ({ value: t, label: t }))}
+                  testId={`new-order__item__${i}__type-select`}
+                />
+                <Input
+                  mono
                   aria-label="الكمية"
-                  style={{ textAlign: 'center', height: 30 }}
+                  className="!text-center"
                   type="number" min="1" max="99"
                   value={row.quantity}
                   onChange={e => updateItem(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
-                  data-testid={`new-order__item__${i}__count-input`}
+                  testId={`new-order__item__${i}__count-input`}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {row.repairs.map((rep, j) => {
@@ -403,71 +407,67 @@ export default function NewOrder() {
                         borderRadius: 'var(--radius-sm)',
                       }}>
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <select
-                            className="select"
+                          <Select
                             aria-label="نوع الإصلاح"
                             value={rep.type}
                             onChange={e => {
                               updateRepair(i, j, 'type', e.target.value);
                               updateRepair(i, j, 'detail', '');
                             }}
-                            style={{ height: 30, flex: 1, borderColor: errors[errKey] ? 'var(--danger)' : undefined }}
-                            data-testid={`new-order__item__${i}__repair__${j}__type-select`}
-                          >
-                            <option value="" disabled>
-                              {opts.length === 0 ? 'لا توجد خيارات — اضبطها من "خيارات الإصلاح"' : 'اختر نوع الإصلاح…'}
-                            </option>
-                            {opts.map(t => <option key={t.id} value={t.value}>{t.value}</option>)}
-                          </select>
+                            invalid={!!errors[errKey]}
+                            placeholder={opts.length === 0 ? 'لا توجد خيارات — اضبطها من "خيارات الإصلاح"' : 'اختر نوع الإصلاح…'}
+                            options={opts.map(t => ({ value: t.value, label: t.value }))}
+                            style={{ flex: 1 }}
+                            testId={`new-order__item__${i}__repair__${j}__type-select`}
+                          />
                           {canRemove && (
-                            <button
+                            <Button
                               type="button"
-                              className="btn btn-ghost btn-icon btn-sm"
+                              variant="ghost"
+                              size="sm"
+                              icon={<Icons.X size={11} />}
                               onClick={() => removeRepair(i, j)}
                               title="إزالة"
-                              style={{ height: 30, width: 28, flexShrink: 0 }}
-                              data-testid={`new-order__item__${i}__repair__${j}__remove`}
-                            >
-                              <Icons.X size={11} />
-                            </button>
+                              style={{ height: 30, width: 28, flexShrink: 0, padding: 0 }}
+                              testId={`new-order__item__${i}__repair__${j}__remove`}
+                            />
                           )}
                         </div>
                         {meta?.needs === 'size' && (
-                          <input className="input mono" style={{ height: 28 }}
+                          <Input mono size="sm"
                             placeholder="المقاس الجديد" inputMode="decimal"
                             value={rep.detail}
                             onChange={e => updateRepair(i, j, 'detail', e.target.value)}
-                            data-testid={`new-order__item__${i}__repair__${j}__need__size`} />
+                            testId={`new-order__item__${i}__repair__${j}__need__size`} />
                         )}
                         {meta?.needs === 'stone' && (
-                          <input className="input" style={{ height: 28 }}
+                          <Input size="sm"
                             placeholder="نوع الحجر / الموضع"
                             value={rep.detail}
                             onChange={e => updateRepair(i, j, 'detail', e.target.value)}
-                            data-testid={`new-order__item__${i}__repair__${j}__need__stone`} />
+                            testId={`new-order__item__${i}__repair__${j}__need__stone`} />
                         )}
                         {meta?.needs === 'color' && (
                           <div style={{ display: 'flex', gap: 4 }}>
                             {COLOR_OPTIONS.map(c => (
-                              <button
+                              <Chip
                                 key={c}
-                                type="button"
-                                className={'chip' + (rep.detail === c ? ' active' : '')}
+                                active={rep.detail === c}
                                 onClick={() => updateRepair(i, j, 'detail', c)}
-                                style={{ flex: 1, height: 28, fontSize: 11 }}
-                                data-testid={`new-order__item__${i}__repair__${j}__need__color__${c}`}
+                                className="!flex-1 !justify-center"
+                                testId={`new-order__item__${i}__repair__${j}__need__color__${c}`}
                               >
                                 {c}
-                              </button>
+                              </Chip>
                             ))}
                           </div>
                         )}
                         {meta?.needs === 'text' && (
-                          <input className="input" style={{ height: 28 }}
+                          <Input size="sm"
                             placeholder="اكتب التفاصيل"
                             value={rep.detail}
                             onChange={e => updateRepair(i, j, 'detail', e.target.value)}
-                            data-testid={`new-order__item__${i}__repair__${j}__need__text`} />
+                            testId={`new-order__item__${i}__repair__${j}__need__text`} />
                         )}
                       </div>
                     );
@@ -486,23 +486,21 @@ export default function NewOrder() {
                     <Icons.Plus size={10} /> إضافة إصلاح
                   </button>
                 </div>
-                <input
-                  className="input"
-                  style={{ height: 30 }}
+                <Input
                   placeholder="خدش طفيف، سلسلة تالفة…"
                   value={row.notes}
                   onChange={e => updateItem(i, 'notes', e.target.value)}
-                  data-testid={`new-order__item__${i}__notes-input`}
+                  testId={`new-order__item__${i}__notes-input`}
                 />
-                <button
-                  className="btn btn-ghost btn-icon btn-sm"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icons.X size={13} />}
                   onClick={() => removeItem(i)}
                   disabled={form.items.length === 1}
-                  style={{ opacity: form.items.length === 1 ? 0.3 : 1 }}
-                  data-testid={`new-order__item__${i}__remove`}
-                >
-                  <Icons.X size={13} />
-                </button>
+                  style={{ opacity: form.items.length === 1 ? 0.3 : 1, padding: 0, width: 28 }}
+                  testId={`new-order__item__${i}__remove`}
+                />
               </div>
             ))}
             <button className="items-add" onClick={addItem} data-testid="new-order__add-item">
@@ -526,13 +524,8 @@ export default function NewOrder() {
 
           {/* Submit error */}
           {submitError && (
-            <div style={{
-              marginTop: 14, padding: '10px 14px',
-              background: 'oklch(0.58 0.21 25 / 0.06)',
-              border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-              borderRadius: 'var(--radius-sm)', color: 'var(--danger)', fontSize: 12.5,
-            }}>
-              {submitError}
+            <div style={{ marginTop: 14 }}>
+              <Alert variant="danger">{submitError}</Alert>
             </div>
           )}
         </div>

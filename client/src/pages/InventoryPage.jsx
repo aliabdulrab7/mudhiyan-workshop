@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getInventory, createInventoryItem, adjustInventoryStock } from '../api/inventory';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import FormField from '../components/ui/FormField';
+import Input from '../components/ui/Input';
 
 export default function InventoryPage() {
   const [items, setItems]           = useState([]);
@@ -54,11 +59,15 @@ export default function InventoryPage() {
         </div>
         <div className="page-actions">
           {!showForm && (
-            <button className="btn btn-sm btn-primary"
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Icons.Plus size={12} />}
               onClick={() => { setForm({ name: '', category: '', stock_qty: 0, unit: 'قطعة', cost_per_unit: 0 }); setError(''); setShowForm(true); }}
-              data-testid="inventory__add-button">
-              <Icons.Plus size={12} /> إضافة مادة
-            </button>
+              testId="inventory__add-button"
+            >
+              إضافة مادة
+            </Button>
           )}
         </div>
       </div>
@@ -66,67 +75,56 @@ export default function InventoryPage() {
       <div style={{ padding: '0 24px 24px' }}>
         {/* Create form */}
         {showForm && (
-          <div className="card" style={{ padding: '20px 24px', marginBottom: 16, maxWidth: 680 }}>
+          <Card style={{ padding: '20px 24px', marginBottom: 16, maxWidth: 680 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة مادة جديدة</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label className="field-label">اسم المادة <span style={{ color: 'var(--danger)' }}>*</span></label>
-                <input className="input" value={form.name}
+              <FormField label="اسم المادة" required>
+                <Input value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: ذهب عيار 18" required autoFocus
-                  data-testid="inventory__form__name-input" />
-              </div>
-              <div>
-                <label className="field-label">الفئة <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>(اختياري)</span></label>
-                <input className="input" value={form.category}
+                  testId="inventory__form__name-input" />
+              </FormField>
+              <FormField label={<>الفئة <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>(اختياري)</span></>}>
+                <Input value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                   placeholder="مثال: معادن، أحجار"
-                  data-testid="inventory__form__category-input" />
-              </div>
+                  testId="inventory__form__category-input" />
+              </FormField>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                <div>
-                  <label className="field-label">الكمية</label>
-                  <input className="input mono" type="number" min="0" value={form.stock_qty}
+                <FormField label="الكمية">
+                  <Input mono type="number" min="0" value={form.stock_qty}
                     onChange={e => setForm(f => ({ ...f, stock_qty: e.target.value }))}
-                    style={{ direction: 'ltr', textAlign: 'left' }}
-                    data-testid="inventory__form__qty-input" />
-                </div>
-                <div>
-                  <label className="field-label">الوحدة</label>
-                  <input className="input" value={form.unit}
+                    testId="inventory__form__qty-input" />
+                </FormField>
+                <FormField label="الوحدة">
+                  <Input value={form.unit}
                     onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
                     placeholder="قطعة"
-                    data-testid="inventory__form__unit-input" />
-                </div>
-                <div>
-                  <label className="field-label">سعر الوحدة (ريال)</label>
-                  <input className="input mono" type="number" min="0" step="0.01" value={form.cost_per_unit}
+                    testId="inventory__form__unit-input" />
+                </FormField>
+                <FormField label="سعر الوحدة (ريال)">
+                  <Input mono type="number" min="0" step="0.01" value={form.cost_per_unit}
                     onChange={e => setForm(f => ({ ...f, cost_per_unit: e.target.value }))}
-                    style={{ direction: 'ltr', textAlign: 'left' }}
-                    data-testid="inventory__form__cost-input" />
-                </div>
+                    testId="inventory__form__cost-input" />
+                </FormField>
               </div>
-              {error && (
-                <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
-                  {error}
-                </div>
-              )}
+              {error && <Alert variant="danger">{error}</Alert>}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="inventory__form__submit">
+                <Button variant="primary" type="submit" loading={submitting} className="flex-1 justify-center" testId="inventory__form__submit">
                   {submitting ? 'جاري الحفظ...' : 'حفظ'}
-                </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} data-testid="inventory__form__cancel">
+                </Button>
+                <Button variant="ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} testId="inventory__form__cancel">
                   إلغاء
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         )}
 
         {/* Error */}
         {error && !showForm && (
-          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 12 }}>
-            {error}
+          <div style={{ marginBottom: 12 }}>
+            <Alert variant="danger">{error}</Alert>
           </div>
         )}
 
@@ -134,9 +132,9 @@ export default function InventoryPage() {
         {loading ? (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
         ) : items.length === 0 ? (
-          <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+          <Card style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا يوجد مواد في المخزون
-          </div>
+          </Card>
         ) : (
           <div className="table-wrap">
             <table className="table">
@@ -167,20 +165,22 @@ export default function InventoryPage() {
                     <td className="mono" style={{ color: 'var(--primary)' }}>{Number(item.cost_per_unit).toFixed(2)}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                        <button
-                          className="btn btn-sm btn-ghost"
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           disabled={adjusting[item.id]}
                           onClick={() => handleAdjust(item.id, -1)}
-                          style={{ width: 28, padding: 0, justifyContent: 'center', fontFamily: 'var(--font-mono)' }}
-                          data-testid={`inventory__row__${item.id}__decrease`}
-                        >−</button>
-                        <button
-                          className="btn btn-sm btn-primary"
+                          style={{ width: 28, padding: 0, fontFamily: 'var(--font-mono)' }}
+                          testId={`inventory__row__${item.id}__decrease`}
+                        >−</Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
                           disabled={adjusting[item.id]}
                           onClick={() => handleAdjust(item.id, 1)}
-                          style={{ width: 28, padding: 0, justifyContent: 'center', fontFamily: 'var(--font-mono)' }}
-                          data-testid={`inventory__row__${item.id}__increase`}
-                        >+</button>
+                          style={{ width: 28, padding: 0, fontFamily: 'var(--font-mono)' }}
+                          testId={`inventory__row__${item.id}__increase`}
+                        >+</Button>
                       </div>
                     </td>
                   </tr>

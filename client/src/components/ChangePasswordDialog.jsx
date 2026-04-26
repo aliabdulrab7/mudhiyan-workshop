@@ -4,6 +4,8 @@ import { changeMyPassword } from '../api/settings';
 import { clearAuth } from '../api/auth';
 import Dialog from './ui/Dialog';
 import Button from './ui/Button';
+import FormField from './ui/FormField';
+import Input from './ui/Input';
 
 // Three-input password change form. Client-side validation (length + match)
 // runs before the request; on validation failure focus jumps to the first
@@ -102,84 +104,78 @@ export default function ChangePasswordDialog({ open, onClose }) {
       <form onSubmit={handleSubmit}>
         <Dialog.Body>
           <div className="flex flex-col gap-3">
-            <div>
-              <label className="field-label" htmlFor="cp-current">كلمة المرور الحالية</label>
-              <input
+            <FormField label="كلمة المرور الحالية" htmlFor="cp-current">
+              <Input
                 id="cp-current"
                 ref={currentRef}
                 type="password"
-                className="input mono"
+                mono
                 value={current}
                 onChange={(e) => { setCurrent(e.target.value); if (currentError) setCurrentError(''); }}
                 autoComplete="current-password"
-                data-testid="change-password-dialog__current"
-                aria-invalid={!!currentError}
+                testId="change-password-dialog__current"
+                invalid={!!currentError}
                 aria-describedby={currentError ? 'cp-current-error' : undefined}
-                style={{ direction: 'ltr', textAlign: 'left' }}
               />
               {currentError && (
                 <div
                   id="cp-current-error"
                   data-testid="change-password-dialog__current-error"
-                  className="text-[12px] mt-1"
+                  className="text-[12px]"
                   style={{ color: 'var(--danger)' }}
                 >
                   {currentError}
                 </div>
               )}
-            </div>
-            <div>
-              <label className="field-label" htmlFor="cp-new">كلمة المرور الجديدة</label>
-              <input
+            </FormField>
+            <FormField label="كلمة المرور الجديدة" htmlFor="cp-new">
+              <Input
                 id="cp-new"
                 ref={nextRef}
                 type="password"
-                className="input mono"
+                mono
                 value={next}
                 onChange={(e) => { setNext(e.target.value); if (nextError) setNextError(''); }}
                 autoComplete="new-password"
-                data-testid="change-password-dialog__new"
-                aria-invalid={!!nextError}
+                testId="change-password-dialog__new"
+                invalid={!!nextError}
                 aria-describedby={nextError ? 'cp-new-error' : undefined}
-                style={{ direction: 'ltr', textAlign: 'left' }}
               />
               {nextError && (
                 <div
                   id="cp-new-error"
                   data-testid="change-password-dialog__new-error"
-                  className="text-[12px] mt-1"
+                  className="text-[12px]"
                   style={{ color: 'var(--danger)' }}
                 >
                   {nextError}
                 </div>
               )}
-            </div>
-            <div>
-              <label className="field-label" htmlFor="cp-confirm">تأكيد كلمة المرور الجديدة</label>
-              <input
+            </FormField>
+            <FormField label="تأكيد كلمة المرور الجديدة" htmlFor="cp-confirm">
+              <Input
                 id="cp-confirm"
                 ref={confirmRef}
                 type="password"
-                className="input mono"
+                mono
                 value={confirm}
                 onChange={(e) => { setConfirm(e.target.value); if (confirmError) setConfirmError(''); }}
                 autoComplete="new-password"
-                data-testid="change-password-dialog__confirm"
-                aria-invalid={!!confirmError}
+                testId="change-password-dialog__confirm"
+                invalid={!!confirmError}
                 aria-describedby={confirmError ? 'cp-confirm-error' : undefined}
-                style={{ direction: 'ltr', textAlign: 'left' }}
               />
               {confirmError && (
                 <div
                   id="cp-confirm-error"
                   data-testid="change-password-dialog__confirm-error"
-                  className="text-[12px] mt-1"
+                  className="text-[12px]"
                   style={{ color: 'var(--danger)' }}
                 >
                   {confirmError}
                 </div>
               )}
-            </div>
+            </FormField>
           </div>
         </Dialog.Body>
         <Dialog.Footer>

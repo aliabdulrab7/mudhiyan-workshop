@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getTechnicians, createTechnician } from '../api/technicians';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import FormField from '../components/ui/FormField';
+import Input from '../components/ui/Input';
 
 export default function TechniciansPage() {
   const [technicians, setTechnicians] = useState([]);
@@ -44,9 +49,15 @@ export default function TechniciansPage() {
         </div>
         <div className="page-actions">
           {!showForm && (
-            <button className="btn btn-sm btn-primary" onClick={() => { setForm({ specialization: '' }); setError(''); setShowForm(true); }} data-testid="technicians__add-button">
-              <Icons.Plus size={12} /> إضافة فني
-            </button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Icons.Plus size={12} />}
+              onClick={() => { setForm({ specialization: '' }); setError(''); setShowForm(true); }}
+              testId="technicians__add-button"
+            >
+              إضافة فني
+            </Button>
           )}
         </div>
       </div>
@@ -54,37 +65,43 @@ export default function TechniciansPage() {
       <div style={{ padding: '0 24px 24px', maxWidth: 680 }}>
         {/* Create form */}
         {showForm && (
-          <div className="card" style={{ padding: '20px 24px', marginBottom: 16 }}>
+          <Card style={{ padding: '20px 24px', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة فني جديد</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label className="field-label">التخصص</label>
-                <input className="input" value={form.specialization}
+              <FormField label="التخصص">
+                <Input value={form.specialization}
                   onChange={e => setForm(f => ({ ...f, specialization: e.target.value }))}
                   placeholder="مثال: تصليح ذهب، تركيب أحجار" required autoFocus
-                  data-testid="technicians__form__specialization-input" />
-              </div>
-              {error && (
-                <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
-                  {error}
-                </div>
-              )}
+                  testId="technicians__form__specialization-input" />
+              </FormField>
+              {error && <Alert variant="danger">{error}</Alert>}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="technicians__form__submit">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  loading={submitting}
+                  className="flex-1 justify-center"
+                  testId="technicians__form__submit"
+                >
                   {submitting ? 'جاري الحفظ...' : 'حفظ'}
-                </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} data-testid="technicians__form__cancel">
+                </Button>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => { setShowForm(false); setError(''); }}
+                  testId="technicians__form__cancel"
+                >
                   إلغاء
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         )}
 
         {/* Error outside form */}
         {error && !showForm && (
-          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 12 }}>
-            {error}
+          <div style={{ marginBottom: 12 }}>
+            <Alert variant="danger">{error}</Alert>
           </div>
         )}
 
@@ -92,13 +109,13 @@ export default function TechniciansPage() {
         {loading ? (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
         ) : technicians.length === 0 ? (
-          <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+          <Card style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا يوجد فنيون مسجلون
-          </div>
+          </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {technicians.map(tech => (
-              <div key={tech.id} className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <Card key={tech.id} style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 'var(--radius-sm)',
                   background: 'var(--primary-soft)', border: '1px solid var(--border)',
@@ -115,7 +132,7 @@ export default function TechniciansPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}

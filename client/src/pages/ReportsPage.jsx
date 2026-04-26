@@ -3,6 +3,9 @@ import { getStats, getBranchStats } from '../api/orders';
 import { getUsername } from '../api/auth';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 import { openReportPrintWindow } from '../utils/reportPrint';
 
 const WORKSHOP_NAME = 'المضيان';
@@ -53,8 +56,9 @@ export default function ReportsPage() {
           <div className="page-sub">ملخص حالة الطلبات وتوزيع الفروع</div>
         </div>
         <div className="page-actions">
-          <button
-            className="btn btn-sm"
+          <Button
+            size="sm"
+            icon={<Icons.Download size={12} />}
             onClick={() => openReportPrintWindow({
               stats,
               branchStats,
@@ -62,10 +66,10 @@ export default function ReportsPage() {
               username: getUsername(),
               workshopName: WORKSHOP_NAME,
             })}
-            data-testid="reports__export"
+            testId="reports__export"
           >
-            <Icons.Download size={12} /> تصدير
-          </button>
+            تصدير
+          </Button>
         </div>
       </div>
 
@@ -103,8 +107,8 @@ export default function ReportsPage() {
         {loading ? (
           <SkeletonLoader type="stats" />
         ) : error ? (
-          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 20 }}>
-            {error}
+          <div style={{ marginBottom: 20 }}>
+            <Alert variant="danger">{error}</Alert>
           </div>
         ) : stats && (
           <div className="grid-stats" style={{ marginBottom: 28 }}>
@@ -134,15 +138,15 @@ export default function ReportsPage() {
             ))}
           </div>
         ) : branchStats.length === 0 ? (
-          <div className="card" style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+          <Card style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا توجد بيانات فروع
-          </div>
+          </Card>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
             {branchStats.map(branch => {
               const active = (branch.received ?? 0) + (branch.pending_approval ?? 0) + (branch.in_progress ?? 0) + (branch.ready ?? 0);
               return (
-                <div key={branch.shop_id} className="card" style={{ padding: '14px 18px' }}>
+                <Card key={branch.shop_id} style={{ padding: '14px 18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <span style={{ fontWeight: 600, fontSize: 13 }}>{branch.shop_name}</span>
                     {branch.ready > 0 && (
@@ -178,7 +182,7 @@ export default function ReportsPage() {
                       {active}
                     </span>
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>

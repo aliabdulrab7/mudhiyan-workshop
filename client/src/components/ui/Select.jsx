@@ -9,6 +9,7 @@ export default function Select({
   placeholder,
   size = 'md',
   invalid = false,
+  dir = 'rtl',
   testId,
   className = '',
   style,
@@ -24,14 +25,15 @@ export default function Select({
   const invalidCls = invalid
     ? 'border-[var(--danger)] focus:border-[var(--danger)] focus:shadow-[0_0_0_2px_oklch(0.55_0.18_25/0.28)]'
     : 'border-border';
+  const textAlign = dir === 'ltr' ? 'text-left' : 'text-right';
 
   return (
     <select
-      dir="rtl"
+      dir={dir}
       aria-invalid={invalid ? 'true' : undefined}
       data-testid={testId}
       style={style}
-      className={`${base} ${focus} ${sizes[size]} ${invalidCls} text-right ${className}`}
+      className={`${base} ${focus} ${sizes[size]} ${invalidCls} ${textAlign} ${className}`}
       {...rest}
     >
       {placeholder != null && (

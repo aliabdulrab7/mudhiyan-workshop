@@ -1,3 +1,5 @@
+import { forwardRef } from 'react';
+
 const sizes = {
   sm: 'h-6 text-xs px-2',
   md: 'h-[30px] text-[13px] px-2.5',
@@ -14,7 +16,7 @@ function resolveDir(dir, type, mono) {
   return 'rtl';
 }
 
-export default function Input({
+const Input = forwardRef(function Input({
   type = 'text',
   size = 'md',
   invalid = false,
@@ -24,7 +26,7 @@ export default function Input({
   className = '',
   style,
   ...rest
-}) {
+}, ref) {
   const resolvedDir = resolveDir(dir, type, mono);
   const base = 'w-full rounded border bg-bg-raised text-text transition-[border-color,box-shadow] duration-100 outline-none placeholder:text-text-faint disabled:opacity-50 disabled:cursor-not-allowed';
   const focus = 'focus:border-[var(--border-focus)] focus:shadow-focus';
@@ -36,6 +38,7 @@ export default function Input({
 
   return (
     <input
+      ref={ref}
       type={type}
       dir={resolvedDir}
       aria-invalid={invalid ? 'true' : undefined}
@@ -45,4 +48,6 @@ export default function Input({
       {...rest}
     />
   );
-}
+});
+
+export default Input;

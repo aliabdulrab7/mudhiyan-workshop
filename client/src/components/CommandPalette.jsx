@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getRole } from '../api/auth';
 import { Icons } from './icons';
+import Dialog from './ui/Dialog';
 
 function Kbd({ children }) {
   return <span className="kbd">{children}</span>;
@@ -65,59 +66,54 @@ export default function CommandPalette({ open, onClose, orders = [] }) {
     if (e.key === 'ArrowDown') { e.preventDefault(); setFocus(f => Math.min(filtered.length - 1, f + 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setFocus(f => Math.max(0, f - 1)); }
     else if (e.key === 'Enter') { e.preventDefault(); filtered[focus]?.fn(); }
-    else if (e.key === 'Escape') { onClose(); }
   }
-
-  if (!open) return null;
 
   let idx = -1;
   return (
-    <div className="palette-backdrop" onClick={onClose}>
-      <div className="palette" onClick={e => e.stopPropagation()}>
-        <input
-          ref={inputRef}
-          className="palette-input"
-          placeholder="اكتب للبحث أو التنقل…"
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          onKeyDown={onKey}
-          data-testid="command-palette__input"
-        />
-        <div className="palette-list">
-          {filtered.length === 0 && (
-            <div style={{ padding: '20px 16px', color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
-              لا توجد نتائج
-            </div>
-          )}
-          {Object.entries(groups).map(([g, items]) => (
-            <div key={g}>
-              <div className="palette-group">{g}</div>
-              {items.map(it => {
-                idx += 1;
-                const isFocused = idx === focus;
-                return (
-                  <div
-                    key={it.id}
-                    className={`palette-item${isFocused ? ' focused' : ''}`}
-                    onClick={it.fn}
-                    onMouseEnter={() => setFocus(flat.findIndex(x => x.id === it.id))}
-                    data-testid={`command-palette__item__${it.id}`}
-                  >
-                    <span className="icon">{it.icon}</span>
-                    <span style={{ flex: 1 }}>{it.label}</span>
-                    {it.hint && <span className="tail"><Kbd>{it.hint}</Kbd></span>}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-        <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-faint)', display: 'flex', gap: 12 }}>
-          <span><Kbd>↑</Kbd><Kbd>↓</Kbd> تنقل</span>
-          <span><Kbd>↵</Kbd> اختيار</span>
-          <span><Kbd>esc</Kbd> إغلاق</span>
-        </div>
+    <Dialog open={open} onClose={onClose} size="lg" testId="command-palette">
+      <input
+        ref={inputRef}
+        className="palette-input"
+        placeholder="اكتب للبحث أو التنقل…"
+        value={q}
+        onChange={e => setQ(e.target.value)}
+        onKeyDown={onKey}
+        data-testid="command-palette__input"
+      />
+      <div className="palette-list">
+        {filtered.length === 0 && (
+          <div style={{ padding: '20px 16px', color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
+            لا توجد نتائج
+          </div>
+        )}
+        {Object.entries(groups).map(([g, items]) => (
+          <div key={g}>
+            <div className="palette-group">{g}</div>
+            {items.map(it => {
+              idx += 1;
+              const isFocused = idx === focus;
+              return (
+                <div
+                  key={it.id}
+                  className={`palette-item${isFocused ? ' focused' : ''}`}
+                  onClick={it.fn}
+                  onMouseEnter={() => setFocus(flat.findIndex(x => x.id === it.id))}
+                  data-testid={`command-palette__item__${it.id}`}
+                >
+                  <span className="icon">{it.icon}</span>
+                  <span style={{ flex: 1 }}>{it.label}</span>
+                  {it.hint && <span className="tail"><Kbd>{it.hint}</Kbd></span>}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
-    </div>
+      <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-faint)', display: 'flex', gap: 12 }}>
+        <span><Kbd>↑</Kbd><Kbd>↓</Kbd> تنقل</span>
+        <span><Kbd>↵</Kbd> اختيار</span>
+        <span><Kbd>esc</Kbd> إغلاق</span>
+      </div>
+    </Dialog>
   );
 }

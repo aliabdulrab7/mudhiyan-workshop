@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getBranches, createBranch, deleteBranch } from '../api/admin';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import FormField from '../components/ui/FormField';
+import Input from '../components/ui/Input';
 
 export default function BranchesPage() {
   const [branches, setBranches]     = useState([]);
@@ -57,9 +62,15 @@ export default function BranchesPage() {
         </div>
         <div className="page-actions">
           {!showForm && (
-            <button className="btn btn-sm btn-primary" onClick={handleShowForm} data-testid="branches__add-button">
-              <Icons.Plus size={12} /> فرع جديد
-            </button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Icons.Plus size={12} />}
+              onClick={handleShowForm}
+              testId="branches__add-button"
+            >
+              فرع جديد
+            </Button>
           )}
         </div>
       </div>
@@ -67,55 +78,57 @@ export default function BranchesPage() {
       <div style={{ padding: '0 24px 24px', maxWidth: 680 }}>
         {/* Create form */}
         {showForm && (
-          <div className="card" style={{ padding: '20px 24px', marginBottom: 16 }}>
+          <Card style={{ padding: '20px 24px', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إنشاء فرع جديد</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label className="field-label">اسم الفرع</label>
-                <input className="input" value={form.name}
+              <FormField label="اسم الفرع">
+                <Input value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: فرع الرياض" required
-                  data-testid="branches__form__name-input" />
-              </div>
+                  testId="branches__form__name-input" />
+              </FormField>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label className="field-label">اسم المستخدم</label>
-                  <input className="input mono" value={form.username}
+                <FormField label="اسم المستخدم">
+                  <Input mono value={form.username}
                     onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
                     placeholder="br1" required
-                    style={{ direction: 'ltr', textAlign: 'left' }}
-                    data-testid="branches__form__username-input" />
-                </div>
-                <div>
-                  <label className="field-label">كلمة المرور</label>
-                  <input className="input mono" type="password" value={form.password}
+                    testId="branches__form__username-input" />
+                </FormField>
+                <FormField label="كلمة المرور">
+                  <Input mono type="password" value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                     placeholder="6 أحرف+" required minLength={6}
-                    style={{ direction: 'ltr', textAlign: 'left' }}
-                    data-testid="branches__form__password-input" />
-                </div>
+                    testId="branches__form__password-input" />
+                </FormField>
               </div>
-              {error && (
-                <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
-                  {error}
-                </div>
-              )}
+              {error && <Alert variant="danger">{error}</Alert>}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="branches__form__submit">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  loading={submitting}
+                  className="flex-1 justify-center"
+                  testId="branches__form__submit"
+                >
                   {submitting ? 'جاري الإنشاء...' : 'إنشاء الفرع'}
-                </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} style={{ flex: '0 0 auto' }} data-testid="branches__form__cancel">
+                </Button>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => { setShowForm(false); setError(''); }}
+                  testId="branches__form__cancel"
+                >
                   إلغاء
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         )}
 
         {/* Error outside form */}
         {error && !showForm && (
-          <div style={{ color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)', marginBottom: 12 }}>
-            {error}
+          <div style={{ marginBottom: 12 }}>
+            <Alert variant="danger">{error}</Alert>
           </div>
         )}
 
@@ -123,13 +136,13 @@ export default function BranchesPage() {
         {loading ? (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
         ) : branches.length === 0 ? (
-          <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+          <Card style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا توجد فروع بعد — أنشئ أول فرع
-          </div>
+          </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {branches.map(branch => (
-              <div key={branch.id} className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <Card key={branch.id} style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 'var(--radius-sm)',
                   background: 'var(--primary-soft)', border: '1px solid var(--border)',
@@ -145,15 +158,15 @@ export default function BranchesPage() {
                     </div>
                   )}
                 </div>
-                <button
-                  className="btn btn-sm btn-ghost"
+                <Button
+                  variant="danger"
+                  size="sm"
                   onClick={() => handleDelete(branch.id, branch.name)}
-                  style={{ color: 'var(--danger)', borderColor: 'oklch(0.58 0.21 25 / 0.3)' }}
-                  data-testid={`branches__row__${branch.id}__delete`}
+                  testId={`branches__row__${branch.id}__delete`}
                 >
                   حذف
-                </button>
-              </div>
+                </Button>
+              </Card>
             ))}
           </div>
         )}

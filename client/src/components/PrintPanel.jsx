@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { getPrinters, getPrinterCapabilities, printLabel, getPreview } from '../api/print';
 import { Icons } from './icons';
+import Alert from './ui/Alert';
+import Button from './ui/Button';
+import Card from './ui/Card';
+import Select from './ui/Select';
 
 /**
  * PrintPanel
@@ -90,7 +94,7 @@ export default function PrintPanel({ labelData, onClose }) {
   const adapterLabel = caps?.adapter === 'zebra' ? 'ZPL (Zebra)' : 'Generic (CUPS/HTML)';
 
   return (
-    <div className="card" style={{ padding: '20px 24px', maxWidth: 520 }}>
+    <Card style={{ padding: '20px 24px', maxWidth: 520 }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14 }}>
@@ -98,9 +102,14 @@ export default function PrintPanel({ labelData, onClose }) {
           طباعة الملصق
         </div>
         {onClose && (
-          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '2px 8px' }} data-testid="print-panel__close">
-            <Icons.X size={13} />
-          </button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Icons.X size={13} />}
+            onClick={onClose}
+            testId="print-panel__close"
+            className="!px-2"
+          />
         )}
       </div>
 
@@ -114,17 +123,13 @@ export default function PrintPanel({ labelData, onClose }) {
             لا توجد طابعات مسجّلة في النظام
           </div>
         ) : (
-          <select
-            className="input"
+          <Select
+            dir="ltr"
             value={selected}
             onChange={e => setSelected(e.target.value)}
-            style={{ direction: 'ltr', textAlign: 'left' }}
-            data-testid="print-panel__printer-select"
-          >
-            {printers.map(p => (
-              <option key={p.name} value={p.name}>{p.name}</option>
-            ))}
-          </select>
+            options={printers.map(p => ({ value: p.name, label: p.name }))}
+            testId="print-panel__printer-select"
+          />
         )}
       </div>
 
@@ -175,39 +180,33 @@ export default function PrintPanel({ labelData, onClose }) {
 
       {/* Error / success */}
       {error && (
-        <div style={{
-          color: 'var(--danger)', fontSize: 12, padding: '8px 12px', marginBottom: 10,
-          background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-          borderRadius: 'var(--radius-sm)',
-        }}>
-          {error}
+        <div style={{ marginBottom: 10 }}>
+          <Alert variant="danger">{error}</Alert>
         </div>
       )}
       {success && (
-        <div style={{
-          color: 'var(--success)', fontSize: 12, padding: '8px 12px', marginBottom: 10,
-          background: 'oklch(0.60 0.15 150 / 0.06)', border: '1px solid oklch(0.60 0.15 150 / 0.2)',
-          borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: 6,
-        }}>
-          <Icons.Check size={12} /> {success}
+        <div style={{ marginBottom: 10 }}>
+          <Alert variant="success">{success}</Alert>
         </div>
       )}
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          className="btn btn-primary"
+        <Button
+          variant="primary"
           disabled={!selected || printing || loading || capsLoading}
+          loading={printing}
+          icon={!printing ? <Icons.Printer size={13} /> : null}
           onClick={handlePrint}
-          style={{ flex: 1, justifyContent: 'center' }}
-          data-testid="print-panel__print"
+          className="flex-1 justify-center"
+          testId="print-panel__print"
         >
-          {printing ? 'جاري الطباعة...' : <><Icons.Printer size={13} /> طباعة</>}
-        </button>
+          {printing ? 'جاري الطباعة...' : 'طباعة'}
+        </Button>
         {onClose && (
-          <button className="btn btn-ghost" onClick={onClose} data-testid="print-panel__close-footer">إغلاق</button>
+          <Button variant="ghost" onClick={onClose} testId="print-panel__close-footer">إغلاق</Button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

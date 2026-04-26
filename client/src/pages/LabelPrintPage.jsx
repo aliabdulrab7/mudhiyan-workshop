@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getToken } from '../api/auth';
 import LabelCanvas from '../components/LabelCanvas';
 import ReadyLabelCanvas from '../components/ReadyLabelCanvas';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
 
 function useMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 768);
@@ -58,14 +60,13 @@ export default function LabelPrintPage() {
         marginBottom: '32px',
         flexWrap: 'wrap',
       }}>
-        <button
+        <Button
+          variant="ghost"
           onClick={() => navigate('/')}
-          className="btn-ghost"
-          style={{ padding: '8px 14px', fontSize: '0.88rem' }}
-          data-testid="label-print__back"
+          testId="label-print__back"
         >
           ← رجوع
-        </button>
+        </Button>
         <div>
           <h1 style={{
             margin: 0,
@@ -95,18 +96,7 @@ export default function LabelPrintPage() {
         </div>
       )}
 
-      {error && (
-        <div style={{
-          padding: '16px 20px',
-          background: 'rgba(220,38,38,0.06)',
-          border: '1px solid rgba(220,38,38,0.2)',
-          borderRadius: 'var(--radius)',
-          color: '#DC2626',
-          fontSize: '0.88rem',
-        }}>
-          {error}
-        </div>
-      )}
+      {error && <Alert variant="danger">{error}</Alert>}
 
       {order && (
         <div style={{

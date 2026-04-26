@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getTrackOrder, submitDecisions } from '../api/orders';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
+import SegmentedGroup from '../components/ui/SegmentedGroup';
 
 // 6-stage customer-facing timeline
 const STAGES = [
@@ -441,36 +442,16 @@ function DecisionRow({ item, decision, onDecide }) {
           {item.estimated_cost} ر.س
         </span>
       </div>
-      <div style={{ display: 'flex', gap: 6 }}>
-        <button
-          type="button"
-          onClick={() => onDecide('approve')}
-          data-testid={`track__item__${item.sort_order}__approve`}
-          style={{
-            flex: 1, padding: '8px 0', borderRadius: 'var(--radius-sm)',
-            background: decision === 'approve' ? 'var(--success)' : 'transparent',
-            color: decision === 'approve' ? '#fff' : 'var(--success)',
-            border: `1px solid ${decision === 'approve' ? 'var(--success)' : 'oklch(0.60 0.15 150 / 0.3)'}`,
-            fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font-ui)',
-          }}
-        >
-          ✓ أوافق
-        </button>
-        <button
-          type="button"
-          onClick={() => onDecide('reject')}
-          data-testid={`track__item__${item.sort_order}__reject`}
-          style={{
-            flex: 1, padding: '8px 0', borderRadius: 'var(--radius-sm)',
-            background: decision === 'reject' ? 'var(--danger)' : 'transparent',
-            color: decision === 'reject' ? '#fff' : 'var(--danger)',
-            border: `1px solid ${decision === 'reject' ? 'var(--danger)' : 'oklch(0.58 0.21 25 / 0.3)'}`,
-            fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font-ui)',
-          }}
-        >
-          ✗ أرفض
-        </button>
-      </div>
+      <SegmentedGroup
+        value={decision}
+        onChange={onDecide}
+        options={[
+          { value: 'approve', label: '✓ أوافق', variant: 'success' },
+          { value: 'reject',  label: '✗ أرفض',  variant: 'danger'  },
+        ]}
+        testIdPrefix={`track__item__${item.sort_order}`}
+        ariaLabel="القرار"
+      />
     </div>
   );
 }

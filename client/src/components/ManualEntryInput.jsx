@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icons } from './icons';
+import Button from './ui/Button';
+import Input from './ui/Input';
 
 export default function ManualEntryInput({ onSubmit }) {
   const [value, setValue] = useState('');
@@ -21,27 +23,29 @@ export default function ManualEntryInput({ onSubmit }) {
       <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
         أدخل رقم الطلب
       </div>
-      <input
+      <Input
         ref={inputRef}
-        className="input mono"
+        mono
         type="text"
         value={value}
         onChange={e => setValue(e.target.value)}
         placeholder="BR1-20260420-0022"
         autoComplete="off"
         spellCheck={false}
-        style={{ direction: 'ltr', textAlign: 'left', fontSize: 14 }}
-        data-testid="manual-entry__input"
+        style={{ fontSize: 14 }}
+        testId="manual-entry__input"
       />
       <div>
-        <button
+        <Button
           type="submit"
-          className="btn btn-sm btn-primary"
+          variant="primary"
+          size="sm"
+          icon={<Icons.Arrow size={12} />}
           disabled={!value.trim()}
-          data-testid="manual-entry__submit"
+          testId="manual-entry__submit"
         >
-          <Icons.Arrow size={12} /> بحث
-        </button>
+          بحث
+        </Button>
       </div>
     </form>
   );

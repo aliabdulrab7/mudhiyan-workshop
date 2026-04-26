@@ -98,12 +98,20 @@ Two paths, same canvas:
 
 ### Design system
 
-"Premium Artisan Light" — CSS variables in `client/src/index.css`. Gold accent `#D4A843`, subtle shadows, white surfaces. Fonts: Almarai (Arabic UI) + JetBrains Mono (stamps, barcodes, phones). Key classes: `.stamp`, `.btn-gold`, `.btn-ghost`, `.chip`, `.order-row`.
+"Premium Artisan Light" — CSS variables in `client/src/index.css`. Gold accent `#D4A843`, subtle shadows, white surfaces. Fonts: Almarai (Arabic UI) + JetBrains Mono (stamps, barcodes, phones). Surface-level interactive elements (`<Button>`, `<Input>`, `<Chip>`, `<Card>`, …) come from the primitive layer below — `index.css` only defines the design tokens, layout chrome (`.page-head`, `.drawer`, `.fab-new-order`, `.stat-card`, …), and `.field-label` for section headings. Do not add new `.className` rules to `index.css` for things a primitive can express.
 
 ### UI primitives (`client/src/components/ui/`)
 
-`Button`, `Select`, `Checkbox`, `Dropdown`, `Dialog`. Each accepts a `testId` prop (no auto-emitted testids — caller owns the namespace). `Dropdown` and `Dialog` were built ahead of the canonical Phase 3 build order in `docs/CLEANUP-PLAN.md` to support the user-menu work; Phase 3 resumes from primitive #6 (`Chip`).
+After Phase 3+4: `Button`, `Input`, `Select`, `Textarea`, `Checkbox`, `Chip`, `Alert`, `Card`, `FormField`, `SegmentedGroup`, `Dropdown`, `Dialog`. Each accepts a `testId` prop — no auto-emitted testids; the caller owns the namespace. `Button` and `Card` accept an `as` prop so callers can render as `NavLink` / `<a>` / `<button>` / `<section>` etc. without losing primitive styling.
 
+- **`Button`** — variants: `primary`, `ghost`, `subtle`, `danger`, `gold`. Sizes: `sm` / `md` / `lg`. `loading` shows a spinner; `icon` slots a leading icon. Pass `as={NavLink} to="…"` for navigation links and `as="a" href="…"` for external links.
+- **`Input`** / **`Select`** / **`Textarea`** — `size`, `invalid`, `dir` (auto-resolves to LTR for mono / numeric / email / tel inputs and RTL otherwise). `Input` is `forwardRef` so call sites can focus on mount.
+- **`Checkbox`** — native input with indeterminate handling, optional `label`. Always pass `aria-label` when no visible label (the harness's a11y check fails if a checkbox is unlabelled).
+- **`Chip`** — filter-toggle pill with `active` colorway and optional `count` slot (monospace).
+- **`Alert`** — 4 structurally distinct variants (`danger` / `success` / `warning` / `info`) per CLEANUP-PLAN §2.1: each carries its own icon + title weight + body color, not just hue. Border uses `border-inline-start` so the 3px accent lands on the right edge in RTL.
+- **`Card`** — surface container with `padding` presets and `variant` (`default` / `soft` / `raised`). `as="button"` renders a clickable card.
+- **`FormField`** — composes around a single Input/Select/Textarea child. Auto-generates id + aria-describedby; pass `htmlFor` to override. Renders error/hint slots beneath the control.
+- **`SegmentedGroup`** — mutually-exclusive button row with per-option `variant` (primary / success / danger). Used by NewOrder urgency and TrackPage decision rows. `testIdPrefix` emits `{prefix}__{value}` per slot.
 - **`Dropdown`** — portal-rendered menu, `Section` / `Item` / `Separator` slots, click-outside via `pointerdown`, ESC-to-close with stack disambiguation, RTL-aware `align="start" | "end"`. `Dropdown.Item.onSelect` closes the menu.
 - **`Dialog`** — portal-rendered modal with focus-trap, iOS scroll-lock (`position: fixed`), restore-focus-per-open, ESC-to-close. Backdrop `mousedown` closes; backdrop `preventDefault` so the cleanup's `trigger.focus()` isn't stomped by a focus-to-body. **HMR caveat:** the module-level `dialogStack` is preserved across hot reloads, so editing `Dialog.jsx` while a dialog is open can leave a stale stack entry — close the dialog before saving, or hard-refresh.
 

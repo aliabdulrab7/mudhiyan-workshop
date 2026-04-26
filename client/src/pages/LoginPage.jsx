@@ -3,6 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../api/auth';
 import { Icons } from '../components/icons';
 import { useToast } from '../components/ToastProvider';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import FormField from '../components/ui/FormField';
+import Input from '../components/ui/Input';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -41,7 +46,7 @@ export default function LoginPage() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '20px',
     }}>
-      <div className="card" style={{ width: '100%', maxWidth: '340px', padding: '32px 28px' }}>
+      <Card style={{ width: '100%', maxWidth: '340px', padding: '32px 28px' }}>
         {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{
@@ -60,56 +65,44 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div>
-            <label className="field-label">اسم المستخدم</label>
-            <input
-              className="input mono"
+          <FormField label="اسم المستخدم">
+            <Input
               type="text"
+              mono
               value={username}
               onChange={e => setUsername(e.target.value)}
               required
               autoComplete="username"
               autoFocus
-              data-testid="login__username-input"
-              style={{ direction: 'ltr', textAlign: 'left' }}
+              testId="login__username-input"
             />
-          </div>
-          <div>
-            <label className="field-label">كلمة المرور</label>
-            <input
-              className="input mono"
+          </FormField>
+          <FormField label="كلمة المرور">
+            <Input
               type="password"
+              mono
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              data-testid="login__password-input"
-              style={{ direction: 'ltr', textAlign: 'left' }}
+              testId="login__password-input"
             />
-          </div>
+          </FormField>
 
-          {error && (
-            <div style={{
-              background: 'oklch(0.58 0.21 25 / 0.06)',
-              border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 14px', color: 'var(--danger)', fontSize: 12.5,
-            }}>
-              {error}
-            </div>
-          )}
+          {error && <Alert variant="danger">{error}</Alert>}
 
-          <button
+          <Button
             type="submit"
-            className="btn btn-primary"
-            disabled={loading}
-            data-testid="login__submit-button"
-            style={{ width: '100%', justifyContent: 'center', height: 38, marginTop: 4 }}
+            variant="primary"
+            loading={loading}
+            testId="login__submit-button"
+            className="w-full justify-center mt-1"
+            style={{ height: 38 }}
           >
             {loading ? 'جاري الدخول...' : 'تسجيل الدخول'}
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

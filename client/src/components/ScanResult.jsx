@@ -1,22 +1,47 @@
 import React, { useState } from 'react';
 import StatusPill from './StatusPill';
-import CostEditor from './CostEditor';
-import { updateOrderStatus } from '../api/orders';
+import { updateCost, updateOrderStatus } from '../api/orders';
 import { getRole } from '../api/auth';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 import { Icons } from './icons';
+import Alert from './ui/Alert';
+import Button from './ui/Button';
+import Input from './ui/Input';
 
 export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUpdated }) {
   const [order, setOrder]         = useState(initialOrder);
   const [promoting, setPromoting] = useState(false);
   const [justMarkedReady, setJustMarkedReady] = useState(false);
   const [scanError, setScanError] = useState('');
+  const [cost, setCost]           = useState('');
+  const [costSaving, setCostSaving] = useState(false);
+  const [costError, setCostError] = useState('');
   const isWorkshop = getRole() === 'workshop';
 
   function handleOrderUpdate(updated) {
     setOrder(updated);
     onOrderUpdated?.(updated);
+  }
+
+  async function handleCostSubmit(e) {
+    e.preventDefault();
+    setCostSaving(true);
+    setCostError('');
+    try {
+      const updated = await updateCost(order.id, parseInt(cost, 10));
+      handleOrderUpdate(updated);
+      if (updated.status === 'waiting_approval') {
+        window.open(
+          buildApprovalWaUrl(updated.phone, updated.customer_name, updated.cost, buildTrackingUrl(updated.customer_token)),
+          '_blank', 'noopener,noreferrer',
+        );
+      }
+    } catch (err) {
+      setCostError(err.message);
+    } finally {
+      setCostSaving(false);
+    }
   }
 
   const trackingUrl   = buildTrackingUrl(order.customer_token);
@@ -82,7 +107,47 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
 
       {/* Cost editor — workshop + received, not locked */}
       {isWorkshop && !order.locked_at && order.status === 'received' && (
-        <CostEditor order={order} onUpdated={handleOrderUpdate} />
+        <div style={{
+          background: 'var(--primary-soft)',
+          border: '1px solid var(--border)',
+          borderRight: '3px solid var(--primary)',
+          borderRadius: 'var(--radius)',
+          padding: '14px',
+          marginBottom: '16px',
+        }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '10px', fontWeight: 600 }}>
+            تحديد تكلفة الإصلاح
+          </div>
+          <form onSubmit={handleCostSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <Input
+                type="number"
+                min="0"
+                placeholder="0 (مجاني)"
+                value={cost}
+                onChange={e => setCost(e.target.value)}
+                required
+                testId="cost-editor__input"
+              />
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                بالريال السعودي — أدخل 0 للخدمة المجانية
+              </div>
+            </div>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={costSaving}
+              disabled={cost === ''}
+              style={{ padding: '10px 16px', fontSize: '0.88rem', flexShrink: 0 }}
+              testId="cost-editor__submit"
+            >
+              {costSaving ? '...' : 'تأكيد'}
+            </Button>
+          </form>
+          {costError && (
+            <div style={{ color: '#DC2626', fontSize: '0.82rem', marginTop: '8px' }}>{costError}</div>
+          )}
+        </div>
       )}
 
       {/* Approval link — waiting_approval */}
@@ -97,11 +162,18 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             أرسل رابط الموافقة للعميل ({order.cost} ريال)
           </div>
-          <a href={approvalWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }} data-testid="scan-result__approval-link">
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-              <Icons.Phone size={13} /> إرسال رابط الموافقة ↗
-            </button>
-          </a>
+          <Button
+            as="a"
+            href={approvalWaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="primary"
+            icon={<Icons.Phone size={13} />}
+            className="w-full justify-center no-underline"
+            testId="scan-result__approval-link"
+          >
+            إرسال رابط الموافقة ↗
+          </Button>
         </div>
       )}
 
@@ -117,15 +189,16 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             هل الصيانة جاهزة للإرجاع للفرع؟
           </div>
-          <button
-            className="btn btn-primary"
+          <Button
+            variant="primary"
             onClick={markReady}
-            disabled={promoting}
-            style={{ width: '100%', justifyContent: 'center' }}
-            data-testid="scan-result__mark-ready"
+            loading={promoting}
+            icon={!promoting ? <Icons.Check size={12} /> : null}
+            className="w-full justify-center"
+            testId="scan-result__mark-ready"
           >
-            <Icons.Check size={12} /> {promoting ? 'جاري...' : 'تعيين جاهزة للإرجاع'}
-          </button>
+            {promoting ? 'جاري...' : 'تعيين جاهزة للإرجاع'}
+          </Button>
         </div>
       )}
 
@@ -140,11 +213,18 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600, marginBottom: 8 }}>
             القطعة جاهزة — أبلغ الفرع بالاستلام
           </div>
-          <a href={readyWaUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }} data-testid="scan-result__ready-link">
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-              <Icons.Phone size={13} /> إرسال رسالة الاستلام (WhatsApp) ↗
-            </button>
-          </a>
+          <Button
+            as="a"
+            href={readyWaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="primary"
+            icon={<Icons.Phone size={13} />}
+            className="w-full justify-center no-underline"
+            testId="scan-result__ready-link"
+          >
+            إرسال رسالة الاستلام (WhatsApp) ↗
+          </Button>
         </div>
       )}
 
@@ -165,21 +245,22 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
 
       {/* Error */}
       {scanError && (
-        <div style={{
-          padding: '10px 14px', marginBottom: 12,
-          background: 'oklch(0.58 0.21 25 / 0.06)',
-          border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-          borderRadius: 'var(--radius-sm)',
-          color: 'var(--danger)', fontSize: 12.5,
-        }}>
-          {scanError}
+        <div style={{ marginBottom: 12 }}>
+          <Alert variant="danger">{scanError}</Alert>
         </div>
       )}
 
       {/* Scan again */}
-      <button className="btn btn-sm btn-ghost" onClick={onScanAgain} style={{ width: '100%', justifyContent: 'center' }} data-testid="scan-result__scan-again">
-        <Icons.Refresh size={12} /> مسح آخر
-      </button>
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={<Icons.Refresh size={12} />}
+        onClick={onScanAgain}
+        className="w-full justify-center"
+        testId="scan-result__scan-again"
+      >
+        مسح آخر
+      </Button>
     </div>
   );
 }

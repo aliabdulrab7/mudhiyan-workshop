@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { getRepairOptions, createRepairOption, updateRepairOption, deleteRepairOption } from '../api/repair-options';
 import { Icons } from '../components/icons';
+import Alert from '../components/ui/Alert';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import Chip from '../components/ui/Chip';
+import FormField from '../components/ui/FormField';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 
@@ -98,73 +105,60 @@ export default function RepairOptionsPage() {
         {/* Item-type tabs */}
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 16 }}>
           {ITEM_TYPES.map(t => (
-            <button
+            <Chip
               key={t}
-              type="button"
-              className={'chip' + (t === activeType ? ' active' : '')}
+              active={t === activeType}
+              count={rows.filter(r => r.item_type === t).length}
               onClick={() => { setActiveType(t); setEditingId(null); setNewForm({ value: '', needs: '' }); setError(''); }}
-              data-testid={`repair-options__tab__${t}`}
+              testId={`repair-options__tab__${t}`}
             >
               {t}
-              <span style={{ marginInlineStart: 6, opacity: 0.6, fontSize: 10 }}>
-                {rows.filter(r => r.item_type === t).length}
-              </span>
-            </button>
+            </Chip>
           ))}
         </div>
 
         {error && (
-          <div style={{
-            color: 'var(--danger)', fontSize: 12.5, padding: '10px 14px',
-            background: 'oklch(0.58 0.21 25 / 0.06)',
-            border: '1px solid oklch(0.58 0.21 25 / 0.2)',
-            borderRadius: 'var(--radius-sm)', marginBottom: 12,
-          }}>
-            {error}
+          <div style={{ marginBottom: 12 }}>
+            <Alert variant="danger">{error}</Alert>
           </div>
         )}
 
         {/* Add form */}
-        <div className="card" style={{ padding: '14px 18px', marginBottom: 12 }}>
+        <Card style={{ padding: '14px 18px', marginBottom: 12 }}>
           <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 10, color: 'var(--text-muted)' }}>
             إضافة خيار إلى قائمة <span style={{ color: 'var(--text)' }}>{activeType}</span>
           </div>
           <form onSubmit={handleAdd} style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 200px' }}>
-              <label className="field-label">اسم الإصلاح</label>
-              <input
-                className="input"
+            <FormField label="اسم الإصلاح" className="!flex-1 !basis-[200px]">
+              <Input
                 placeholder="مثال: تغيير مقاس"
                 value={newForm.value}
                 onChange={e => setNewForm(f => ({ ...f, value: e.target.value }))}
-                data-testid="repair-options__form__name-input"
+                testId="repair-options__form__name-input"
               />
-            </div>
-            <div style={{ flex: '1 1 160px' }}>
-              <label className="field-label">نوع التفاصيل</label>
-              <select
-                className="select"
+            </FormField>
+            <FormField label="نوع التفاصيل" className="!flex-1 !basis-[160px]">
+              <Select
                 aria-label="نوع التفاصيل"
                 value={newForm.needs}
                 onChange={e => setNewForm(f => ({ ...f, needs: e.target.value }))}
-                data-testid="repair-options__form__needs-select"
-              >
-                {NEEDS_OPTIONS.map(o => <option key={o.value || 'none'} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <button className="btn btn-primary" type="submit" style={{ height: 32 }} data-testid="repair-options__form__submit">
-              <Icons.Plus size={12} /> إضافة
-            </button>
+                options={NEEDS_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+                testId="repair-options__form__needs-select"
+              />
+            </FormField>
+            <Button variant="primary" type="submit" icon={<Icons.Plus size={12} />} style={{ height: 32 }} testId="repair-options__form__submit">
+              إضافة
+            </Button>
           </form>
-        </div>
+        </Card>
 
         {/* List */}
         {loading ? (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
         ) : visible.length === 0 ? (
-          <div className="card" style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
+          <Card style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا توجد خيارات لهذا النوع — أضف الأول أعلاه
-          </div>
+          </Card>
         ) : (
           <div className="items-table">
             <div className="items-thead" style={{ gridTemplateColumns: '1.5fr 1.2fr 80px 120px' }}>
@@ -177,29 +171,26 @@ export default function RepairOptionsPage() {
               <div key={row.id} className="items-row" style={{ gridTemplateColumns: '1.5fr 1.2fr 80px 120px', alignItems: 'center' }}>
                 {editingId === row.id ? (
                   <>
-                    <input
-                      className="input"
-                      style={{ height: 28 }}
+                    <Input
+                      size="sm"
                       value={editForm.value}
                       onChange={e => setEditForm(f => ({ ...f, value: e.target.value }))}
                       autoFocus
                     />
-                    <select
-                      className="select"
-                      style={{ height: 28 }}
+                    <Select
+                      size="sm"
                       value={editForm.needs}
                       onChange={e => setEditForm(f => ({ ...f, needs: e.target.value }))}
-                    >
-                      {NEEDS_OPTIONS.map(o => <option key={o.value || 'none'} value={o.value}>{o.label}</option>)}
-                    </select>
+                      options={NEEDS_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+                    />
                     <span />
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-sm btn-primary" onClick={e => saveEdit(e, row.id)} data-testid={`repair-options__row__${row.id}__save`}>
-                        <Icons.Check size={11} /> حفظ
-                      </button>
-                      <button className="btn btn-sm btn-ghost" type="button" onClick={() => setEditingId(null)} data-testid={`repair-options__row__${row.id}__cancel`}>
+                      <Button variant="primary" size="sm" icon={<Icons.Check size={11} />} onClick={e => saveEdit(e, row.id)} testId={`repair-options__row__${row.id}__save`}>
+                        حفظ
+                      </Button>
+                      <Button variant="ghost" size="sm" type="button" onClick={() => setEditingId(null)} testId={`repair-options__row__${row.id}__cancel`}>
                         إلغاء
-                      </button>
+                      </Button>
                     </div>
                   </>
                 ) : (
@@ -229,18 +220,19 @@ export default function RepairOptionsPage() {
                       </button>
                     </div>
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-sm btn-ghost" type="button" onClick={() => startEdit(row)} data-testid={`repair-options__row__${row.id}__edit`}>
+                      <Button variant="ghost" size="sm" type="button" onClick={() => startEdit(row)} testId={`repair-options__row__${row.id}__edit`}>
                         تعديل
-                      </button>
-                      <button
-                        className="btn btn-sm btn-ghost btn-icon"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         type="button"
+                        icon={<Icons.X size={12} />}
                         onClick={() => remove(row)}
                         title="حذف"
-                        data-testid={`repair-options__row__${row.id}__delete`}
-                      >
-                        <Icons.X size={12} />
-                      </button>
+                        testId={`repair-options__row__${row.id}__delete`}
+                        className="!px-1.5"
+                      />
                     </div>
                   </>
                 )}

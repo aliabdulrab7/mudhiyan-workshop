@@ -36,22 +36,25 @@ export default function Button({
   disabled,
   testId,
   type = 'button',
+  as: Tag = 'button',
   children,
   className = '',
   ...rest
 }) {
   const isDisabled = disabled || loading;
+  // Native <button> needs `type` + `disabled`; non-button tags shouldn't get them.
+  const tagProps = Tag === 'button'
+    ? { type, disabled: isDisabled, 'aria-busy': loading ? 'true' : undefined }
+    : { 'aria-disabled': isDisabled ? 'true' : undefined };
   return (
-    <button
-      type={type}
-      disabled={isDisabled}
-      aria-busy={loading ? 'true' : undefined}
+    <Tag
+      {...tagProps}
       data-testid={testId}
       className={`inline-flex items-center justify-center font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
       {...rest}
     >
       {loading ? <Spinner /> : icon}
       {children}
-    </button>
+    </Tag>
   );
 }
