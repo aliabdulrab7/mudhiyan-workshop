@@ -376,9 +376,9 @@ function SessionTypeSelector({ types, onPick }) {
           >
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{t.label}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-              <span className="chip mono">[{t.sourceStates.join(' | ')}]</span>
+              <span className="font-mono inline-flex items-center h-[22px] px-2 rounded-sm bg-bg-raised border border-border text-text-muted text-[10.5px] uppercase tracking-[0.06em] font-semibold">[{t.sourceStates.join(' | ')}]</span>
               <span>→</span>
-              <span className="chip mono">[{t.targetState}]</span>
+              <span className="font-mono inline-flex items-center h-[22px] px-2 rounded-sm bg-bg-raised border border-border text-text-muted text-[10.5px] uppercase tracking-[0.06em] font-semibold">[{t.targetState}]</span>
               <span>·</span>
               <span>{t.roleHint}</span>
             </div>

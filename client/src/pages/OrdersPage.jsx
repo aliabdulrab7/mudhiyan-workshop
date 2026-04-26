@@ -6,6 +6,7 @@ import StatusPill, { STATUS_META } from '../components/StatusPill';
 import OrderDetail from '../components/OrderDetail';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Chip from '../components/ui/Chip';
 import Input from '../components/ui/Input';
 
 const ALL_STATUSES = Object.keys(STATUS_META).filter(s =>
@@ -124,21 +125,23 @@ export default function OrdersPage() {
       <div style={{ padding: '0 24px 24px' }}>
         {/* Status filter chips */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-          <button
-            className={`chip${filter === 'all' ? ' chip-active' : ''}`}
+          <Chip
+            active={filter === 'all'}
             onClick={() => setFilterAndSync('all')}
-            data-testid="orders-list__filter__all">
+            testId="orders-list__filter__all"
+          >
             الكل
-          </button>
+          </Chip>
           {MAIN_STATUSES.map(s => (
-            <button
+            <Chip
               key={s}
-              className={`chip${filter === s ? ' chip-active' : ''}`}
+              active={filter === s}
               onClick={() => setFilterAndSync(s)}
-              style={filter === s ? { borderColor: STATUS_META[s]?.color, color: STATUS_META[s]?.color } : {}}
-              data-testid={`orders-list__filter__${s}`}>
+              style={filter === s ? { borderColor: STATUS_META[s]?.color, background: STATUS_META[s]?.color, color: '#fff' } : {}}
+              testId={`orders-list__filter__${s}`}
+            >
               {STATUS_META[s]?.label || s}
-            </button>
+            </Chip>
           ))}
         </div>
 

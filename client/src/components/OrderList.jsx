@@ -8,6 +8,7 @@ import SkeletonLoader from './SkeletonLoader';
 import { Icons } from './icons';
 import Button from './ui/Button';
 import Checkbox from './ui/Checkbox';
+import Chip from './ui/Chip';
 import Input from './ui/Input';
 
 const FILTER_DEFS = [
@@ -207,15 +208,15 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
             ? allOrders.length
             : f.statusKeys.reduce((s, k) => s + (counts[k] || 0), 0);
           return (
-            <button
+            <Chip
               key={f.value}
-              className={`chip${status === f.value ? ' active' : ''}`}
+              active={status === f.value}
+              count={chipCount > 0 ? chipCount : undefined}
               onClick={() => setStatus(f.value)}
-              data-testid={`order-list__filter__${f.value}`}
+              testId={`order-list__filter__${f.value}`}
             >
               {f.label}
-              {chipCount > 0 && <span className="count">{chipCount}</span>}
-            </button>
+            </Chip>
           );
         })}
       </div>

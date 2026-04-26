@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getRepairOptions, createRepairOption, updateRepairOption, deleteRepairOption } from '../api/repair-options';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Chip from '../components/ui/Chip';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 
@@ -101,18 +102,15 @@ export default function RepairOptionsPage() {
         {/* Item-type tabs */}
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 16 }}>
           {ITEM_TYPES.map(t => (
-            <button
+            <Chip
               key={t}
-              type="button"
-              className={'chip' + (t === activeType ? ' active' : '')}
+              active={t === activeType}
+              count={rows.filter(r => r.item_type === t).length}
               onClick={() => { setActiveType(t); setEditingId(null); setNewForm({ value: '', needs: '' }); setError(''); }}
-              data-testid={`repair-options__tab__${t}`}
+              testId={`repair-options__tab__${t}`}
             >
               {t}
-              <span style={{ marginInlineStart: 6, opacity: 0.6, fontSize: 10 }}>
-                {rows.filter(r => r.item_type === t).length}
-              </span>
-            </button>
+            </Chip>
           ))}
         </div>
 

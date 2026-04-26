@@ -5,6 +5,7 @@ import { getRepairOptions } from '../api/repair-options';
 import LabelCanvas from '../components/LabelCanvas';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Chip from '../components/ui/Chip';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 
@@ -455,16 +456,15 @@ export default function NewOrder() {
                         {meta?.needs === 'color' && (
                           <div style={{ display: 'flex', gap: 4 }}>
                             {COLOR_OPTIONS.map(c => (
-                              <button
+                              <Chip
                                 key={c}
-                                type="button"
-                                className={'chip' + (rep.detail === c ? ' active' : '')}
+                                active={rep.detail === c}
                                 onClick={() => updateRepair(i, j, 'detail', c)}
-                                style={{ flex: 1, height: 28, fontSize: 11 }}
-                                data-testid={`new-order__item__${i}__repair__${j}__need__color__${c}`}
+                                className="!flex-1 !justify-center"
+                                testId={`new-order__item__${i}__repair__${j}__need__color__${c}`}
                               >
                                 {c}
-                              </button>
+                              </Chip>
                             ))}
                           </div>
                         )}
