@@ -7,6 +7,7 @@ import { buildTrackingUrl } from '../utils/whatsapp';
 import SkeletonLoader from './SkeletonLoader';
 import { Icons } from './icons';
 import Button from './ui/Button';
+import Checkbox from './ui/Checkbox';
 
 const FILTER_DEFS = [
   { value: 'all',              label: 'الكل',             statusKeys: null },
@@ -334,6 +335,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                       checked={allSelected}
                       indeterminate={!allSelected && bulkSelected.size > 0}
                       onChange={toggleAll}
+                      aria-label="تحديد الكل"
                       testId="order-list__select-all"
                     />
                   </th>
@@ -379,7 +381,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                         data-testid={`order-list__row__${o.order_number}`}
                       >
                         <td className="col-check" onClick={e => e.stopPropagation()}>
-                          <Checkbox checked={isSel} onChange={() => toggleBulk(o.id)} testId={`order-list__row__${o.order_number}__select`} />
+                          <Checkbox checked={isSel} onChange={() => toggleBulk(o.id)} aria-label={`تحديد الطلب ${o.order_number}`} testId={`order-list__row__${o.order_number}__select`} />
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -506,25 +508,6 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
         />
       )}
     </div>
-  );
-}
-
-function Checkbox({ checked, indeterminate, onChange, testId }) {
-  return (
-    <span
-      role="checkbox"
-      aria-checked={indeterminate ? 'mixed' : checked}
-      className={`cb${checked || indeterminate ? ' checked' : ''}`}
-      onClick={e => { e.stopPropagation(); onChange(); }}
-      data-testid={testId}
-    >
-      {checked && (
-        <svg viewBox="0 0 10 8"><path d="M1 4l3 3 5-6" /></svg>
-      )}
-      {indeterminate && !checked && (
-        <svg viewBox="0 0 10 2"><line x1="1" y1="1" x2="9" y2="1" /></svg>
-      )}
-    </span>
   );
 }
 
