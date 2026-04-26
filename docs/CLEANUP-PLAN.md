@@ -428,6 +428,13 @@ anything there is harness-stable, tested, and documented in CLAUDE.md.
 > stays — it isn't on the migration list (no legacy CSS class to
 > replace), so it doesn't enter Phase 4.
 
+> **Status (2026-04-26):** Phases 3 + 4 + 5 complete. All 12 primitives
+> ship, all 12 migrations land in `claude/ship-primitives-migrations-Y6cAt`,
+> and legacy `.btn` / `.input` / `.chip` / `.card` / `.cb` / `.input-base`
+> rules are removed from `index.css`. See `PHASE3-NOTES.md` for the
+> documented exceptions (BulkScanSession session-type and summary stay
+> bespoke; `.field-label` and `.stat-card` survive in CSS).
+
 1. **Button** (expand existing) — no dependencies.
 2. **Input** — no dependencies.
 3. **Select** — no dependencies.
