@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import StatusPill from './StatusPill';
-import CostEditor from './CostEditor';
-import { updateOrderStatus } from '../api/orders';
+import { updateCost, updateOrderStatus } from '../api/orders';
 import { getRole } from '../api/auth';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
@@ -12,11 +11,34 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
   const [promoting, setPromoting] = useState(false);
   const [justMarkedReady, setJustMarkedReady] = useState(false);
   const [scanError, setScanError] = useState('');
+  const [cost, setCost]           = useState('');
+  const [costSaving, setCostSaving] = useState(false);
+  const [costError, setCostError] = useState('');
   const isWorkshop = getRole() === 'workshop';
 
   function handleOrderUpdate(updated) {
     setOrder(updated);
     onOrderUpdated?.(updated);
+  }
+
+  async function handleCostSubmit(e) {
+    e.preventDefault();
+    setCostSaving(true);
+    setCostError('');
+    try {
+      const updated = await updateCost(order.id, parseInt(cost, 10));
+      handleOrderUpdate(updated);
+      if (updated.status === 'waiting_approval') {
+        window.open(
+          buildApprovalWaUrl(updated.phone, updated.customer_name, updated.cost, buildTrackingUrl(updated.customer_token)),
+          '_blank', 'noopener,noreferrer',
+        );
+      }
+    } catch (err) {
+      setCostError(err.message);
+    } finally {
+      setCostSaving(false);
+    }
   }
 
   const trackingUrl   = buildTrackingUrl(order.customer_token);
@@ -82,7 +104,48 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
 
       {/* Cost editor — workshop + received, not locked */}
       {isWorkshop && !order.locked_at && order.status === 'received' && (
-        <CostEditor order={order} onUpdated={handleOrderUpdate} />
+        <div style={{
+          background: 'var(--primary-soft)',
+          border: '1px solid var(--border)',
+          borderRight: '3px solid var(--primary)',
+          borderRadius: 'var(--radius)',
+          padding: '14px',
+          marginBottom: '16px',
+        }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-soft)', marginBottom: '10px', fontWeight: 600 }}>
+            تحديد تكلفة الإصلاح
+          </div>
+          <form onSubmit={handleCostSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <input
+                className="input-base"
+                type="number"
+                min="0"
+                placeholder="0 (مجاني)"
+                value={cost}
+                onChange={e => setCost(e.target.value)}
+                required
+                style={{ direction: 'ltr', textAlign: 'left' }}
+                data-testid="cost-editor__input"
+              />
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                بالريال السعودي — أدخل 0 للخدمة المجانية
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={costSaving || cost === ''}
+              style={{ padding: '10px 16px', fontSize: '0.88rem', flexShrink: 0 }}
+              data-testid="cost-editor__submit"
+            >
+              {costSaving ? '...' : 'تأكيد'}
+            </button>
+          </form>
+          {costError && (
+            <div style={{ color: '#DC2626', fontSize: '0.82rem', marginTop: '8px' }}>{costError}</div>
+          )}
+        </div>
       )}
 
       {/* Approval link — waiting_approval */}
