@@ -8,6 +8,7 @@ import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Chip from '../components/ui/Chip';
 import Input from '../components/ui/Input';
+import SegmentedGroup from '../components/ui/SegmentedGroup';
 import Select from '../components/ui/Select';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
@@ -344,24 +345,16 @@ export default function NewOrder() {
           {/* Urgency */}
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">الأولوية</label>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[
+            <SegmentedGroup
+              value={form.urgency}
+              onChange={(v) => updateForm('urgency', v)}
+              options={[
                 { value: 'normal', label: 'عادي' },
-                { value: 'rush',   label: 'مستعجل' },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={'chip' + (form.urgency === opt.value ? ' active' : '')}
-                  onClick={() => updateForm('urgency', opt.value)}
-                  style={{ flex: 1, height: 32, fontSize: 12 }}
-                  data-testid={`new-order__urgency__${opt.value}`}
-                >
-                  {opt.value === 'rush' && <Icons.Bell size={11} style={{ marginInlineEnd: 4 }} />}
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+                { value: 'rush',   label: 'مستعجل', icon: Icons.Bell },
+              ]}
+              testIdPrefix="new-order__urgency"
+              ariaLabel="الأولوية"
+            />
           </div>
 
           {/* Items table */}
