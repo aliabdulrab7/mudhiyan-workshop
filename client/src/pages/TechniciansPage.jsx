@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getTechnicians, createTechnician } from '../api/technicians';
 import { Icons } from '../components/icons';
+import Button from '../components/ui/Button';
 
 export default function TechniciansPage() {
   const [technicians, setTechnicians] = useState([]);
@@ -44,9 +45,15 @@ export default function TechniciansPage() {
         </div>
         <div className="page-actions">
           {!showForm && (
-            <button className="btn btn-sm btn-primary" onClick={() => { setForm({ specialization: '' }); setError(''); setShowForm(true); }} data-testid="technicians__add-button">
-              <Icons.Plus size={12} /> إضافة فني
-            </button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Icons.Plus size={12} />}
+              onClick={() => { setForm({ specialization: '' }); setError(''); setShowForm(true); }}
+              testId="technicians__add-button"
+            >
+              إضافة فني
+            </Button>
           )}
         </div>
       </div>
@@ -70,12 +77,23 @@ export default function TechniciansPage() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="technicians__form__submit">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  loading={submitting}
+                  className="flex-1 justify-center"
+                  testId="technicians__form__submit"
+                >
                   {submitting ? 'جاري الحفظ...' : 'حفظ'}
-                </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} data-testid="technicians__form__cancel">
+                </Button>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => { setShowForm(false); setError(''); }}
+                  testId="technicians__form__cancel"
+                >
                   إلغاء
-                </button>
+                </Button>
               </div>
             </form>
           </div>

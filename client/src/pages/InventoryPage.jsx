@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getInventory, createInventoryItem, adjustInventoryStock } from '../api/inventory';
 import { Icons } from '../components/icons';
+import Button from '../components/ui/Button';
 
 export default function InventoryPage() {
   const [items, setItems]           = useState([]);
@@ -54,11 +55,15 @@ export default function InventoryPage() {
         </div>
         <div className="page-actions">
           {!showForm && (
-            <button className="btn btn-sm btn-primary"
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Icons.Plus size={12} />}
               onClick={() => { setForm({ name: '', category: '', stock_qty: 0, unit: 'قطعة', cost_per_unit: 0 }); setError(''); setShowForm(true); }}
-              data-testid="inventory__add-button">
-              <Icons.Plus size={12} /> إضافة مادة
-            </button>
+              testId="inventory__add-button"
+            >
+              إضافة مادة
+            </Button>
           )}
         </div>
       </div>
@@ -112,12 +117,12 @@ export default function InventoryPage() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="inventory__form__submit">
+                <Button variant="primary" type="submit" loading={submitting} className="flex-1 justify-center" testId="inventory__form__submit">
                   {submitting ? 'جاري الحفظ...' : 'حفظ'}
-                </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} data-testid="inventory__form__cancel">
+                </Button>
+                <Button variant="ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} testId="inventory__form__cancel">
                   إلغاء
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -167,20 +172,22 @@ export default function InventoryPage() {
                     <td className="mono" style={{ color: 'var(--primary)' }}>{Number(item.cost_per_unit).toFixed(2)}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                        <button
-                          className="btn btn-sm btn-ghost"
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           disabled={adjusting[item.id]}
                           onClick={() => handleAdjust(item.id, -1)}
-                          style={{ width: 28, padding: 0, justifyContent: 'center', fontFamily: 'var(--font-mono)' }}
-                          data-testid={`inventory__row__${item.id}__decrease`}
-                        >−</button>
-                        <button
-                          className="btn btn-sm btn-primary"
+                          style={{ width: 28, padding: 0, fontFamily: 'var(--font-mono)' }}
+                          testId={`inventory__row__${item.id}__decrease`}
+                        >−</Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
                           disabled={adjusting[item.id]}
                           onClick={() => handleAdjust(item.id, 1)}
-                          style={{ width: 28, padding: 0, justifyContent: 'center', fontFamily: 'var(--font-mono)' }}
-                          data-testid={`inventory__row__${item.id}__increase`}
-                        >+</button>
+                          style={{ width: 28, padding: 0, fontFamily: 'var(--font-mono)' }}
+                          testId={`inventory__row__${item.id}__increase`}
+                        >+</Button>
                       </div>
                     </td>
                   </tr>

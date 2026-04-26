@@ -8,6 +8,7 @@ import { useApprovalNotifications } from '../hooks/useApprovalNotifications';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
 import { useToast } from '../components/ToastProvider';
+import Button from '../components/ui/Button';
 import { downloadOrdersCsv } from '../utils/exportOrdersCsv';
 
 const STAT_CARDS = [
@@ -91,18 +92,19 @@ export default function Dashboard() {
           <div className="page-sub">{dateStr}</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-sm" onClick={() => setRefresh(r => r + 1)} data-testid="dashboard__refresh">
-            <Icons.Refresh size={12} /> تحديث
-          </button>
-          <button
-            className="btn btn-sm"
+          <Button size="sm" icon={<Icons.Refresh size={12} />} onClick={() => setRefresh(r => r + 1)} testId="dashboard__refresh">
+            تحديث
+          </Button>
+          <Button
+            size="sm"
+            icon={<Icons.Download size={12} />}
             onClick={handleExport}
             disabled={listCount === 0 || exporting}
             title={listCount === 0 ? 'لا توجد طلبات للتصدير' : undefined}
-            data-testid="dashboard__export"
+            testId="dashboard__export"
           >
-            <Icons.Download size={12} /> تصدير
-          </button>
+            تصدير
+          </Button>
         </div>
       </div>
 
@@ -176,13 +178,14 @@ export default function Dashboard() {
                   {actionOrders.rejected.length}
                 </span>
               </div>
-              <button
-                className="btn btn-sm btn-ghost"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setFilterStatus('rejected')}
                 style={{ color: 'var(--danger)' }}
               >
                 عرض الكل
-              </button>
+              </Button>
             </div>
             {actionOrders.rejected.slice(0, 3).map(o => (
               <div key={o.id} className="mini-row">
@@ -204,9 +207,9 @@ export default function Dashboard() {
                 <span className="sec-title">الفروع</span>
               </div>
               {selectedBranch && (
-                <button className="btn btn-sm btn-ghost" onClick={() => setSelectedBranch(null)}>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedBranch(null)}>
                   عرض الكل
-                </button>
+                </Button>
               )}
             </div>
             <div style={{ padding: '8px 14px' }}>

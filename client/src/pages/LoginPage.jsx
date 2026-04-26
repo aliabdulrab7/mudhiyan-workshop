@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../api/auth';
 import { Icons } from '../components/icons';
 import { useToast } from '../components/ToastProvider';
+import Button from '../components/ui/Button';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -99,15 +100,16 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
-            className="btn btn-primary"
-            disabled={loading}
-            data-testid="login__submit-button"
-            style={{ width: '100%', justifyContent: 'center', height: 38, marginTop: 4 }}
+            variant="primary"
+            loading={loading}
+            testId="login__submit-button"
+            className="w-full justify-center mt-1"
+            style={{ height: 38 }}
           >
             {loading ? 'جاري الدخول...' : 'تسجيل الدخول'}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

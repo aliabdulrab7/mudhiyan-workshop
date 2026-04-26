@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable';
 import StatusPill, { STATUS_META } from '../components/StatusPill';
 import OrderDetail from '../components/OrderDetail';
 import { Icons } from '../components/icons';
+import Button from '../components/ui/Button';
 
 const ALL_STATUSES = Object.keys(STATUS_META).filter(s =>
   !['new', 'inspection', 'approved', 'quality_check', 'returned_to_shop', 'closed', 'cancelled',
@@ -145,11 +146,11 @@ export default function OrdersPage() {
           <div className="bulk-bar">
             <span style={{ fontSize: 13, fontWeight: 500 }}>تم تحديد {selected.size}</span>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => bulkStatus('in_progress')} data-testid="orders-list__bulk__advance-in-progress">→ قيد العمل</button>
-              <button className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => bulkStatus('ready')} data-testid="orders-list__bulk__advance-ready">→ جاهزة</button>
-              <button className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => bulkStatus('delivered')} data-testid="orders-list__bulk__advance-delivered">→ تم التسليم</button>
+              <Button size="sm" onClick={() => bulkStatus('in_progress')} testId="orders-list__bulk__advance-in-progress">→ قيد العمل</Button>
+              <Button size="sm" onClick={() => bulkStatus('ready')} testId="orders-list__bulk__advance-ready">→ جاهزة</Button>
+              <Button size="sm" onClick={() => bulkStatus('delivered')} testId="orders-list__bulk__advance-delivered">→ تم التسليم</Button>
             </div>
-            <button className="btn btn-ghost" style={{ height: 28, fontSize: 12 }} onClick={() => setSelected(new Set())} data-testid="orders-list__bulk__cancel">إلغاء</button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} testId="orders-list__bulk__cancel">إلغاء</Button>
           </div>
         )}
 

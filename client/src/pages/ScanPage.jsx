@@ -9,6 +9,7 @@ import BulkScanSession from '../components/BulkScanSession';
 import { getOrderByBarcode } from '../api/orders';
 import StatusPill from '../components/StatusPill';
 import { Icons } from '../components/icons';
+import Button from '../components/ui/Button';
 
 const cameraSupported =
   typeof navigator !== 'undefined' &&
@@ -113,7 +114,7 @@ export default function ScanPage() {
             color: 'var(--danger)', maxWidth: 400,
           }}>
             <div style={{ marginBottom: 10 }}>{errorMsg}</div>
-            <button className="btn btn-sm" onClick={resetScanner}>رجوع</button>
+            <Button size="sm" onClick={resetScanner}>رجوع</Button>
           </div>
         )}
         {state === 'found' && order && (
@@ -146,9 +147,9 @@ export default function ScanPage() {
           }}
         >
           <span style={{ fontWeight: 700, color: 'var(--text)' }}>الوضع العادي — مسح فردي</span>
-          <button className="btn btn-sm btn-primary" onClick={() => setBulkMode(true)} data-testid="scan__toggle-bulk-mode">
+          <Button variant="primary" size="sm" onClick={() => setBulkMode(true)} testId="scan__toggle-bulk-mode">
             تبديل إلى الوضع الدفعي
-          </button>
+          </Button>
         </div>
       )}
 
@@ -165,17 +166,18 @@ export default function ScanPage() {
         </div>
         <div className="page-actions">
           {cameraSupported && manualMode && (
-            <button
-              className="btn btn-sm"
+            <Button
+              size="sm"
+              icon={<Icons.QR size={13} />}
               onClick={switchToCamera}
-              data-testid="scan__switch-camera"
+              testId="scan__switch-camera"
             >
-              <Icons.QR size={13} /> مسح بالكاميرا
-            </button>
+              مسح بالكاميرا
+            </Button>
           )}
-          <button className="btn btn-sm btn-primary" onClick={resetScanner} data-testid="scan__reset">
-            <Icons.Refresh size={12} /> مسح آخر
-          </button>
+          <Button variant="primary" size="sm" icon={<Icons.Refresh size={12} />} onClick={resetScanner} testId="scan__reset">
+            مسح آخر
+          </Button>
         </div>
       </div>
 
@@ -233,7 +235,7 @@ export default function ScanPage() {
             }}>
               {errorMsg}
               <div style={{ marginTop: 8 }}>
-                <button className="btn btn-sm" onClick={resetScanner}>حاول مجدداً</button>
+                <Button size="sm" onClick={resetScanner}>حاول مجدداً</Button>
               </div>
             </div>
           )}
@@ -244,9 +246,9 @@ export default function ScanPage() {
           <div className="sec-head">
             <span className="sec-title">نتيجة المسح</span>
             {order && (
-              <button className="btn btn-sm btn-primary" onClick={() => setDrawerOpen(true)} data-testid="scan__open-order">
-                <Icons.Arrow size={12} /> فتح الطلب
-              </button>
+              <Button variant="primary" size="sm" icon={<Icons.Arrow size={12} />} onClick={() => setDrawerOpen(true)} testId="scan__open-order">
+                فتح الطلب
+              </Button>
             )}
           </div>
 

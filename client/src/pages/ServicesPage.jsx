@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getServices, createService, updateService } from '../api/services';
 import { Icons } from '../components/icons';
+import Button from '../components/ui/Button';
 
 export default function ServicesPage() {
   const [services, setServices]     = useState([]);
@@ -73,11 +74,15 @@ export default function ServicesPage() {
         </div>
         <div className="page-actions">
           {!showForm && (
-            <button className="btn btn-sm btn-primary"
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Icons.Plus size={12} />}
               onClick={() => { setForm({ name: '', description: '', default_price: '' }); setError(''); setShowForm(true); }}
-              data-testid="services__add-button">
-              <Icons.Plus size={12} /> إضافة خدمة
-            </button>
+              testId="services__add-button"
+            >
+              إضافة خدمة
+            </Button>
           )}
         </div>
       </div>
@@ -116,12 +121,12 @@ export default function ServicesPage() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="services__form__submit">
+                <Button variant="primary" type="submit" loading={submitting} className="flex-1 justify-center" testId="services__form__submit">
                   {submitting ? 'جاري الحفظ...' : 'حفظ'}
-                </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} data-testid="services__form__cancel">
+                </Button>
+                <Button variant="ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} testId="services__form__cancel">
                   إلغاء
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -171,12 +176,12 @@ export default function ServicesPage() {
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="btn btn-primary" type="submit" disabled={editSubmitting} style={{ flex: 1, justifyContent: 'center' }} data-testid={`services__row__${service.id}__save`}>
+                      <Button variant="primary" type="submit" loading={editSubmitting} className="flex-1 justify-center" testId={`services__row__${service.id}__save`}>
                         {editSubmitting ? 'جاري الحفظ...' : 'حفظ'}
-                      </button>
-                      <button className="btn btn-ghost" type="button" onClick={() => setEditingId(null)} data-testid={`services__row__${service.id}__cancel`}>
+                      </Button>
+                      <Button variant="ghost" type="button" onClick={() => setEditingId(null)} testId={`services__row__${service.id}__cancel`}>
                         إلغاء
-                      </button>
+                      </Button>
                     </div>
                   </form>
                 ) : (
@@ -199,9 +204,9 @@ export default function ServicesPage() {
                         </div>
                       )}
                     </div>
-                    <button className="btn btn-sm btn-ghost" type="button" onClick={() => handleStartEdit(service)} data-testid={`services__row__${service.id}__edit`}>
+                    <Button variant="ghost" size="sm" type="button" onClick={() => handleStartEdit(service)} testId={`services__row__${service.id}__edit`}>
                       تعديل
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>

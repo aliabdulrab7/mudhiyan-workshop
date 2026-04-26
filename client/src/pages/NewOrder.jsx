@@ -4,6 +4,7 @@ import { createOrder } from '../api/orders';
 import { getRepairOptions } from '../api/repair-options';
 import LabelCanvas from '../components/LabelCanvas';
 import { Icons } from '../components/icons';
+import Button from '../components/ui/Button';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 const COLOR_OPTIONS = ['أصفر', 'روز جولد', 'أبيض'];
@@ -52,12 +53,12 @@ function SuccessScreen({ order, onNewOrder }) {
           <div className="page-sub">{order.customer_name} · {order.piece_type}</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-sm" onClick={() => navigate('/')}>
+          <Button size="sm" onClick={() => navigate('/')}>
             العودة للطلبات
-          </button>
-          <button className="btn btn-sm btn-primary" onClick={onNewOrder}>
-            <Icons.Plus size={12} /> صيانة جديدة
-          </button>
+          </Button>
+          <Button variant="primary" size="sm" icon={<Icons.Plus size={12} />} onClick={onNewOrder}>
+            صيانة جديدة
+          </Button>
         </div>
       </div>
 
@@ -93,18 +94,26 @@ function SuccessScreen({ order, onNewOrder }) {
 
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <a href={waUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', height: 38 }} data-testid="new-order__success__whatsapp">
-              <Icons.Phone size={13} /> إرسال إيصال الاستلام (WhatsApp) ↗
-            </button>
-          </a>
+          <Button
+            as="a"
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="primary"
+            icon={<Icons.Phone size={13} />}
+            className="w-full justify-center no-underline"
+            style={{ height: 38 }}
+            testId="new-order__success__whatsapp"
+          >
+            إرسال إيصال الاستلام (WhatsApp) ↗
+          </Button>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/')}>
+            <Button className="flex-1 justify-center" onClick={() => navigate('/')}>
               العودة للطلبات
-            </button>
-            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={onNewOrder}>
-              <Icons.Plus size={12} /> صيانة جديدة
-            </button>
+            </Button>
+            <Button variant="primary" icon={<Icons.Plus size={12} />} className="flex-1 justify-center" onClick={onNewOrder}>
+              صيانة جديدة
+            </Button>
           </div>
         </div>
       </div>
@@ -275,13 +284,13 @@ export default function NewOrder() {
           <div className="page-sub">أنشئ طلب صيانة — سيُرسَل رقم تتبّع للعميل تلقائيًا</div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-sm" onClick={() => navigate('/')}>
+          <Button size="sm" onClick={() => navigate('/')}>
             إلغاء <span className="kbd">esc</span>
-          </button>
-          <button className="btn btn-sm btn-primary" disabled={loading} onClick={handleSubmit} data-testid="new-order__submit">
-            <Icons.Check size={12} /> {loading ? 'جاري الحفظ...' : 'حفظ الطلب'}
+          </Button>
+          <Button variant="primary" size="sm" loading={loading} icon={!loading ? <Icons.Check size={12} /> : null} onClick={handleSubmit} testId="new-order__submit">
+            {loading ? 'جاري الحفظ...' : 'حفظ الطلب'}
             <span className="kbd" style={{ opacity: 0.7 }}>⌘S</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -420,16 +429,16 @@ export default function NewOrder() {
                             {opts.map(t => <option key={t.id} value={t.value}>{t.value}</option>)}
                           </select>
                           {canRemove && (
-                            <button
+                            <Button
                               type="button"
-                              className="btn btn-ghost btn-icon btn-sm"
+                              variant="ghost"
+                              size="sm"
+                              icon={<Icons.X size={11} />}
                               onClick={() => removeRepair(i, j)}
                               title="إزالة"
-                              style={{ height: 30, width: 28, flexShrink: 0 }}
-                              data-testid={`new-order__item__${i}__repair__${j}__remove`}
-                            >
-                              <Icons.X size={11} />
-                            </button>
+                              style={{ height: 30, width: 28, flexShrink: 0, padding: 0 }}
+                              testId={`new-order__item__${i}__repair__${j}__remove`}
+                            />
                           )}
                         </div>
                         {meta?.needs === 'size' && (
@@ -494,15 +503,15 @@ export default function NewOrder() {
                   onChange={e => updateItem(i, 'notes', e.target.value)}
                   data-testid={`new-order__item__${i}__notes-input`}
                 />
-                <button
-                  className="btn btn-ghost btn-icon btn-sm"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icons.X size={13} />}
                   onClick={() => removeItem(i)}
                   disabled={form.items.length === 1}
-                  style={{ opacity: form.items.length === 1 ? 0.3 : 1 }}
-                  data-testid={`new-order__item__${i}__remove`}
-                >
-                  <Icons.X size={13} />
-                </button>
+                  style={{ opacity: form.items.length === 1 ? 0.3 : 1, padding: 0, width: 28 }}
+                  testId={`new-order__item__${i}__remove`}
+                />
               </div>
             ))}
             <button className="items-add" onClick={addItem} data-testid="new-order__add-item">

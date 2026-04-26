@@ -3,6 +3,7 @@ import { getStats, getBranchStats } from '../api/orders';
 import { getUsername } from '../api/auth';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { Icons } from '../components/icons';
+import Button from '../components/ui/Button';
 import { openReportPrintWindow } from '../utils/reportPrint';
 
 const WORKSHOP_NAME = 'المضيان';
@@ -53,8 +54,9 @@ export default function ReportsPage() {
           <div className="page-sub">ملخص حالة الطلبات وتوزيع الفروع</div>
         </div>
         <div className="page-actions">
-          <button
-            className="btn btn-sm"
+          <Button
+            size="sm"
+            icon={<Icons.Download size={12} />}
             onClick={() => openReportPrintWindow({
               stats,
               branchStats,
@@ -62,10 +64,10 @@ export default function ReportsPage() {
               username: getUsername(),
               workshopName: WORKSHOP_NAME,
             })}
-            data-testid="reports__export"
+            testId="reports__export"
           >
-            <Icons.Download size={12} /> تصدير
-          </button>
+            تصدير
+          </Button>
         </div>
       </div>
 

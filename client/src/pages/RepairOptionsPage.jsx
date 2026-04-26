@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getRepairOptions, createRepairOption, updateRepairOption, deleteRepairOption } from '../api/repair-options';
 import { Icons } from '../components/icons';
+import Button from '../components/ui/Button';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 
@@ -152,9 +153,9 @@ export default function RepairOptionsPage() {
                 {NEEDS_OPTIONS.map(o => <option key={o.value || 'none'} value={o.value}>{o.label}</option>)}
               </select>
             </div>
-            <button className="btn btn-primary" type="submit" style={{ height: 32 }} data-testid="repair-options__form__submit">
-              <Icons.Plus size={12} /> إضافة
-            </button>
+            <Button variant="primary" type="submit" icon={<Icons.Plus size={12} />} style={{ height: 32 }} testId="repair-options__form__submit">
+              إضافة
+            </Button>
           </form>
         </div>
 
@@ -194,12 +195,12 @@ export default function RepairOptionsPage() {
                     </select>
                     <span />
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-sm btn-primary" onClick={e => saveEdit(e, row.id)} data-testid={`repair-options__row__${row.id}__save`}>
-                        <Icons.Check size={11} /> حفظ
-                      </button>
-                      <button className="btn btn-sm btn-ghost" type="button" onClick={() => setEditingId(null)} data-testid={`repair-options__row__${row.id}__cancel`}>
+                      <Button variant="primary" size="sm" icon={<Icons.Check size={11} />} onClick={e => saveEdit(e, row.id)} testId={`repair-options__row__${row.id}__save`}>
+                        حفظ
+                      </Button>
+                      <Button variant="ghost" size="sm" type="button" onClick={() => setEditingId(null)} testId={`repair-options__row__${row.id}__cancel`}>
                         إلغاء
-                      </button>
+                      </Button>
                     </div>
                   </>
                 ) : (
@@ -229,18 +230,19 @@ export default function RepairOptionsPage() {
                       </button>
                     </div>
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-sm btn-ghost" type="button" onClick={() => startEdit(row)} data-testid={`repair-options__row__${row.id}__edit`}>
+                      <Button variant="ghost" size="sm" type="button" onClick={() => startEdit(row)} testId={`repair-options__row__${row.id}__edit`}>
                         تعديل
-                      </button>
-                      <button
-                        className="btn btn-sm btn-ghost btn-icon"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         type="button"
+                        icon={<Icons.X size={12} />}
                         onClick={() => remove(row)}
                         title="حذف"
-                        data-testid={`repair-options__row__${row.id}__delete`}
-                      >
-                        <Icons.X size={12} />
-                      </button>
+                        testId={`repair-options__row__${row.id}__delete`}
+                        className="!px-1.5"
+                      />
                     </div>
                   </>
                 )}

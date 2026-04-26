@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getBranches, createBranch, deleteBranch } from '../api/admin';
 import { Icons } from '../components/icons';
+import Button from '../components/ui/Button';
 
 export default function BranchesPage() {
   const [branches, setBranches]     = useState([]);
@@ -57,9 +58,15 @@ export default function BranchesPage() {
         </div>
         <div className="page-actions">
           {!showForm && (
-            <button className="btn btn-sm btn-primary" onClick={handleShowForm} data-testid="branches__add-button">
-              <Icons.Plus size={12} /> فرع جديد
-            </button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Icons.Plus size={12} />}
+              onClick={handleShowForm}
+              testId="branches__add-button"
+            >
+              فرع جديد
+            </Button>
           )}
         </div>
       </div>
@@ -101,12 +108,23 @@ export default function BranchesPage() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" type="submit" disabled={submitting} style={{ flex: 1, justifyContent: 'center' }} data-testid="branches__form__submit">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  loading={submitting}
+                  className="flex-1 justify-center"
+                  testId="branches__form__submit"
+                >
                   {submitting ? 'جاري الإنشاء...' : 'إنشاء الفرع'}
-                </button>
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowForm(false); setError(''); }} style={{ flex: '0 0 auto' }} data-testid="branches__form__cancel">
+                </Button>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => { setShowForm(false); setError(''); }}
+                  testId="branches__form__cancel"
+                >
                   إلغاء
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -145,14 +163,14 @@ export default function BranchesPage() {
                     </div>
                   )}
                 </div>
-                <button
-                  className="btn btn-sm btn-ghost"
+                <Button
+                  variant="danger"
+                  size="sm"
                   onClick={() => handleDelete(branch.id, branch.name)}
-                  style={{ color: 'var(--danger)', borderColor: 'oklch(0.58 0.21 25 / 0.3)' }}
-                  data-testid={`branches__row__${branch.id}__delete`}
+                  testId={`branches__row__${branch.id}__delete`}
                 >
                   حذف
-                </button>
+                </Button>
               </div>
             ))}
           </div>
