@@ -6,6 +6,7 @@ import LabelCanvas from '../components/LabelCanvas';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 const COLOR_OPTIONS = ['أصفر', 'روز جولد', 'أبيض'];
@@ -373,8 +374,7 @@ export default function NewOrder() {
             </div>
             {form.items.map((row, i) => (
               <div key={i} className="items-row">
-                <select
-                  className="select"
+                <Select
                   aria-label="نوع الصنف"
                   value={row.item_type}
                   onChange={e => {
@@ -385,11 +385,9 @@ export default function NewOrder() {
                       }),
                     }));
                   }}
-                  style={{ height: 30 }}
-                  data-testid={`new-order__item__${i}__type-select`}
-                >
-                  {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                  options={ITEM_TYPES.map(t => ({ value: t, label: t }))}
+                  testId={`new-order__item__${i}__type-select`}
+                />
                 <Input
                   mono
                   aria-label="الكمية"
@@ -414,22 +412,19 @@ export default function NewOrder() {
                         borderRadius: 'var(--radius-sm)',
                       }}>
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <select
-                            className="select"
+                          <Select
                             aria-label="نوع الإصلاح"
                             value={rep.type}
                             onChange={e => {
                               updateRepair(i, j, 'type', e.target.value);
                               updateRepair(i, j, 'detail', '');
                             }}
-                            style={{ height: 30, flex: 1, borderColor: errors[errKey] ? 'var(--danger)' : undefined }}
-                            data-testid={`new-order__item__${i}__repair__${j}__type-select`}
-                          >
-                            <option value="" disabled>
-                              {opts.length === 0 ? 'لا توجد خيارات — اضبطها من "خيارات الإصلاح"' : 'اختر نوع الإصلاح…'}
-                            </option>
-                            {opts.map(t => <option key={t.id} value={t.value}>{t.value}</option>)}
-                          </select>
+                            invalid={!!errors[errKey]}
+                            placeholder={opts.length === 0 ? 'لا توجد خيارات — اضبطها من "خيارات الإصلاح"' : 'اختر نوع الإصلاح…'}
+                            options={opts.map(t => ({ value: t.value, label: t.value }))}
+                            style={{ flex: 1 }}
+                            testId={`new-order__item__${i}__repair__${j}__type-select`}
+                          />
                           {canRemove && (
                             <Button
                               type="button"

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getPrinters, getPrinterCapabilities, printLabel, getPreview } from '../api/print';
 import { Icons } from './icons';
 import Button from './ui/Button';
+import Select from './ui/Select';
 
 /**
  * PrintPanel
@@ -120,17 +121,13 @@ export default function PrintPanel({ labelData, onClose }) {
             لا توجد طابعات مسجّلة في النظام
           </div>
         ) : (
-          <select
-            className="input"
+          <Select
+            dir="ltr"
             value={selected}
             onChange={e => setSelected(e.target.value)}
-            style={{ direction: 'ltr', textAlign: 'left' }}
-            data-testid="print-panel__printer-select"
-          >
-            {printers.map(p => (
-              <option key={p.name} value={p.name}>{p.name}</option>
-            ))}
-          </select>
+            options={printers.map(p => ({ value: p.name, label: p.name }))}
+            testId="print-panel__printer-select"
+          />
         )}
       </div>
 

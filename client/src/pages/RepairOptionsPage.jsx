@@ -3,6 +3,7 @@ import { getRepairOptions, createRepairOption, updateRepairOption, deleteRepairO
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 
@@ -143,15 +144,13 @@ export default function RepairOptionsPage() {
             </div>
             <div style={{ flex: '1 1 160px' }}>
               <label className="field-label">نوع التفاصيل</label>
-              <select
-                className="select"
+              <Select
                 aria-label="نوع التفاصيل"
                 value={newForm.needs}
                 onChange={e => setNewForm(f => ({ ...f, needs: e.target.value }))}
-                data-testid="repair-options__form__needs-select"
-              >
-                {NEEDS_OPTIONS.map(o => <option key={o.value || 'none'} value={o.value}>{o.label}</option>)}
-              </select>
+                options={NEEDS_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+                testId="repair-options__form__needs-select"
+              />
             </div>
             <Button variant="primary" type="submit" icon={<Icons.Plus size={12} />} style={{ height: 32 }} testId="repair-options__form__submit">
               إضافة
@@ -184,14 +183,12 @@ export default function RepairOptionsPage() {
                       onChange={e => setEditForm(f => ({ ...f, value: e.target.value }))}
                       autoFocus
                     />
-                    <select
-                      className="select"
-                      style={{ height: 28 }}
+                    <Select
+                      size="sm"
                       value={editForm.needs}
                       onChange={e => setEditForm(f => ({ ...f, needs: e.target.value }))}
-                    >
-                      {NEEDS_OPTIONS.map(o => <option key={o.value || 'none'} value={o.value}>{o.label}</option>)}
-                    </select>
+                      options={NEEDS_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+                    />
                     <span />
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                       <Button variant="primary" size="sm" icon={<Icons.Check size={11} />} onClick={e => saveEdit(e, row.id)} testId={`repair-options__row__${row.id}__save`}>

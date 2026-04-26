@@ -3,6 +3,7 @@ import JsBarcode from "jsbarcode";
 import useLabelPrint from "./useLabelPrint";
 import { useSettings } from "../contexts/SettingsContext";
 import Button from "./ui/Button";
+import Select from "./ui/Select";
 
 // Base design-canvas (NIIMBOT B21S @ 203 DPI): 400×240 px = 50×30 mm.
 // Drawing uses base coords; fitCanvas scales/centers onto the real canvas.
@@ -216,15 +217,13 @@ export default function ReadyLabelCanvas({ order, autoPrint = false }) {
       {/* Size selector */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", maxWidth: 320 }}>
         <label style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>المقاس:</label>
-        <select
-          className="select"
+        <Select
           value={sizeId}
           onChange={e => setSizeId(e.target.value)}
-          style={{ flex: 1, height: 30, fontSize: "0.82rem" }}
-          data-testid="ready-label-canvas__size-select"
-        >
-          {LABEL_SIZES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-        </select>
+          options={LABEL_SIZES.map(s => ({ value: s.id, label: s.label }))}
+          className="flex-1"
+          testId="ready-label-canvas__size-select"
+        />
       </div>
 
       {/* Print buttons */}
