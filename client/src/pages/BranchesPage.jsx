@@ -4,6 +4,7 @@ import { Icons } from '../components/icons';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
 
 export default function BranchesPage() {
@@ -80,28 +81,25 @@ export default function BranchesPage() {
           <Card style={{ padding: '20px 24px', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إنشاء فرع جديد</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label className="field-label">اسم الفرع</label>
+              <FormField label="اسم الفرع">
                 <Input value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: فرع الرياض" required
                   testId="branches__form__name-input" />
-              </div>
+              </FormField>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label className="field-label">اسم المستخدم</label>
+                <FormField label="اسم المستخدم">
                   <Input mono value={form.username}
                     onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
                     placeholder="br1" required
                     testId="branches__form__username-input" />
-                </div>
-                <div>
-                  <label className="field-label">كلمة المرور</label>
+                </FormField>
+                <FormField label="كلمة المرور">
                   <Input mono type="password" value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                     placeholder="6 أحرف+" required minLength={6}
                     testId="branches__form__password-input" />
-                </div>
+                </FormField>
               </div>
               {error && <Alert variant="danger">{error}</Alert>}
               <div style={{ display: 'flex', gap: 8 }}>

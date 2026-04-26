@@ -6,6 +6,7 @@ import { useToast } from '../components/ToastProvider';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
 
 export default function LoginPage() {
@@ -64,8 +65,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div>
-            <label className="field-label">اسم المستخدم</label>
+          <FormField label="اسم المستخدم">
             <Input
               type="text"
               mono
@@ -76,9 +76,8 @@ export default function LoginPage() {
               autoFocus
               testId="login__username-input"
             />
-          </div>
-          <div>
-            <label className="field-label">كلمة المرور</label>
+          </FormField>
+          <FormField label="كلمة المرور">
             <Input
               type="password"
               mono
@@ -88,7 +87,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               testId="login__password-input"
             />
-          </div>
+          </FormField>
 
           {error && <Alert variant="danger">{error}</Alert>}
 

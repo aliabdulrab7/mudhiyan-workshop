@@ -4,6 +4,7 @@ import { Icons } from '../components/icons';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
 
 export default function TechniciansPage() {
@@ -67,13 +68,12 @@ export default function TechniciansPage() {
           <Card style={{ padding: '20px 24px', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة فني جديد</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label className="field-label">التخصص</label>
+              <FormField label="التخصص">
                 <Input value={form.specialization}
                   onChange={e => setForm(f => ({ ...f, specialization: e.target.value }))}
                   placeholder="مثال: تصليح ذهب، تركيب أحجار" required autoFocus
                   testId="technicians__form__specialization-input" />
-              </div>
+              </FormField>
               {error && <Alert variant="danger">{error}</Alert>}
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button

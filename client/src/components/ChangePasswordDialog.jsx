@@ -4,6 +4,7 @@ import { changeMyPassword } from '../api/settings';
 import { clearAuth } from '../api/auth';
 import Dialog from './ui/Dialog';
 import Button from './ui/Button';
+import FormField from './ui/FormField';
 import Input from './ui/Input';
 
 // Three-input password change form. Client-side validation (length + match)
@@ -103,8 +104,7 @@ export default function ChangePasswordDialog({ open, onClose }) {
       <form onSubmit={handleSubmit}>
         <Dialog.Body>
           <div className="flex flex-col gap-3">
-            <div>
-              <label className="field-label" htmlFor="cp-current">كلمة المرور الحالية</label>
+            <FormField label="كلمة المرور الحالية" htmlFor="cp-current">
               <Input
                 id="cp-current"
                 ref={currentRef}
@@ -121,15 +121,14 @@ export default function ChangePasswordDialog({ open, onClose }) {
                 <div
                   id="cp-current-error"
                   data-testid="change-password-dialog__current-error"
-                  className="text-[12px] mt-1"
+                  className="text-[12px]"
                   style={{ color: 'var(--danger)' }}
                 >
                   {currentError}
                 </div>
               )}
-            </div>
-            <div>
-              <label className="field-label" htmlFor="cp-new">كلمة المرور الجديدة</label>
+            </FormField>
+            <FormField label="كلمة المرور الجديدة" htmlFor="cp-new">
               <Input
                 id="cp-new"
                 ref={nextRef}
@@ -146,15 +145,14 @@ export default function ChangePasswordDialog({ open, onClose }) {
                 <div
                   id="cp-new-error"
                   data-testid="change-password-dialog__new-error"
-                  className="text-[12px] mt-1"
+                  className="text-[12px]"
                   style={{ color: 'var(--danger)' }}
                 >
                   {nextError}
                 </div>
               )}
-            </div>
-            <div>
-              <label className="field-label" htmlFor="cp-confirm">تأكيد كلمة المرور الجديدة</label>
+            </FormField>
+            <FormField label="تأكيد كلمة المرور الجديدة" htmlFor="cp-confirm">
               <Input
                 id="cp-confirm"
                 ref={confirmRef}
@@ -171,13 +169,13 @@ export default function ChangePasswordDialog({ open, onClose }) {
                 <div
                   id="cp-confirm-error"
                   data-testid="change-password-dialog__confirm-error"
-                  className="text-[12px] mt-1"
+                  className="text-[12px]"
                   style={{ color: 'var(--danger)' }}
                 >
                   {confirmError}
                 </div>
               )}
-            </div>
+            </FormField>
           </div>
         </Dialog.Body>
         <Dialog.Footer>

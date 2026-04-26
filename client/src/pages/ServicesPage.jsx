@@ -4,6 +4,7 @@ import { Icons } from '../components/icons';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
 
 export default function ServicesPage() {
@@ -96,28 +97,25 @@ export default function ServicesPage() {
           <Card style={{ padding: '20px 24px', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة خدمة جديدة</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label className="field-label">اسم الخدمة</label>
+              <FormField label="اسم الخدمة">
                 <Input value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: تنظيف الذهب" required autoFocus
                   testId="services__form__name-input" />
-              </div>
-              <div>
-                <label className="field-label">الوصف</label>
+              </FormField>
+              <FormField label="الوصف">
                 <Input value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="وصف مختصر (اختياري)"
                   testId="services__form__description-input" />
-              </div>
-              <div>
-                <label className="field-label">السعر الافتراضي (ريال)</label>
+              </FormField>
+              <FormField label="السعر الافتراضي (ريال)">
                 <Input mono type="number" min="0" step="0.01"
                   value={form.default_price}
                   onChange={e => setForm(f => ({ ...f, default_price: e.target.value }))}
                   placeholder="0.00"
                   testId="services__form__price-input" />
-              </div>
+              </FormField>
               {error && <Alert variant="danger">{error}</Alert>}
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button variant="primary" type="submit" loading={submitting} className="flex-1 justify-center" testId="services__form__submit">
@@ -151,23 +149,20 @@ export default function ServicesPage() {
               <Card key={service.id} style={{ padding: '14px 18px' }}>
                 {editingId === service.id ? (
                   <form onSubmit={e => handleEditSubmit(e, service.id)} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div>
-                      <label className="field-label">اسم الخدمة</label>
+                    <FormField label="اسم الخدمة">
                       <Input value={editForm.name}
                         onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} required />
-                    </div>
-                    <div>
-                      <label className="field-label">الوصف</label>
+                    </FormField>
+                    <FormField label="الوصف">
                       <Input value={editForm.description}
                         onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                         placeholder="اختياري" />
-                    </div>
-                    <div>
-                      <label className="field-label">السعر الافتراضي (ريال)</label>
+                    </FormField>
+                    <FormField label="السعر الافتراضي (ريال)">
                       <Input mono type="number" min="0" step="0.01"
                         value={editForm.default_price}
                         onChange={e => setEditForm(f => ({ ...f, default_price: e.target.value }))} />
-                    </div>
+                    </FormField>
                     {editError && <Alert variant="danger">{editError}</Alert>}
                     <div style={{ display: 'flex', gap: 8 }}>
                       <Button variant="primary" type="submit" loading={editSubmitting} className="flex-1 justify-center" testId={`services__row__${service.id}__save`}>

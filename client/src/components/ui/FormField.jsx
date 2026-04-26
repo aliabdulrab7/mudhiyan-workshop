@@ -28,7 +28,7 @@ export default function FormField({
     ? cloneElement(onlyChild, {
         id: onlyChild.props.id ?? inputId,
         'aria-invalid': onlyChild.props['aria-invalid'] ?? (error ? 'true' : undefined),
-        'aria-describedby': onlyChild.props['aria-describedby'] ?? [errorId, hintId].filter(Boolean).join(' ') || undefined,
+        'aria-describedby': onlyChild.props['aria-describedby'] ?? ([errorId, hintId].filter(Boolean).join(' ') || undefined),
         invalid: onlyChild.props.invalid ?? Boolean(error),
       })
     : children;

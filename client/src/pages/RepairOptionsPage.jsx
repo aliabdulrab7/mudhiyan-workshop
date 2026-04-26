@@ -5,6 +5,7 @@ import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Chip from '../components/ui/Chip';
+import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 
@@ -128,17 +129,15 @@ export default function RepairOptionsPage() {
             إضافة خيار إلى قائمة <span style={{ color: 'var(--text)' }}>{activeType}</span>
           </div>
           <form onSubmit={handleAdd} style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 200px' }}>
-              <label className="field-label">اسم الإصلاح</label>
+            <FormField label="اسم الإصلاح" className="!flex-1 !basis-[200px]">
               <Input
                 placeholder="مثال: تغيير مقاس"
                 value={newForm.value}
                 onChange={e => setNewForm(f => ({ ...f, value: e.target.value }))}
                 testId="repair-options__form__name-input"
               />
-            </div>
-            <div style={{ flex: '1 1 160px' }}>
-              <label className="field-label">نوع التفاصيل</label>
+            </FormField>
+            <FormField label="نوع التفاصيل" className="!flex-1 !basis-[160px]">
               <Select
                 aria-label="نوع التفاصيل"
                 value={newForm.needs}
@@ -146,7 +145,7 @@ export default function RepairOptionsPage() {
                 options={NEEDS_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
                 testId="repair-options__form__needs-select"
               />
-            </div>
+            </FormField>
             <Button variant="primary" type="submit" icon={<Icons.Plus size={12} />} style={{ height: 32 }} testId="repair-options__form__submit">
               إضافة
             </Button>

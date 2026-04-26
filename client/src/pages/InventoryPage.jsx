@@ -4,6 +4,7 @@ import { Icons } from '../components/icons';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
 
 export default function InventoryPage() {
@@ -77,40 +78,35 @@ export default function InventoryPage() {
           <Card style={{ padding: '20px 24px', marginBottom: 16, maxWidth: 680 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة مادة جديدة</div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label className="field-label">اسم المادة <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <FormField label="اسم المادة" required>
                 <Input value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: ذهب عيار 18" required autoFocus
                   testId="inventory__form__name-input" />
-              </div>
-              <div>
-                <label className="field-label">الفئة <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>(اختياري)</span></label>
+              </FormField>
+              <FormField label={<>الفئة <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>(اختياري)</span></>}>
                 <Input value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                   placeholder="مثال: معادن، أحجار"
                   testId="inventory__form__category-input" />
-              </div>
+              </FormField>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                <div>
-                  <label className="field-label">الكمية</label>
+                <FormField label="الكمية">
                   <Input mono type="number" min="0" value={form.stock_qty}
                     onChange={e => setForm(f => ({ ...f, stock_qty: e.target.value }))}
                     testId="inventory__form__qty-input" />
-                </div>
-                <div>
-                  <label className="field-label">الوحدة</label>
+                </FormField>
+                <FormField label="الوحدة">
                   <Input value={form.unit}
                     onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
                     placeholder="قطعة"
                     testId="inventory__form__unit-input" />
-                </div>
-                <div>
-                  <label className="field-label">سعر الوحدة (ريال)</label>
+                </FormField>
+                <FormField label="سعر الوحدة (ريال)">
                   <Input mono type="number" min="0" step="0.01" value={form.cost_per_unit}
                     onChange={e => setForm(f => ({ ...f, cost_per_unit: e.target.value }))}
                     testId="inventory__form__cost-input" />
-                </div>
+                </FormField>
               </div>
               {error && <Alert variant="danger">{error}</Alert>}
               <div style={{ display: 'flex', gap: 8 }}>
