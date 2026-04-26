@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getTechnicians, createTechnician } from '../api/technicians';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 export default function TechniciansPage() {
   const [technicians, setTechnicians] = useState([]);
@@ -66,10 +67,10 @@ export default function TechniciansPage() {
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label className="field-label">التخصص</label>
-                <input className="input" value={form.specialization}
+                <Input value={form.specialization}
                   onChange={e => setForm(f => ({ ...f, specialization: e.target.value }))}
                   placeholder="مثال: تصليح ذهب، تركيب أحجار" required autoFocus
-                  data-testid="technicians__form__specialization-input" />
+                  testId="technicians__form__specialization-input" />
               </div>
               {error && (
                 <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>

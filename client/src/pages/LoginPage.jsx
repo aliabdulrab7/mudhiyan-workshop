@@ -4,6 +4,7 @@ import { login } from '../api/auth';
 import { Icons } from '../components/icons';
 import { useToast } from '../components/ToastProvider';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -63,29 +64,27 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
             <label className="field-label">اسم المستخدم</label>
-            <input
-              className="input mono"
+            <Input
               type="text"
+              mono
               value={username}
               onChange={e => setUsername(e.target.value)}
               required
               autoComplete="username"
               autoFocus
-              data-testid="login__username-input"
-              style={{ direction: 'ltr', textAlign: 'left' }}
+              testId="login__username-input"
             />
           </div>
           <div>
             <label className="field-label">كلمة المرور</label>
-            <input
-              className="input mono"
+            <Input
               type="password"
+              mono
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              data-testid="login__password-input"
-              style={{ direction: 'ltr', textAlign: 'left' }}
+              testId="login__password-input"
             />
           </div>
 

@@ -5,6 +5,7 @@ import { getRepairOptions } from '../api/repair-options';
 import LabelCanvas from '../components/LabelCanvas';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 const COLOR_OPTIONS = ['أصفر', 'روز جولد', 'أبيض'];
@@ -300,14 +301,13 @@ export default function NewOrder() {
           <div className="form-row" style={{ marginBottom: 16 }}>
             <div>
               <label className="field-label">اسم العميل</label>
-              <input
-                className="input"
+              <Input
                 placeholder="محمد"
                 value={form.customerName}
                 onChange={e => updateForm('customerName', e.target.value)}
-                style={errors.customerName ? { borderColor: 'var(--danger)' } : {}}
+                invalid={!!errors.customerName}
                 autoFocus
-                data-testid="new-order__customer-name-input"
+                testId="new-order__customer-name-input"
               />
               {errors.customerName && (
                 <div style={{ color: 'var(--danger)', fontSize: 11.5, marginTop: 4 }}>{errors.customerName}</div>
@@ -316,18 +316,20 @@ export default function NewOrder() {
             <div>
               <label className="field-label">رقم الجوال</label>
               <div style={{ display: 'flex', gap: 6 }}>
-                <span className="input mono" style={{
-                  width: 66, display: 'grid', placeItems: 'center',
+                <span className="font-mono" style={{
+                  width: 66, height: 30, display: 'grid', placeItems: 'center',
                   background: 'var(--bg-soft)', color: 'var(--text-muted)', flexShrink: 0,
+                  border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                  fontSize: 13,
                 }}>+966</span>
-                <input
-                  className="input mono"
+                <Input
+                  mono
                   placeholder="5XXXXXXXX"
                   inputMode="numeric"
                   value={form.phoneDigits}
                   onChange={e => updateForm('phoneDigits', e.target.value.replace(/\D/g, '').slice(0, 9))}
-                  style={errors.phone ? { borderColor: 'var(--danger)' } : {}}
-                  data-testid="new-order__phone-input"
+                  invalid={!!errors.phone}
+                  testId="new-order__phone-input"
                 />
               </div>
               {errors.phone && (
@@ -388,14 +390,14 @@ export default function NewOrder() {
                 >
                   {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
-                <input
-                  className="input mono"
+                <Input
+                  mono
                   aria-label="الكمية"
-                  style={{ textAlign: 'center', height: 30 }}
+                  className="!text-center"
                   type="number" min="1" max="99"
                   value={row.quantity}
                   onChange={e => updateItem(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
-                  data-testid={`new-order__item__${i}__count-input`}
+                  testId={`new-order__item__${i}__count-input`}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {row.repairs.map((rep, j) => {
@@ -442,18 +444,18 @@ export default function NewOrder() {
                           )}
                         </div>
                         {meta?.needs === 'size' && (
-                          <input className="input mono" style={{ height: 28 }}
+                          <Input mono size="sm"
                             placeholder="المقاس الجديد" inputMode="decimal"
                             value={rep.detail}
                             onChange={e => updateRepair(i, j, 'detail', e.target.value)}
-                            data-testid={`new-order__item__${i}__repair__${j}__need__size`} />
+                            testId={`new-order__item__${i}__repair__${j}__need__size`} />
                         )}
                         {meta?.needs === 'stone' && (
-                          <input className="input" style={{ height: 28 }}
+                          <Input size="sm"
                             placeholder="نوع الحجر / الموضع"
                             value={rep.detail}
                             onChange={e => updateRepair(i, j, 'detail', e.target.value)}
-                            data-testid={`new-order__item__${i}__repair__${j}__need__stone`} />
+                            testId={`new-order__item__${i}__repair__${j}__need__stone`} />
                         )}
                         {meta?.needs === 'color' && (
                           <div style={{ display: 'flex', gap: 4 }}>
@@ -472,11 +474,11 @@ export default function NewOrder() {
                           </div>
                         )}
                         {meta?.needs === 'text' && (
-                          <input className="input" style={{ height: 28 }}
+                          <Input size="sm"
                             placeholder="اكتب التفاصيل"
                             value={rep.detail}
                             onChange={e => updateRepair(i, j, 'detail', e.target.value)}
-                            data-testid={`new-order__item__${i}__repair__${j}__need__text`} />
+                            testId={`new-order__item__${i}__repair__${j}__need__text`} />
                         )}
                       </div>
                     );
@@ -495,13 +497,11 @@ export default function NewOrder() {
                     <Icons.Plus size={10} /> إضافة إصلاح
                   </button>
                 </div>
-                <input
-                  className="input"
-                  style={{ height: 30 }}
+                <Input
                   placeholder="خدش طفيف، سلسلة تالفة…"
                   value={row.notes}
                   onChange={e => updateItem(i, 'notes', e.target.value)}
-                  data-testid={`new-order__item__${i}__notes-input`}
+                  testId={`new-order__item__${i}__notes-input`}
                 />
                 <Button
                   variant="ghost"

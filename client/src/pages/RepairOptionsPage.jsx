@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getRepairOptions, createRepairOption, updateRepairOption, deleteRepairOption } from '../api/repair-options';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 const ITEM_TYPES = ['خاتم', 'حلق', 'سوار', 'عقد', 'دبلة', 'ساعة', 'أخرى'];
 
@@ -133,12 +134,11 @@ export default function RepairOptionsPage() {
           <form onSubmit={handleAdd} style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 200px' }}>
               <label className="field-label">اسم الإصلاح</label>
-              <input
-                className="input"
+              <Input
                 placeholder="مثال: تغيير مقاس"
                 value={newForm.value}
                 onChange={e => setNewForm(f => ({ ...f, value: e.target.value }))}
-                data-testid="repair-options__form__name-input"
+                testId="repair-options__form__name-input"
               />
             </div>
             <div style={{ flex: '1 1 160px' }}>
@@ -178,9 +178,8 @@ export default function RepairOptionsPage() {
               <div key={row.id} className="items-row" style={{ gridTemplateColumns: '1.5fr 1.2fr 80px 120px', alignItems: 'center' }}>
                 {editingId === row.id ? (
                   <>
-                    <input
-                      className="input"
-                      style={{ height: 28 }}
+                    <Input
+                      size="sm"
                       value={editForm.value}
                       onChange={e => setEditForm(f => ({ ...f, value: e.target.value }))}
                       autoFocus

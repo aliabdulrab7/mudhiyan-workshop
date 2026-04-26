@@ -4,6 +4,7 @@ import { changeMyPassword } from '../api/settings';
 import { clearAuth } from '../api/auth';
 import Dialog from './ui/Dialog';
 import Button from './ui/Button';
+import Input from './ui/Input';
 
 // Three-input password change form. Client-side validation (length + match)
 // runs before the request; on validation failure focus jumps to the first
@@ -104,18 +105,17 @@ export default function ChangePasswordDialog({ open, onClose }) {
           <div className="flex flex-col gap-3">
             <div>
               <label className="field-label" htmlFor="cp-current">كلمة المرور الحالية</label>
-              <input
+              <Input
                 id="cp-current"
                 ref={currentRef}
                 type="password"
-                className="input mono"
+                mono
                 value={current}
                 onChange={(e) => { setCurrent(e.target.value); if (currentError) setCurrentError(''); }}
                 autoComplete="current-password"
-                data-testid="change-password-dialog__current"
-                aria-invalid={!!currentError}
+                testId="change-password-dialog__current"
+                invalid={!!currentError}
                 aria-describedby={currentError ? 'cp-current-error' : undefined}
-                style={{ direction: 'ltr', textAlign: 'left' }}
               />
               {currentError && (
                 <div
@@ -130,18 +130,17 @@ export default function ChangePasswordDialog({ open, onClose }) {
             </div>
             <div>
               <label className="field-label" htmlFor="cp-new">كلمة المرور الجديدة</label>
-              <input
+              <Input
                 id="cp-new"
                 ref={nextRef}
                 type="password"
-                className="input mono"
+                mono
                 value={next}
                 onChange={(e) => { setNext(e.target.value); if (nextError) setNextError(''); }}
                 autoComplete="new-password"
-                data-testid="change-password-dialog__new"
-                aria-invalid={!!nextError}
+                testId="change-password-dialog__new"
+                invalid={!!nextError}
                 aria-describedby={nextError ? 'cp-new-error' : undefined}
-                style={{ direction: 'ltr', textAlign: 'left' }}
               />
               {nextError && (
                 <div
@@ -156,18 +155,17 @@ export default function ChangePasswordDialog({ open, onClose }) {
             </div>
             <div>
               <label className="field-label" htmlFor="cp-confirm">تأكيد كلمة المرور الجديدة</label>
-              <input
+              <Input
                 id="cp-confirm"
                 ref={confirmRef}
                 type="password"
-                className="input mono"
+                mono
                 value={confirm}
                 onChange={(e) => { setConfirm(e.target.value); if (confirmError) setConfirmError(''); }}
                 autoComplete="new-password"
-                data-testid="change-password-dialog__confirm"
-                aria-invalid={!!confirmError}
+                testId="change-password-dialog__confirm"
+                invalid={!!confirmError}
                 aria-describedby={confirmError ? 'cp-confirm-error' : undefined}
-                style={{ direction: 'ltr', textAlign: 'left' }}
               />
               {confirmError && (
                 <div

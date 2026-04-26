@@ -6,6 +6,7 @@ import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 import { Icons } from './icons';
 import Button from './ui/Button';
+import Input from './ui/Input';
 
 export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUpdated }) {
   const [order, setOrder]         = useState(initialOrder);
@@ -118,16 +119,14 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
           </div>
           <form onSubmit={handleCostSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
-              <input
-                className="input-base"
+              <Input
                 type="number"
                 min="0"
                 placeholder="0 (مجاني)"
                 value={cost}
                 onChange={e => setCost(e.target.value)}
                 required
-                style={{ direction: 'ltr', textAlign: 'left' }}
-                data-testid="cost-editor__input"
+                testId="cost-editor__input"
               />
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                 بالريال السعودي — أدخل 0 للخدمة المجانية

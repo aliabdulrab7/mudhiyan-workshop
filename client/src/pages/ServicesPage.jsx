@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getServices, createService, updateService } from '../api/services';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 export default function ServicesPage() {
   const [services, setServices]     = useState([]);
@@ -95,25 +96,25 @@ export default function ServicesPage() {
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label className="field-label">اسم الخدمة</label>
-                <input className="input" value={form.name}
+                <Input value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: تنظيف الذهب" required autoFocus
-                  data-testid="services__form__name-input" />
+                  testId="services__form__name-input" />
               </div>
               <div>
                 <label className="field-label">الوصف</label>
-                <input className="input" value={form.description}
+                <Input value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="وصف مختصر (اختياري)"
-                  data-testid="services__form__description-input" />
+                  testId="services__form__description-input" />
               </div>
               <div>
                 <label className="field-label">السعر الافتراضي (ريال)</label>
-                <input className="input mono" type="number" min="0" step="0.01"
+                <Input mono type="number" min="0" step="0.01"
                   value={form.default_price}
                   onChange={e => setForm(f => ({ ...f, default_price: e.target.value }))}
-                  placeholder="0.00" style={{ direction: 'ltr', textAlign: 'left' }}
-                  data-testid="services__form__price-input" />
+                  placeholder="0.00"
+                  testId="services__form__price-input" />
               </div>
               {error && (
                 <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>
@@ -154,21 +155,20 @@ export default function ServicesPage() {
                   <form onSubmit={e => handleEditSubmit(e, service.id)} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div>
                       <label className="field-label">اسم الخدمة</label>
-                      <input className="input" value={editForm.name}
+                      <Input value={editForm.name}
                         onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} required />
                     </div>
                     <div>
                       <label className="field-label">الوصف</label>
-                      <input className="input" value={editForm.description}
+                      <Input value={editForm.description}
                         onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                         placeholder="اختياري" />
                     </div>
                     <div>
                       <label className="field-label">السعر الافتراضي (ريال)</label>
-                      <input className="input mono" type="number" min="0" step="0.01"
+                      <Input mono type="number" min="0" step="0.01"
                         value={editForm.default_price}
-                        onChange={e => setEditForm(f => ({ ...f, default_price: e.target.value }))}
-                        style={{ direction: 'ltr', textAlign: 'left' }} />
+                        onChange={e => setEditForm(f => ({ ...f, default_price: e.target.value }))} />
                     </div>
                     {editError && (
                       <div style={{ color: 'var(--danger)', fontSize: 12, padding: '8px 12px', background: 'oklch(0.58 0.21 25 / 0.06)', border: '1px solid oklch(0.58 0.21 25 / 0.2)', borderRadius: 'var(--radius-sm)' }}>

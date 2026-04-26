@@ -6,6 +6,7 @@ import { Icons } from './icons';
 import { buildApprovalWaUrl, buildReadyWaUrl, buildTrackingUrl } from '../utils/whatsapp';
 import ReadyLabelCanvas from './ReadyLabelCanvas';
 import Button from './ui/Button';
+import Input from './ui/Input';
 
 // Status advance buttons — omit transitions that require explicit workflow:
 //   inspection → waiting_approval: use "Send for Approval" button (per-item cost)
@@ -603,8 +604,8 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
       <span style={{ color: item.notes ? 'var(--text-soft)' : 'var(--text-faint)', fontSize: 12 }}>{item.notes || '—'}</span>
       <div>
         {canEditCost ? (
-          <input
-            className="input"
+          <Input
+            size="sm"
             type="number"
             min="0"
             value={draft}
@@ -613,8 +614,8 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
             onChange={e => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={e => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
-            style={{ width: '100%', height: 28, padding: '4px 6px', fontSize: 12, textAlign: 'right' }}
-            data-testid={item.id ? `order-detail__item__${item.id}__cost-input` : undefined}
+            dir="rtl"
+            testId={item.id ? `order-detail__item__${item.id}__cost-input` : undefined}
           />
         ) : (
           <span

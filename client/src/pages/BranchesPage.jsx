@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getBranches, createBranch, deleteBranch } from '../api/admin';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 export default function BranchesPage() {
   const [branches, setBranches]     = useState([]);
@@ -79,27 +80,25 @@ export default function BranchesPage() {
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label className="field-label">اسم الفرع</label>
-                <input className="input" value={form.name}
+                <Input value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: فرع الرياض" required
-                  data-testid="branches__form__name-input" />
+                  testId="branches__form__name-input" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label className="field-label">اسم المستخدم</label>
-                  <input className="input mono" value={form.username}
+                  <Input mono value={form.username}
                     onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
                     placeholder="br1" required
-                    style={{ direction: 'ltr', textAlign: 'left' }}
-                    data-testid="branches__form__username-input" />
+                    testId="branches__form__username-input" />
                 </div>
                 <div>
                   <label className="field-label">كلمة المرور</label>
-                  <input className="input mono" type="password" value={form.password}
+                  <Input mono type="password" value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                     placeholder="6 أحرف+" required minLength={6}
-                    style={{ direction: 'ltr', textAlign: 'left' }}
-                    data-testid="branches__form__password-input" />
+                    testId="branches__form__password-input" />
                 </div>
               </div>
               {error && (

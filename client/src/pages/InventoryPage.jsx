@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getInventory, createInventoryItem, adjustInventoryStock } from '../api/inventory';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 export default function InventoryPage() {
   const [items, setItems]           = useState([]);
@@ -76,39 +77,37 @@ export default function InventoryPage() {
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label className="field-label">اسم المادة <span style={{ color: 'var(--danger)' }}>*</span></label>
-                <input className="input" value={form.name}
+                <Input value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: ذهب عيار 18" required autoFocus
-                  data-testid="inventory__form__name-input" />
+                  testId="inventory__form__name-input" />
               </div>
               <div>
                 <label className="field-label">الفئة <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>(اختياري)</span></label>
-                <input className="input" value={form.category}
+                <Input value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                   placeholder="مثال: معادن، أحجار"
-                  data-testid="inventory__form__category-input" />
+                  testId="inventory__form__category-input" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div>
                   <label className="field-label">الكمية</label>
-                  <input className="input mono" type="number" min="0" value={form.stock_qty}
+                  <Input mono type="number" min="0" value={form.stock_qty}
                     onChange={e => setForm(f => ({ ...f, stock_qty: e.target.value }))}
-                    style={{ direction: 'ltr', textAlign: 'left' }}
-                    data-testid="inventory__form__qty-input" />
+                    testId="inventory__form__qty-input" />
                 </div>
                 <div>
                   <label className="field-label">الوحدة</label>
-                  <input className="input" value={form.unit}
+                  <Input value={form.unit}
                     onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
                     placeholder="قطعة"
-                    data-testid="inventory__form__unit-input" />
+                    testId="inventory__form__unit-input" />
                 </div>
                 <div>
                   <label className="field-label">سعر الوحدة (ريال)</label>
-                  <input className="input mono" type="number" min="0" step="0.01" value={form.cost_per_unit}
+                  <Input mono type="number" min="0" step="0.01" value={form.cost_per_unit}
                     onChange={e => setForm(f => ({ ...f, cost_per_unit: e.target.value }))}
-                    style={{ direction: 'ltr', textAlign: 'left' }}
-                    data-testid="inventory__form__cost-input" />
+                    testId="inventory__form__cost-input" />
                 </div>
               </div>
               {error && (

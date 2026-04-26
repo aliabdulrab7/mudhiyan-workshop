@@ -8,6 +8,7 @@ import SkeletonLoader from './SkeletonLoader';
 import { Icons } from './icons';
 import Button from './ui/Button';
 import Checkbox from './ui/Checkbox';
+import Input from './ui/Input';
 
 const FILTER_DEFS = [
   { value: 'all',              label: 'الكل',             statusKeys: null },
@@ -239,13 +240,13 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
           {/* Toolbar */}
           <div className="table-toolbar">
             <Icons.Search size={13} stroke="var(--text-muted)" />
-            <input
-              className="input"
-              style={{ border: 'none', background: 'transparent', height: 26, maxWidth: 280 }}
+            <Input
+              size="sm"
+              style={{ border: 'none', background: 'transparent', maxWidth: 280 }}
               placeholder="بحث باسم العميل أو رقم الطلب…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              data-testid="order-list__search-input"
+              testId="order-list__search-input"
             />
             <div style={{ flex: 1 }} />
 

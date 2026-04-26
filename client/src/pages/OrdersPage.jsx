@@ -6,6 +6,7 @@ import StatusPill, { STATUS_META } from '../components/StatusPill';
 import OrderDetail from '../components/OrderDetail';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 const ALL_STATUSES = Object.keys(STATUS_META).filter(s =>
   !['new', 'inspection', 'approved', 'quality_check', 'returned_to_shop', 'closed', 'cancelled',
@@ -110,11 +111,11 @@ export default function OrdersPage() {
               style={{ position: 'absolute', right: 9, color: 'var(--text-faint)', pointerEvents: 'none' }}>
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
-            <input ref={searchRef} className="input" style={{ height: 28, paddingRight: 28, width: 200, fontSize: 12.5 }}
+            <Input ref={searchRef} size="sm" style={{ paddingRight: 28, width: 200 }}
               placeholder="بحث… ⌘F"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              data-testid="orders-list__search-input"
+              testId="orders-list__search-input"
             />
           </div>
         </div>
