@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { updateOrderStatus, updateItemCost, sendForApproval, getComments, addComment, getOrderHistory, confirmPayment, setOrderUrgent } from '../api/orders';
+import { assignTechnicianToItem, unassignTechnicianFromItem } from '../api/orderItems';
 import { getRole } from '../api/auth';
 import StatusPill from './StatusPill';
 import { Icons } from './icons';
@@ -9,8 +10,11 @@ import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import Dialog from './ui/Dialog';
+import Dropdown from './ui/Dropdown';
 import Input from './ui/Input';
 import Textarea from './ui/Textarea';
+import { useTechnicians } from '../contexts/TechniciansContext';
+import { useToast } from './ToastProvider';
 
 // Status advance buttons — omit transitions that require explicit workflow:
 //   inspection → waiting_approval: use "Send for Approval" button (per-item cost)
@@ -51,6 +55,8 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [linkCopied, setLinkCopied] = useState(false);
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
+  const techCtx = useTechnicians();
+  const toast = useToast();
 
   function copyTrackingLink() {
     navigator.clipboard.writeText(buildTrackingUrl(order.customer_token)).then(() => {
@@ -115,6 +121,31 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
       update(updated);
     } catch (e) { setError(e.message); }
     finally { setSavingItemId(null); }
+  }
+
+  // Per-item technician assignment. Optimistic — flip the local item first,
+  // then fire the request. On failure, revert and toast. The server returns
+  // { ok, technician } / { ok }; we don't refetch the order because the
+  // tech display name is already in techCtx and we patch it locally.
+  async function handleAssignItemTech(itemId, technician) {
+    const prevItems = order.items;
+    const nextItems = prevItems.map(it => it.id === itemId ? {
+      ...it,
+      technician_id:       technician?.id ?? null,
+      technician_name:     technician?.specialization ?? null,
+      technician_username: technician?.username ?? null,
+    } : it);
+    setOrder({ ...order, items: nextItems });
+    try {
+      if (technician) {
+        await assignTechnicianToItem(itemId, { technician_id: technician.id });
+      } else {
+        await unassignTechnicianFromItem(itemId);
+      }
+    } catch (e) {
+      setOrder({ ...order, items: prevItems });
+      toast?.(e.message || 'فشل تعيين الفني', 'error');
+    }
   }
 
   async function handleSendForApproval() {
@@ -268,8 +299,8 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             {order.items && order.items.length > 0 ? (
               <Card style={{ overflowX: 'auto' }}>
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 120px',
-                  minWidth: 500,
+                  display: 'grid', gridTemplateColumns: ITEMS_GRID_COLS(isWorkshop),
+                  minWidth: isWorkshop ? 640 : 500,
                   padding: '7px 12px', background: 'var(--bg-soft)',
                   borderBottom: '1px solid var(--border)',
                   fontSize: 11, color: 'var(--text-muted)', fontWeight: 500,
@@ -280,6 +311,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   <span>ملاحظات</span>
                   <span>التكلفة</span>
                   <span>الحالة</span>
+                  {isWorkshop && <span>الفني</span>}
                 </div>
                 {order.items.map((item, i) => (
                   <ItemRow
@@ -287,8 +319,11 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     item={item}
                     isWorkshop={isWorkshop}
                     canEditCost={isWorkshop && !order.locked_at && ['inspection', 'in_repair', 'rejected', 'waiting_approval'].includes(order.status)}
+                    canAssignTech={isWorkshop && !order.locked_at}
                     saving={savingItemId === item.id}
                     onSave={(c) => handleSaveItemCost(item.id, c)}
+                    onAssignTech={(tech) => handleAssignItemTech(item.id, tech)}
+                    techCtx={techCtx}
                     isLast={i === order.items.length - 1}
                   />
                 ))}
@@ -570,7 +605,12 @@ const APPROVAL_BADGE = {
   skipped:  { label: 'مجاني — مشمول', icon: null,    bg: 'var(--bg-soft)',             fg: 'var(--text-muted)' },
 };
 
-function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
+// Item-grid columns shared between header + row. Adds an extra column for the
+// technician cell when the workshop is viewing (shop_employee never assigns).
+const ITEMS_GRID_COLS = (withTech) =>
+  withTech ? '1.2fr 44px 1.2fr 100px 120px 140px' : '1.2fr 44px 1.2fr 100px 120px';
+
+function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave, onAssignTech, techCtx, isLast }) {
   const initial = item.estimated_cost == null ? '' : String(item.estimated_cost);
   const [draft, setDraft] = useState(initial);
   useEffect(() => { setDraft(initial); }, [initial]);
@@ -586,8 +626,8 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
 
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 120px',
-      minWidth: 500,
+      display: 'grid', gridTemplateColumns: ITEMS_GRID_COLS(isWorkshop),
+      minWidth: isWorkshop ? 640 : 500,
       padding: '10px 12px',
       borderBottom: isLast ? 'none' : '1px solid var(--border)',
       alignItems: 'center', gap: 10, fontSize: 12.5,
@@ -654,6 +694,121 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
           </span>
         )}
       </div>
+      {isWorkshop && (
+        <ItemTechCell
+          item={item}
+          canAssign={canAssignTech}
+          onAssign={onAssignTech}
+          techCtx={techCtx}
+        />
+      )}
     </div>
+  );
+}
+
+// Per-item technician cell. Trigger shows current tech name (or "غير معيّن"),
+// dropdown lists the workshop roster + an unassign action. The roster is
+// lazy-fetched on first open and cached for the rest of the session via
+// TechniciansContext. When the order is locked or the user can't assign, the
+// cell becomes a read-only label.
+function ItemTechCell({ item, canAssign, onAssign, techCtx }) {
+  const [open, setOpen] = useState(false);
+  const status      = techCtx?.status;
+  const technicians = techCtx?.technicians;
+
+  useEffect(() => {
+    if (open && status === 'idle') {
+      techCtx?.ensureLoaded?.().catch(() => { /* surfaced inline below */ });
+    }
+  }, [open, status, techCtx]);
+
+  const label = item.technician_name || 'غير معيّن';
+  const hasAssignment = !!item.technician_id;
+
+  if (!canAssign) {
+    return (
+      <span style={{
+        fontSize: 12, color: hasAssignment ? 'var(--text-soft)' : 'var(--text-faint)',
+      }}>
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <Dropdown
+      open={open}
+      onOpenChange={setOpen}
+      align="start"
+      testId={item.id ? `order-detail__item__${item.id}__assign-menu` : undefined}
+      trigger={
+        <button
+          type="button"
+          data-testid={item.id ? `order-detail__item__${item.id}__assign-trigger` : undefined}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 8px',
+            background: hasAssignment ? 'var(--primary-soft)' : 'var(--bg-soft)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 11.5,
+            color: hasAssignment ? 'var(--text)' : 'var(--text-muted)',
+            cursor: 'pointer',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={hasAssignment ? `الفني: ${label}` : 'تعيين فني'}
+        >
+          <Icons.User size={11} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+        </button>
+      }
+    >
+      {status === 'loading' && (
+        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+          جاري التحميل...
+        </div>
+      )}
+      {status === 'error' && (
+        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--danger)' }}>
+          فشل تحميل الفنيين
+        </div>
+      )}
+      {status === 'ready' && technicians?.length === 0 && (
+        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+          لا يوجد فنيون مسجلون
+        </div>
+      )}
+      {status === 'ready' && technicians?.length > 0 && (
+        <>
+          {technicians.map(t => (
+            <Dropdown.Item
+              key={t.id}
+              testId={item.id ? `order-detail__item__${item.id}__assign-option__${t.id}` : undefined}
+              onSelect={() => onAssign(t)}
+            >
+              {t.specialization || t.username || `#${t.id}`}
+              {t.id === item.technician_id && (
+                <Icons.Check size={11} style={{ marginInlineStart: 'auto', color: 'var(--primary)' }} />
+              )}
+            </Dropdown.Item>
+          ))}
+          {hasAssignment && (
+            <>
+              <Dropdown.Separator />
+              <Dropdown.Item
+                destructive
+                testId={item.id ? `order-detail__item__${item.id}__unassign-option` : undefined}
+                onSelect={() => onAssign(null)}
+              >
+                إلغاء التعيين
+              </Dropdown.Item>
+            </>
+          )}
+        </>
+      )}
+    </Dropdown>
   );
 }

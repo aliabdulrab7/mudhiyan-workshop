@@ -225,3 +225,25 @@ export async function addComment(orderId, body) {
   }
   return res.json();
 }
+
+export async function assignTechnicianToOrder(orderId, technicianId) {
+  const res = await fetch(`${BASE}/${orderId}/technicians`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ technician_id: technicianId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'فشل تعيين الفني للطلب');
+  return data;
+}
+
+export async function bulkAssignTechnician(orderIds, technicianId) {
+  const res = await fetch(`${BASE}/bulk/technicians`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ order_ids: orderIds, technician_id: technicianId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'فشل التعيين الجماعي للفني');
+  return data;
+}
