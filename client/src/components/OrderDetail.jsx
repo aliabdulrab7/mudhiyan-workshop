@@ -828,7 +828,7 @@ function ItemTechCell({ item, canAssign, onAssign, techCtx }) {
 
   useEffect(() => {
     if (open && status === 'idle') {
-      techCtx?.ensureLoaded?.().catch(() => { /* surfaced inline below */ });
+      Promise.resolve(techCtx?.ensureLoaded?.()).catch(() => { /* surfaced inline below */ });
     }
   }, [open, status, techCtx]);
 
@@ -935,7 +935,7 @@ function OrderTechTrigger({ orderTechName, isHeterogeneous, onlyTechId, busy, on
 
   useEffect(() => {
     if (open && status === 'idle') {
-      techCtx?.ensureLoaded?.().catch(() => { /* shown inline below */ });
+      Promise.resolve(techCtx?.ensureLoaded?.()).catch(() => { /* shown inline below */ });
     }
   }, [open, status, techCtx]);
 

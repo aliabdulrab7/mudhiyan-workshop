@@ -102,6 +102,22 @@ old-format hash and we'd need a transparent rehash-on-login path) is bigger
 than the marginal security gain for this app's threat model. Revisit if we
 add SSO, expand the user base, or get a security review.
 
+## EADDRINUSE silent failure during dev
+
+`server/index.js` calls `app.listen()` with no `.on('error', cb)` handler.
+If port 3737 is already in use (prior `npm run dev` not killed cleanly,
+or two terminals both running the server), Node throws `EADDRINUSE` as an
+uncaught exception. With `--watch`, the file-watcher immediately restarts
+the process, which fails again — producing a repeating error stack in the
+terminal. Vite still responds on :5173 so the dev environment *looks* alive,
+but every `/api/*` request returns a proxy error or ECONNREFUSED.
+
+Symptom checklist: if `GET /api/auth/login` returns 502 / `ECONNREFUSED`
+and the terminal shows `Error: listen EADDRINUSE :::3737` looping, run
+`lsof -ti :3737 | xargs kill` then `npm run dev` again.
+
+Not fixing now: adding `.on('error', (e) => { if (e.code === 'EADDRINUSE') … })` is one line but also requires a separate `const server = app.listen(…)` refactor (Express doesn't expose the http.Server from the inline form). Production runs under PM2 / systemd which restarts on crash anyway — the looping only hurts local dev. Worth fixing when touching `server/index.js` for another reason.
+
 ## Technician assignment UX gap — RESOLVED
 
 Pre-feature state: per-item endpoint existed but was additive (multiple

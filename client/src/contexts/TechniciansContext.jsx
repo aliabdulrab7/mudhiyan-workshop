@@ -20,7 +20,12 @@ export function TechniciansProvider({ children }) {
   const inFlight = useRef(null);
 
   const ensureLoaded = useCallback(() => {
-    if (status === 'loading' || status === 'ready') return inFlight.current;
+    // ensureLoaded must always return a thenable. The cache-hit path (`ready`)
+    // used to return `inFlight.current`, which `.finally()` clears to null —
+    // making `ensureLoaded().catch(...)` crash on the second call. Return a
+    // resolved promise instead.
+    if (status === 'ready') return Promise.resolve(technicians);
+    if (status === 'loading' && inFlight.current) return inFlight.current;
     setStatus('loading');
     setError(null);
     const p = getTechnicians()
@@ -37,7 +42,7 @@ export function TechniciansProvider({ children }) {
       .finally(() => { inFlight.current = null; });
     inFlight.current = p;
     return p;
-  }, [status]);
+  }, [status, technicians]);
 
   return (
     <TechniciansCtx.Provider value={{ technicians, status, error, ensureLoaded }}>

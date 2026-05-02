@@ -74,7 +74,9 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   function openBulkAssign() {
     setBulkAssignTechId('');
     setBulkAssignOpen(true);
-    techCtx?.ensureLoaded?.().catch(() => { /* surfaced inline */ });
+    // Promise.resolve wrap: if ensureLoaded returns undefined (no provider) or
+    // null (legacy bug shape), .catch on that throws and would kill the page.
+    Promise.resolve(techCtx?.ensureLoaded?.()).catch(() => { /* surfaced inline */ });
   }
 
   async function submitBulkAssign() {

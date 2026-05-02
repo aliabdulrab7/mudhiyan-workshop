@@ -23,7 +23,11 @@ export function SettingsProvider({ children }) {
   const toast = useToast();
 
   const ensureLoaded = useCallback(() => {
-    if (status === 'loading' || status === 'ready') return inFlight.current;
+    // ensureLoaded must always return a thenable. The cache-hit path (`ready`)
+    // used to return `inFlight.current`, which `.finally()` clears to null —
+    // making `ensureLoaded().catch(...)` crash on the second call.
+    if (status === 'ready') return Promise.resolve(settings);
+    if (status === 'loading' && inFlight.current) return inFlight.current;
     setStatus('loading');
     setError(null);
     const p = getMySettings()
@@ -40,7 +44,7 @@ export function SettingsProvider({ children }) {
       .finally(() => { inFlight.current = null; });
     inFlight.current = p;
     return p;
-  }, [status]);
+  }, [status, settings]);
 
   const updateSetting = useCallback(async (key, value) => {
     const prev = settings ? settings[key] : undefined;
