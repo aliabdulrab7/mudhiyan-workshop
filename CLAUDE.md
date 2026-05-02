@@ -134,7 +134,21 @@ Single SQLite file at `server/data/workshop.db` (git-ignored). Tests use `:memor
 
 ### Route ordering gotcha
 
-In `server/routes/orders.js`, `GET /barcode/:value` must stay declared **before** `GET /:id` or Express will match `barcode` as an id. Same pattern applies to any new literal segment under `/orders`.
+In `server/routes/orders.js`, `GET /barcode/:value` must stay declared **before** `GET /:id` or Express will match `barcode` as an id. Same pattern applies to any new literal segment under `/orders` — for example `POST /bulk/technicians` is declared before `POST /:id/technicians`.
+
+### Technician assignment
+
+Three levels, all backed by `order_item_technicians` (M:M) but treated as 1-tech-per-item by the product. The replace-style write semantics enforce that.
+
+- **Per item** — `POST /api/order-items/:id/technicians { technician_id }` (replace), `DELETE /api/order-items/:id/technicians` (unassign). UI: dropdown in the OrderDetail item row (workshop only).
+- **Per order** — `POST /api/orders/:id/technicians { technician_id }`. Assigns to all items in one transaction. Returns `{ ok, items_updated }`. UI: trigger in the OrderDetail header. When items currently have multiple distinct techs, the dropdown opens an overwrite-confirm Dialog ("X من الأصناف معيَّنة حالياً لفنيين مختلفين") before applying.
+- **Bulk** — `POST /api/orders/bulk/technicians { order_ids, technician_id }`. Per-order assignment for each, wrapped in one transaction so partial failures revert. Returns `{ ok, orders_updated, items_updated }`. UI: the "تعيين" button in the bulk-action toolbar opens a Dialog with a Select.
+
+All three are workshop-only (`requireRole('workshop')`). Locked orders return 409. Reassigning the same tech is idempotent — no 409.
+
+The technician roster is lazy-fetched once per session via `TechniciansContext` (mirrors `SettingsContext`'s pattern: failed fetches leave `status='error'` and the next `ensureLoaded()` retries).
+
+`server/helpers/itemQueries.js` exposes `ITEMS_WITH_TECH_SQL` — every read of `order_items` goes through this so responses include `technician_id`, `technician_name`, `technician_username` for each item. The subquery picks `MAX(id)` per item so legacy multi-row data (from when the per-item endpoint was additive) doesn't multiply rows. The orders list endpoint also returns `technician_summary` per row: a single name when items are homogeneous, "متعدد" when they differ, or `NULL` when none assigned.
 
 ## QA / Test Protocol
 

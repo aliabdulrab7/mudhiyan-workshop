@@ -79,3 +79,13 @@ export async function assignTechnicianToItem(itemId, { technician_id }) {
   if (!res.ok) throw new Error(data.error || 'فشل تعيين الفني للصنف');
   return data;
 }
+
+export async function unassignTechnicianFromItem(itemId) {
+  const res = await fetch(`/api/order-items/${itemId}/technicians`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل إلغاء تعيين الفني');
+  return data;
+}

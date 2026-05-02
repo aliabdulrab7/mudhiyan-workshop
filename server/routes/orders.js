@@ -5,6 +5,7 @@ const OrderService = require('../services/OrderService');
 const { errorToHttpStatus } = require('../errors');
 const { syncAllItemCosts, refreshOrderCost } = require('../helpers/costHelpers');
 const { normalizePhone } = require('../helpers/phoneHelper');
+const { ITEMS_WITH_TECH_SQL } = require('../helpers/itemQueries');
 
 const router = express.Router();
 
@@ -86,7 +87,7 @@ router.get('/barcode/:value', (req, res) => {
       `).get(req.params.value, req.user.shop_id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   const items = db.prepare(
-    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+    ITEMS_WITH_TECH_SQL
   ).all(order.id);
   res.json({ ...order, items });
 });
@@ -107,7 +108,17 @@ router.get('/', (req, res) => {
     SELECT o.*, COALESCE(s.name, '') AS shop_name,
       (SELECT GROUP_CONCAT(oi.item_name, '، ')
        FROM order_items oi WHERE oi.order_id = o.id
-       ORDER BY oi.sort_order) AS items_summary
+       ORDER BY oi.sort_order) AS items_summary,
+      (SELECT
+         CASE
+           WHEN COUNT(DISTINCT t.id) = 0 THEN NULL
+           WHEN COUNT(DISTINCT t.id) = 1 THEN MAX(t.specialization)
+           ELSE 'متعدد'
+         END
+       FROM order_items oi
+       LEFT JOIN order_item_technicians oit ON oit.order_item_id = oi.id
+       LEFT JOIN technicians t ON t.id = oit.technician_id
+       WHERE oi.order_id = o.id) AS technician_summary
     FROM orders o
     LEFT JOIN shops s ON s.id = o.shop_id
     WHERE 1=1`;
@@ -166,7 +177,7 @@ router.get('/:id', (req, res) => {
       `).get(req.params.id, req.user.shop_id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   const items = db.prepare(
-    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+    ITEMS_WITH_TECH_SQL
   ).all(order.id);
   res.json({ ...order, items });
 });
@@ -270,7 +281,7 @@ function performStatusTransition(req, res, orderId) {
   try {
     const updated = OrderService.transition(orderId, status, req.user, { notes: combinedNotes });
     const items = db.prepare(
-      'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+      ITEMS_WITH_TECH_SQL
     ).all(updated.id);
     res.json({ ...updated, items });
   } catch (err) {
@@ -332,7 +343,7 @@ router.patch('/:id/cost', requireRole('workshop'), (req, res) => {
   `).get(order.id);
 
   const items = db.prepare(
-    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+    ITEMS_WITH_TECH_SQL
   ).all(updated.id);
 
   res.json({ ...updated, items });
@@ -389,7 +400,7 @@ router.post('/:orderId/items/:itemId/cost', requireRole('workshop'), (req, res) 
   `).get(order.id);
 
   const items = db.prepare(
-    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+    ITEMS_WITH_TECH_SQL
   ).all(updated.id);
 
   res.json({ ...updated, items });
@@ -463,7 +474,7 @@ router.post('/:id/send-for-approval', requireRole('workshop'), (req, res) => {
   }
 
   const items = db.prepare(
-    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+    ITEMS_WITH_TECH_SQL
   ).all(updated.id);
 
   const notification = updated._notification ?? null;
@@ -511,7 +522,7 @@ router.post('/:id/confirm-payment', requireRole('shop_employee'), (req, res) => 
   `).get(order.id);
 
   const items = db.prepare(
-    'SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order'
+    ITEMS_WITH_TECH_SQL
   ).all(updated.id);
 
   res.json({ ...updated, items });
@@ -560,7 +571,7 @@ router.put('/:id', requireAuth, (req, res) => {
     SELECT o.*, COALESCE(s.name, '') AS shop_name
     FROM orders o LEFT JOIN shops s ON s.id = o.shop_id WHERE o.id = ?
   `).get(order.id);
-  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY sort_order').all(order.id);
+  const items = db.prepare(ITEMS_WITH_TECH_SQL).all(order.id);
   res.json({ ...updated, items });
 });
 
@@ -577,15 +588,79 @@ router.delete('/:id', requireRole('workshop'), (req, res) => {
   res.json({ ok: true, deleted_id: order.id });
 });
 
-// POST /api/orders/:orderId/items/:itemId/assign-technician — workshop only
-router.post('/:orderId/items/:itemId/assign-technician', requireRole('workshop'), (req, res) => {
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.orderId);
+// ── Technician assignment helpers ────────────────────────────────────────────
+// Replace-style: each item has at most one tech. Idempotent — same tech is a
+// no-op success. Returns count of items whose assignment changed (so callers
+// can tell users "5 items reassigned" vs "0 changed").
+function assignTechToOrder(orderId, technicianId) {
+  const items = db.prepare('SELECT id FROM order_items WHERE order_id = ?').all(orderId);
+  if (items.length === 0) {
+    const err = new Error('لا توجد أصناف في هذا الطلب');
+    err.status = 400;
+    throw err;
+  }
+
+  const replaceItem = db.prepare('DELETE FROM order_item_technicians WHERE order_item_id = ?');
+  const insertItem  = db.prepare(
+    'INSERT INTO order_item_technicians (order_item_id, technician_id) VALUES (?, ?)'
+  );
+  for (const item of items) {
+    replaceItem.run(item.id);
+    insertItem.run(item.id, technicianId);
+  }
+  return items.length;
+}
+
+// POST /api/orders/bulk/technicians — workshop only
+// Assigns a single technician to ALL items across multiple orders.
+// Wrapped in one transaction — any failure (missing order, locked order, etc.)
+// rolls back the whole batch.
+// Must be declared BEFORE /:id/technicians so Express doesn't treat "bulk"
+// as an order id.
+router.post('/bulk/technicians', requireRole('workshop'), (req, res) => {
+  const { order_ids, technician_id } = req.body;
+
+  if (!Array.isArray(order_ids) || order_ids.length === 0) {
+    return res.status(400).json({ error: 'order_ids مطلوبة' });
+  }
+  if (!technician_id) return res.status(400).json({ error: 'technician_id مطلوب' });
+
+  const tech = db.prepare('SELECT * FROM technicians WHERE id = ?').get(technician_id);
+  if (!tech) return res.status(404).json({ error: 'الفني غير موجود' });
+
+  let itemsTotal = 0;
+  const run = db.transaction(() => {
+    for (const orderId of order_ids) {
+      const order = db.prepare('SELECT id, locked_at FROM orders WHERE id = ?').get(orderId);
+      if (!order) {
+        const err = new Error(`الطلب ${orderId} غير موجود`);
+        err.status = 404;
+        throw err;
+      }
+      if (order.locked_at) {
+        const err = new Error(`الطلب ${orderId} مغلق بعد التسليم`);
+        err.status = 409;
+        throw err;
+      }
+      itemsTotal += assignTechToOrder(orderId, tech.id);
+    }
+  });
+
+  try {
+    run();
+    res.json({ ok: true, orders_updated: order_ids.length, items_updated: itemsTotal });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// POST /api/orders/:id/technicians — workshop only
+// Assigns the technician to every item in the order. See assignTechToOrder
+// for the replace-style semantics.
+router.post('/:id/technicians', requireRole('workshop'), (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
   if (order.locked_at) return res.status(409).json({ error: 'الطلب مغلق بعد التسليم' });
-
-  const item = db.prepare('SELECT * FROM order_items WHERE id = ? AND order_id = ?')
-    .get(req.params.itemId, req.params.orderId);
-  if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
 
   const { technician_id } = req.body;
   if (!technician_id) return res.status(400).json({ error: 'technician_id مطلوب' });
@@ -593,24 +668,12 @@ router.post('/:orderId/items/:itemId/assign-technician', requireRole('workshop')
   const tech = db.prepare('SELECT * FROM technicians WHERE id = ?').get(technician_id);
   if (!tech) return res.status(404).json({ error: 'الفني غير موجود' });
 
-  const existing = db.prepare(
-    'SELECT id FROM order_item_technicians WHERE order_item_id = ? AND technician_id = ?'
-  ).get(item.id, tech.id);
-  if (existing) return res.status(409).json({ error: 'الفني مُعيَّن بالفعل لهذا الصنف' });
-
-  const result = db.prepare(
-    'INSERT INTO order_item_technicians (order_item_id, technician_id) VALUES (?, ?)'
-  ).run(item.id, tech.id);
-
-  res.status(201).json(
-    db.prepare(`
-      SELECT oit.*, t.specialization, u.username
-      FROM order_item_technicians oit
-      JOIN technicians t ON t.id = oit.technician_id
-      LEFT JOIN users u ON u.id = t.user_id
-      WHERE oit.id = ?
-    `).get(result.lastInsertRowid)
-  );
+  try {
+    const itemsUpdated = db.transaction(() => assignTechToOrder(order.id, tech.id))();
+    res.json({ ok: true, items_updated: itemsUpdated });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
 });
 
 // GET /api/orders/:id/comments

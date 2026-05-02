@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { updateOrderStatus, updateItemCost, sendForApproval, getComments, addComment, getOrderHistory, confirmPayment, setOrderUrgent } from '../api/orders';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { updateOrderStatus, updateItemCost, sendForApproval, getComments, addComment, getOrderHistory, confirmPayment, setOrderUrgent, assignTechnicianToOrder } from '../api/orders';
+import { assignTechnicianToItem, unassignTechnicianFromItem } from '../api/orderItems';
 import { getRole } from '../api/auth';
 import StatusPill from './StatusPill';
 import { Icons } from './icons';
@@ -9,8 +10,11 @@ import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import Dialog from './ui/Dialog';
+import Dropdown from './ui/Dropdown';
 import Input from './ui/Input';
 import Textarea from './ui/Textarea';
+import { useTechnicians } from '../contexts/TechniciansContext';
+import { useToast } from './ToastProvider';
 
 // Status advance buttons — omit transitions that require explicit workflow:
 //   inspection → waiting_approval: use "Send for Approval" button (per-item cost)
@@ -51,6 +55,8 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const [linkCopied, setLinkCopied] = useState(false);
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
+  const techCtx = useTechnicians();
+  const toast = useToast();
 
   function copyTrackingLink() {
     navigator.clipboard.writeText(buildTrackingUrl(order.customer_token)).then(() => {
@@ -115,6 +121,89 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
       update(updated);
     } catch (e) { setError(e.message); }
     finally { setSavingItemId(null); }
+  }
+
+  // Order-level technician summary derived from items. The header dropdown
+  // and the overwrite-confirm dialog both read from this.
+  //   distinctIds: how many DIFFERENT techs are currently assigned (0..N)
+  //   onlyTechId:  the lone tech id when distinctIds === 1, else null
+  //   assignedItemCount: how many items currently have ANY tech assigned
+  const techSummary = useMemo(() => {
+    const items = order.items || [];
+    const ids = items.map(i => i.technician_id).filter(Boolean);
+    const unique = Array.from(new Set(ids));
+    return {
+      distinctIds: unique.length,
+      onlyTechId: unique.length === 1 ? unique[0] : null,
+      assignedItemCount: ids.length,
+      itemCount: items.length,
+    };
+  }, [order.items]);
+
+  const orderTechName = useMemo(() => {
+    if (techSummary.distinctIds === 0) return null;
+    if (techSummary.distinctIds === 1) {
+      return order.items.find(i => i.technician_id === techSummary.onlyTechId)?.technician_name ?? null;
+    }
+    return null; // heterogeneous → no single name
+  }, [order.items, techSummary]);
+
+  const [pendingOrderTech, setPendingOrderTech]   = useState(null); // confirms shown when truthy
+  const [assigningOrderTech, setAssigningOrderTech] = useState(false);
+
+  async function applyOrderTech(tech) {
+    const prevItems = order.items;
+    const nextItems = prevItems.map(it => ({
+      ...it,
+      technician_id:       tech.id,
+      technician_name:     tech.specialization ?? null,
+      technician_username: tech.username ?? null,
+    }));
+    setAssigningOrderTech(true);
+    setOrder({ ...order, items: nextItems });
+    try {
+      await assignTechnicianToOrder(order.id, tech.id);
+      toast?.(`تم تعيين ${tech.specialization || `#${tech.id}`} لكل الأصناف`, 'success');
+    } catch (e) {
+      setOrder({ ...order, items: prevItems });
+      toast?.(e.message || 'فشل تعيين الفني', 'error');
+    } finally {
+      setAssigningOrderTech(false);
+    }
+  }
+
+  function handleSelectOrderTech(tech) {
+    // If items currently have multiple distinct techs, confirm overwrite.
+    if (techSummary.distinctIds > 1) {
+      setPendingOrderTech(tech);
+      return;
+    }
+    applyOrderTech(tech);
+  }
+
+  // Per-item technician assignment. Optimistic — flip the local item first,
+  // then fire the request. On failure, revert and toast. The server returns
+  // { ok, technician } / { ok }; we don't refetch the order because the
+  // tech display name is already in techCtx and we patch it locally.
+  async function handleAssignItemTech(itemId, technician) {
+    const prevItems = order.items;
+    const nextItems = prevItems.map(it => it.id === itemId ? {
+      ...it,
+      technician_id:       technician?.id ?? null,
+      technician_name:     technician?.specialization ?? null,
+      technician_username: technician?.username ?? null,
+    } : it);
+    setOrder({ ...order, items: nextItems });
+    try {
+      if (technician) {
+        await assignTechnicianToItem(itemId, { technician_id: technician.id });
+      } else {
+        await unassignTechnicianFromItem(itemId);
+      }
+    } catch (e) {
+      setOrder({ ...order, items: prevItems });
+      toast?.(e.message || 'فشل تعيين الفني', 'error');
+    }
   }
 
   async function handleSendForApproval() {
@@ -205,6 +294,16 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
           ) : null}
           <StatusPill status={order.status} />
           <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{dateStr}</span>
+          {isWorkshop && !order.locked_at && (order.items?.length > 0) && (
+            <OrderTechTrigger
+              orderTechName={orderTechName}
+              isHeterogeneous={techSummary.distinctIds > 1}
+              onlyTechId={techSummary.onlyTechId}
+              busy={assigningOrderTech}
+              onSelect={handleSelectOrderTech}
+              techCtx={techCtx}
+            />
+          )}
           <div style={{ flex: 1 }} />
           {NEXT_STATUS[order.status] && isWorkshop && (
             <Button
@@ -268,8 +367,8 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
             {order.items && order.items.length > 0 ? (
               <Card style={{ overflowX: 'auto' }}>
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 120px',
-                  minWidth: 500,
+                  display: 'grid', gridTemplateColumns: ITEMS_GRID_COLS(isWorkshop),
+                  minWidth: isWorkshop ? 640 : 500,
                   padding: '7px 12px', background: 'var(--bg-soft)',
                   borderBottom: '1px solid var(--border)',
                   fontSize: 11, color: 'var(--text-muted)', fontWeight: 500,
@@ -280,6 +379,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                   <span>ملاحظات</span>
                   <span>التكلفة</span>
                   <span>الحالة</span>
+                  {isWorkshop && <span>الفني</span>}
                 </div>
                 {order.items.map((item, i) => (
                   <ItemRow
@@ -287,8 +387,11 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     item={item}
                     isWorkshop={isWorkshop}
                     canEditCost={isWorkshop && !order.locked_at && ['inspection', 'in_repair', 'rejected', 'waiting_approval'].includes(order.status)}
+                    canAssignTech={isWorkshop && !order.locked_at}
                     saving={savingItemId === item.id}
                     onSave={(c) => handleSaveItemCost(item.id, c)}
+                    onAssignTech={(tech) => handleAssignItemTech(item.id, tech)}
+                    techCtx={techCtx}
                     isLast={i === order.items.length - 1}
                   />
                 ))}
@@ -555,6 +658,48 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
           <div style={{ fontSize: 11, color: 'var(--text-faint)', display: 'flex', gap: 10, marginTop: 8 }}>
             <span><span className="kbd">esc</span> إغلاق</span>
           </div>
+
+          <Dialog
+            open={!!pendingOrderTech}
+            onClose={() => !assigningOrderTech && setPendingOrderTech(null)}
+            title="إعادة تعيين الفني"
+            size="sm"
+            testId="order-detail__header__overwrite-confirm-dialog"
+          >
+            <Dialog.Body>
+              <div style={{ fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.6 }}>
+                {techSummary.assignedItemCount} من الأصناف معيَّنة حالياً لفنيين مختلفين.
+                {' '}
+                هل تريد إعادة تعيينها كلها للفني{' '}
+                <strong style={{ color: 'var(--text)' }}>
+                  {pendingOrderTech?.specialization || `#${pendingOrderTech?.id}`}
+                </strong>
+                ؟
+              </div>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Button
+                size="sm"
+                onClick={() => setPendingOrderTech(null)}
+                testId="order-detail__header__overwrite-confirm-cancel"
+              >
+                تراجع
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                loading={assigningOrderTech}
+                onClick={async () => {
+                  const tech = pendingOrderTech;
+                  setPendingOrderTech(null);
+                  await applyOrderTech(tech);
+                }}
+                testId="order-detail__header__overwrite-confirm-yes"
+              >
+                نعم، إعادة التعيين
+              </Button>
+            </Dialog.Footer>
+          </Dialog>
         </div>
       </div>
     </>
@@ -570,7 +715,12 @@ const APPROVAL_BADGE = {
   skipped:  { label: 'مجاني — مشمول', icon: null,    bg: 'var(--bg-soft)',             fg: 'var(--text-muted)' },
 };
 
-function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
+// Item-grid columns shared between header + row. Adds an extra column for the
+// technician cell when the workshop is viewing (shop_employee never assigns).
+const ITEMS_GRID_COLS = (withTech) =>
+  withTech ? '1.2fr 44px 1.2fr 100px 120px 140px' : '1.2fr 44px 1.2fr 100px 120px';
+
+function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave, onAssignTech, techCtx, isLast }) {
   const initial = item.estimated_cost == null ? '' : String(item.estimated_cost);
   const [draft, setDraft] = useState(initial);
   useEffect(() => { setDraft(initial); }, [initial]);
@@ -586,8 +736,8 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
 
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: '1.2fr 44px 1.2fr 100px 120px',
-      minWidth: 500,
+      display: 'grid', gridTemplateColumns: ITEMS_GRID_COLS(isWorkshop),
+      minWidth: isWorkshop ? 640 : 500,
       padding: '10px 12px',
       borderBottom: isLast ? 'none' : '1px solid var(--border)',
       alignItems: 'center', gap: 10, fontSize: 12.5,
@@ -654,6 +804,211 @@ function ItemRow({ item, isWorkshop, canEditCost, saving, onSave, isLast }) {
           </span>
         )}
       </div>
+      {isWorkshop && (
+        <ItemTechCell
+          item={item}
+          canAssign={canAssignTech}
+          onAssign={onAssignTech}
+          techCtx={techCtx}
+        />
+      )}
     </div>
+  );
+}
+
+// Per-item technician cell. Trigger shows current tech name (or "غير معيّن"),
+// dropdown lists the workshop roster + an unassign action. The roster is
+// lazy-fetched on first open and cached for the rest of the session via
+// TechniciansContext. When the order is locked or the user can't assign, the
+// cell becomes a read-only label.
+function ItemTechCell({ item, canAssign, onAssign, techCtx }) {
+  const [open, setOpen] = useState(false);
+  const status      = techCtx?.status;
+  const technicians = techCtx?.technicians;
+
+  useEffect(() => {
+    if (open && status === 'idle') {
+      Promise.resolve(techCtx?.ensureLoaded?.()).catch(() => { /* surfaced inline below */ });
+    }
+  }, [open, status, techCtx]);
+
+  const label = item.technician_name || 'غير معيّن';
+  const hasAssignment = !!item.technician_id;
+
+  if (!canAssign) {
+    return (
+      <span style={{
+        fontSize: 12, color: hasAssignment ? 'var(--text-soft)' : 'var(--text-faint)',
+      }}>
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <Dropdown
+      open={open}
+      onOpenChange={setOpen}
+      align="start"
+      testId={item.id ? `order-detail__item__${item.id}__assign-menu` : undefined}
+      trigger={
+        <button
+          type="button"
+          data-testid={item.id ? `order-detail__item__${item.id}__assign-trigger` : undefined}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 8px',
+            background: hasAssignment ? 'var(--primary-soft)' : 'var(--bg-soft)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 11.5,
+            color: hasAssignment ? 'var(--text)' : 'var(--text-muted)',
+            cursor: 'pointer',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={hasAssignment ? `الفني: ${label}` : 'تعيين فني'}
+        >
+          <Icons.User size={11} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+        </button>
+      }
+    >
+      {status === 'loading' && (
+        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+          جاري التحميل...
+        </div>
+      )}
+      {status === 'error' && (
+        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--danger)' }}>
+          فشل تحميل الفنيين
+        </div>
+      )}
+      {status === 'ready' && technicians?.length === 0 && (
+        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+          لا يوجد فنيون مسجلون
+        </div>
+      )}
+      {status === 'ready' && technicians?.length > 0 && (
+        <>
+          {technicians.map(t => (
+            <Dropdown.Item
+              key={t.id}
+              testId={item.id ? `order-detail__item__${item.id}__assign-option__${t.id}` : undefined}
+              onSelect={() => onAssign(t)}
+            >
+              {t.specialization || t.username || `#${t.id}`}
+              {t.id === item.technician_id && (
+                <Icons.Check size={11} style={{ marginInlineStart: 'auto', color: 'var(--primary)' }} />
+              )}
+            </Dropdown.Item>
+          ))}
+          {hasAssignment && (
+            <>
+              <Dropdown.Separator />
+              <Dropdown.Item
+                destructive
+                testId={item.id ? `order-detail__item__${item.id}__unassign-option` : undefined}
+                onSelect={() => onAssign(null)}
+              >
+                إلغاء التعيين
+              </Dropdown.Item>
+            </>
+          )}
+        </>
+      )}
+    </Dropdown>
+  );
+}
+
+// Order-level technician trigger that lives in the drawer header. Shows the
+// single assigned tech's name when items are homogeneous, "متعدد" when
+// heterogeneous, "غير معيّن" otherwise. Selecting a tech from the menu either
+// applies it directly or — if items currently have multiple distinct techs —
+// asks the parent to open the overwrite-confirm dialog.
+function OrderTechTrigger({ orderTechName, isHeterogeneous, onlyTechId, busy, onSelect, techCtx }) {
+  const [open, setOpen] = useState(false);
+  const status      = techCtx?.status;
+  const technicians = techCtx?.technicians;
+
+  useEffect(() => {
+    if (open && status === 'idle') {
+      Promise.resolve(techCtx?.ensureLoaded?.()).catch(() => { /* shown inline below */ });
+    }
+  }, [open, status, techCtx]);
+
+  const label = isHeterogeneous
+    ? 'متعدد'
+    : (orderTechName || 'غير معيّن');
+  const tone = isHeterogeneous
+    ? 'oklch(0.75 0.13 70 / 0.18)'  // amber-ish to flag the mixed state
+    : (orderTechName ? 'var(--primary-soft)' : 'var(--bg-soft)');
+
+  return (
+    <Dropdown
+      open={open}
+      onOpenChange={setOpen}
+      align="start"
+      testId="order-detail__header__assign-menu"
+      trigger={
+        <button
+          type="button"
+          data-testid="order-detail__header__assign-trigger"
+          disabled={busy}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 8px',
+            background: tone,
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 11.5,
+            color: 'var(--text)',
+            cursor: busy ? 'wait' : 'pointer',
+            maxWidth: 220,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={isHeterogeneous
+            ? 'الأصناف معيَّنة لفنيين مختلفين'
+            : (orderTechName ? `الفني المسؤول: ${orderTechName}` : 'تعيين فني للطلب')}
+        >
+          <Icons.User size={11} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {orderTechName ? `الفني المسؤول: ${label}` : `الفني: ${label}`}
+          </span>
+        </button>
+      }
+    >
+      {status === 'loading' && (
+        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+          جاري التحميل...
+        </div>
+      )}
+      {status === 'error' && (
+        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--danger)' }}>
+          فشل تحميل الفنيين
+        </div>
+      )}
+      {status === 'ready' && technicians?.length === 0 && (
+        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+          لا يوجد فنيون مسجلون
+        </div>
+      )}
+      {status === 'ready' && technicians?.length > 0 && technicians.map(t => (
+        <Dropdown.Item
+          key={t.id}
+          testId={`order-detail__header__assign-option__${t.id}`}
+          onSelect={() => onSelect(t)}
+        >
+          {t.specialization || t.username || `#${t.id}`}
+          {!isHeterogeneous && t.id === onlyTechId && (
+            <Icons.Check size={11} style={{ marginInlineStart: 'auto', color: 'var(--primary)' }} />
+          )}
+        </Dropdown.Item>
+      ))}
+    </Dropdown>
   );
 }
