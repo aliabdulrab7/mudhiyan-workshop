@@ -160,6 +160,65 @@ export async function removeTechnicianSpecialization(techId, specId) {
   return data;
 }
 
+// GET /api/technicians/:id/shifts → { shifts: [...], leaves: [...] }
+export async function getShifts(techId) {
+  const res = await fetch(`/api/technicians/${techId}/shifts`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل تحميل جدول المناوبات');
+  return data;
+}
+
+// PUT /api/technicians/:id/shifts/:dayOfWeek → upserted shift
+export async function upsertShift(techId, dayOfWeek, startTime, endTime) {
+  const res = await fetch(`/api/technicians/${techId}/shifts/${dayOfWeek}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ start_time: startTime, end_time: endTime }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.error || 'فشل حفظ المناوبة');
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+// DELETE /api/technicians/:id/shifts/:dayOfWeek → { ok: true }
+export async function deleteShift(techId, dayOfWeek) {
+  const res = await fetch(`/api/technicians/${techId}/shifts/${dayOfWeek}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'فشل حذف المناوبة');
+  return data;
+}
+
+// POST /api/technicians/:id/leaves { leave_date, type, notes? }
+// Upserts by date — server returns 200 with the upserted row.
+export async function addLeave(techId, { leave_date, type, notes }) {
+  const res = await fetch(`/api/technicians/${techId}/leaves`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ leave_date, type, notes: notes || null }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل إضافة الإجازة');
+  return data;
+}
+
+// DELETE /api/technicians/:id/leaves/:leaveDate (YYYY-MM-DD) → { ok: true }
+export async function deleteLeave(techId, leaveDate) {
+  const res = await fetch(`/api/technicians/${techId}/leaves/${leaveDate}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'فشل حذف الإجازة');
+  return data;
+}
+
 // GET /api/technicians/item-type-spec-map
 // Returns { map: [{ item_type, spec_values: string[], updated_at, updated_by_username }] }
 export async function getSpecMap() {
