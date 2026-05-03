@@ -15,6 +15,13 @@ export async function getConfig() {
   return res.json();
 }
 
+export async function getOrder(id) {
+  const res = await fetch(`${BASE}/${id}`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل تحميل الطلب');
+  return data.order ?? data;
+}
+
 export async function getOrders({ status, search, shop_id } = {}) {
   const params = new URLSearchParams();
   if (status && status !== 'all') params.set('status', status);
