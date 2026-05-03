@@ -12,7 +12,7 @@
 import { test, expect } from '@playwright/test';
 import { execSync }      from 'node:child_process';
 
-const DB = '/Users/waled/Desktop/mudhiyan-workshop-qa-wf2/server/data/workshop.db';
+const DB = '/Users/waled/Desktop/mudhiyan-workshop/server/data/workshop.db';
 
 function sql(q) {
   // sqlite3 CLI rejects literal \n inside the quoted argument — normalize to spaces.
