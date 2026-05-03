@@ -159,3 +159,33 @@ export async function removeTechnicianSpecialization(techId, specId) {
   if (!res.ok) throw new Error(data.error || 'فشل حذف التخصص');
   return data;
 }
+
+// GET /api/technicians/item-type-spec-map
+// Returns { map: [{ item_type, spec_values: string[], updated_at, updated_by_username }] }
+export async function getSpecMap() {
+  const res = await fetch('/api/technicians/item-type-spec-map', { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل تحميل خريطة التخصصات');
+  return data;
+}
+
+// PUT /api/technicians/item-type-spec-map/:itemType
+// Body: { spec_values: string[] }
+// Returns updated row. Throws with .status on 422.
+export async function updateSpecMapEntry(itemType, specValues) {
+  const res = await fetch(
+    `/api/technicians/item-type-spec-map/${encodeURIComponent(itemType)}`,
+    {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({ spec_values: specValues }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.error || 'فشل تحديث خريطة التخصصات');
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}

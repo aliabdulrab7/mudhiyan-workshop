@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { updateOrderStatus, updateItemCost, sendForApproval, getComments, addComment, getOrderHistory, confirmPayment, setOrderUrgent, assignTechnicianToOrder } from '../api/orders';
-import { assignTechnicianToItem, unassignTechnicianFromItem } from '../api/orderItems';
+import { assignTechnicianToItem, unassignTechnicianFromItem, autoAssign } from '../api/orderItems';
 import { getRole } from '../api/auth';
 import StatusPill from './StatusPill';
 import { Icons } from './icons';
@@ -9,6 +9,7 @@ import ReadyLabelCanvas from './ReadyLabelCanvas';
 import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Card from './ui/Card';
+import Chip from './ui/Chip';
 import Dialog from './ui/Dialog';
 import Input from './ui/Input';
 import TechnicianPicker from './ui/TechnicianPicker';
@@ -220,6 +221,28 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     }
   }
 
+  async function handleAutoAssign(itemId) {
+    try {
+      const result = await autoAssign(itemId);
+      const tech = result.technician;
+      setOrder(prev => ({
+        ...prev,
+        items: prev.items.map(it => it.id === itemId ? {
+          ...it,
+          technician_id:       tech.id,
+          technician_name:     tech.name,
+          technician_status:   tech.status,
+          technician_username: tech.username ?? null,
+        } : it),
+      }));
+      toast?.(`تم تعيين ${tech.name} تلقائياً`, 'success');
+    } catch (e) {
+      if (e.status === 422) toast?.(e.message, 'warning');
+      else if (e.status === 409) toast?.('الطلب مقفل', 'error');
+      else toast?.(e.message || 'فشل التعيين التلقائي', 'error');
+    }
+  }
+
   async function handleSendForApproval() {
     setSendingApproval(true); setError('');
     try {
@@ -420,6 +443,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     saving={savingItemId === item.id}
                     onSave={(c) => handleSaveItemCost(item.id, c)}
                     onAssignTech={(tech) => handleAssignItemTech(item.id, tech)}
+                    onAutoAssign={() => handleAutoAssign(item.id)}
                     isLast={i === order.items.length - 1}
                   />
                 ))}
@@ -734,6 +758,14 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   );
 }
 
+// Per-item priority chips. 'standard' renders no chip (default, low noise).
+// Urgent uses danger colorway via inline style since Chip has no built-in
+// variant system — no new CSS classes needed.
+const PRIORITY_CHIP = {
+  urgent: { label: 'عاجل', style: { background: 'oklch(0.98 0.02 25)', borderColor: 'oklch(0.55 0.18 25 / 0.35)', color: 'var(--danger)' } },
+  low:    { label: 'منخفض', style: null },
+};
+
 // Per-item approval_status badges — workshop drawer only. The customer's
 // track page has its own display; we don't want to leak these back there.
 // 'pending' renders no badge (normal pre-approval state).
@@ -748,9 +780,10 @@ const APPROVAL_BADGE = {
 const ITEMS_GRID_COLS = (withTech) =>
   withTech ? '1.2fr 44px 1.2fr 100px 120px 140px' : '1.2fr 44px 1.2fr 100px 120px';
 
-function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave, onAssignTech, isLast }) {
+function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave, onAssignTech, onAutoAssign, isLast }) {
   const initial = item.estimated_cost == null ? '' : String(item.estimated_cost);
   const [draft, setDraft] = useState(initial);
+  const [autoAssigning, setAutoAssigning] = useState(false);
   useEffect(() => { setDraft(initial); }, [initial]);
 
   const commit = () => {
@@ -759,8 +792,9 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
     onSave(draft);
   };
 
-  const badge      = isWorkshop ? (APPROVAL_BADGE[item.approval_status] || null) : null;
-  const isRejected = item.approval_status === 'rejected';
+  const badge        = isWorkshop ? (APPROVAL_BADGE[item.approval_status] || null) : null;
+  const isRejected   = item.approval_status === 'rejected';
+  const priorityChip = PRIORITY_CHIP[item.priority] ?? null;
 
   return (
     <div style={{
@@ -775,7 +809,18 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
       opacity:    isRejected ? 0.82 : 1,
     }}>
       <div>
-        <div style={{ fontWeight: 600 }}>{item.item_name || item.item_type}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 600 }}>{item.item_name || item.item_type}</span>
+          {priorityChip && (
+            <Chip
+              size="sm"
+              testId={item.id ? `order-detail__item-row__priority-chip--${item.id}` : undefined}
+              style={priorityChip.style || undefined}
+            >
+              {priorityChip.label}
+            </Chip>
+          )}
+        </div>
         {item.serial_number && <div className="mono text-xs text-mute">{item.serial_number}</div>}
       </div>
       <span className="mono" style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: 600 }}>{item.quantity}</span>
@@ -833,16 +878,33 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
         )}
       </div>
       {isWorkshop && (
-        <TechnicianPicker
-          value={item.technician_id ?? null}
-          onChange={(_id, tech) => onAssignTech(tech ?? null)}
-          label={item.technician_id ? (item.technician_name || `#${item.technician_id}`) : null}
-          itemId={item.id}
-          allowClear={!!item.technician_id}
-          disabled={!canAssignTech}
-          placeholder="غير معيّن"
-          testId={`tech-picker-trigger--item--${item.id}`}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <TechnicianPicker
+            value={item.technician_id ?? null}
+            onChange={(_id, tech) => onAssignTech(tech ?? null)}
+            label={item.technician_id ? (item.technician_name || `#${item.technician_id}`) : null}
+            itemId={item.id}
+            allowClear={!!item.technician_id}
+            disabled={!canAssignTech}
+            placeholder="غير معيّن"
+            testId={`tech-picker-trigger--item--${item.id}`}
+          />
+          {canAssignTech && (
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={autoAssigning}
+              disabled={autoAssigning}
+              testId={`order-detail__item-row__auto-assign--${item.id}`}
+              onClick={async () => {
+                setAutoAssigning(true);
+                try { await onAutoAssign(); } finally { setAutoAssigning(false); }
+              }}
+            >
+              تعيين تلقائي
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

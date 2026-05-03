@@ -89,3 +89,17 @@ export async function unassignTechnicianFromItem(itemId) {
   if (!res.ok) throw new Error(data.error || 'فشل إلغاء تعيين الفني');
   return data;
 }
+
+export async function autoAssign(itemId) {
+  const res = await fetch(`/api/order-items/${itemId}/auto-assign`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.error || 'فشل التعيين التلقائي');
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
