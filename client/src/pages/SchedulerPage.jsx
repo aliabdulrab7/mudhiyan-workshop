@@ -7,13 +7,6 @@ import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import StatusIndicator from '../components/ui/StatusIndicator';
 
-const STATUS_OPTIONS_AR = {
-  available: 'متاح',
-  busy:      'مشغول',
-  off_shift: 'خارج الدوام',
-  on_leave:  'في إجازة',
-};
-
 export default function SchedulerPage() {
   const navigate = useNavigate();
   const toast = useToast();
