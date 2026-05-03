@@ -106,20 +106,44 @@ function cleanupOrders(prefix) {
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
+const TOKEN_CACHE = new Map();
+
 async function login(page, username, password) {
-  await page.goto('/login');
-  await page.getByLabel(/اسم المستخدم|username/i).fill(username);
-  await page.getByLabel(/كلمة المرور|password/i).fill(password);
-  await page.getByRole('button', { name: /دخول|تسجيل/i }).click();
-  await page.waitForURL(/\/(dashboard|orders|workshop)/);
+  const key = `${username}:${password}`;
+  let creds = TOKEN_CACHE.get(key);
+  if (!creds) {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    creds = await page.evaluate(async ({ username, password }) => {
+      const r = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const d = await r.json();
+      if (!d.token) throw new Error('login failed: ' + JSON.stringify(d));
+      return { token: d.token, role: d.role, username: d.username || '', shop_id: d.shop_id };
+    }, { username, password });
+    TOKEN_CACHE.set(key, creds);
+  } else {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+  }
+  await page.evaluate((c) => {
+    localStorage.clear();
+    localStorage.setItem('token', c.token);
+    localStorage.setItem('role', c.role);
+    localStorage.setItem('username', c.username);
+    if (c.shop_id != null) localStorage.setItem('shop_id', String(c.shop_id));
+  }, creds);
 }
 
 // ── Inline helpers ────────────────────────────────────────────────────────────
 
 async function openOrderDetail(page, orderNumber) {
-  await page.goto('/orders');
-  await page.getByText(orderNumber).click();
-  await page.waitForSelector('[data-testid^="order-detail__item-row"]', { timeout: 5000 });
+  await page.goto('/orders', { waitUntil: 'networkidle' });
+  await page.locator(`[data-testid="orders-list__row__${orderNumber}"]`).click();
+  // Wait for the auto-assign button (always rendered for workshop role on unlocked orders)
+  // or the order detail container itself
+  await page.waitForSelector('[data-testid^="order-detail__"]', { timeout: 8000 });
 }
 
 async function assertPriorityChip(page, itemId, priority) {
@@ -142,9 +166,8 @@ async function clickAutoAssign(page, itemId) {
 }
 
 async function openSpecMapAdmin(page) {
-  // Navigate to spec-map admin (sidebar link or settings page)
-  await page.goto('/settings/spec-map');
-  await page.waitForSelector('[data-testid="spec-map-admin__list"]', { timeout: 5000 });
+  await page.goto('/spec-map', { waitUntil: 'networkidle' });
+  await page.waitForSelector('[data-testid="spec-map-admin__list"]', { timeout: 8000 });
 }
 
 async function editSpecMapEntry(page, itemType, specValues) {
@@ -165,12 +188,12 @@ async function editSpecMapEntry(page, itemType, specValues) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 test.describe('wf4-ui — priority chips on item rows', () => {
-  const PREFIX = 'WF4PRI-';
+  const PREFIX = 'BR1-WF4PRI-';
 
   test.beforeEach(() => cleanupOrders(PREFIX));
   test.afterEach(() => cleanupOrders(PREFIX));
 
-  test.fixme('urgent item shows red "عاجل" chip in OrderDetail row', async ({ page }) => {
+  test('urgent item shows red "عاجل" chip in OrderDetail row', async ({ page }) => {
     // Seed an in-repair order, set item priority to urgent, verify chip renders.
     await login(page, 'workshop', 'workshop123');
     const orderNumber = `${PREFIX}URGENT-001`;
@@ -181,7 +204,7 @@ test.describe('wf4-ui — priority chips on item rows', () => {
     await assertPriorityChip(page, itemId, 'urgent');
   });
 
-  test.fixme('standard item shows NO chip in OrderDetail row', async ({ page }) => {
+  test('standard item shows NO chip in OrderDetail row', async ({ page }) => {
     // FE design decision: standard priority renders no chip (less noise for the default).
     await login(page, 'workshop', 'workshop123');
     const orderNumber = `${PREFIX}STD-001`;
@@ -192,7 +215,7 @@ test.describe('wf4-ui — priority chips on item rows', () => {
     await assertPriorityChip(page, itemId, 'standard'); // asserts chip absent
   });
 
-  test.fixme('low-priority item shows "منخفض" chip in OrderDetail row', async ({ page }) => {
+  test('low-priority item shows "منخفض" chip in OrderDetail row', async ({ page }) => {
     // Seed order, set item priority to low, verify chip text.
     await login(page, 'workshop', 'workshop123');
     const orderNumber = `${PREFIX}LOW-001`;
@@ -203,7 +226,7 @@ test.describe('wf4-ui — priority chips on item rows', () => {
     await assertPriorityChip(page, itemId, 'low');
   });
 
-  test.fixme('order-level "مستعجل" badge still present in header (no regression)', async ({ page }) => {
+  test('order-level "مستعجل" badge still present in header (no regression)', async ({ page }) => {
     // Verify the existing is_urgent badge in the order header survives WF-4 item-priority migration.
     await login(page, 'workshop', 'workshop123');
     const orderNumber = `${PREFIX}HEADER-001`;
@@ -220,13 +243,13 @@ test.describe('wf4-ui — priority chips on item rows', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 test.describe('wf4-ui — auto-assign button', () => {
-  const PREFIX  = 'WF4AA-';
+  const PREFIX  = 'BR1-WF4AA-';
   const TPREFIX = 'WF4AAT-';
 
   test.beforeEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix(TPREFIX); });
   test.afterEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix(TPREFIX); });
 
-  test.fixme('auto-assign button is visible in item row for workshop role', async ({ page }) => {
+  test('auto-assign button is visible in item row for workshop role', async ({ page }) => {
     // Workshop user sees the auto-assign button alongside the technician dropdown.
     await login(page, 'workshop', 'workshop123');
     const orderNumber = `${PREFIX}BTN-001`;
@@ -236,7 +259,7 @@ test.describe('wf4-ui — auto-assign button', () => {
     await expect(page.getByTestId(`order-detail__item-row__auto-assign--${itemId}`)).toBeVisible();
   });
 
-  test.fixme('auto-assign button is absent for shop_employee role', async ({ page }) => {
+  test('auto-assign button is absent for shop_employee role', async ({ page }) => {
     // shop_employee must NOT see the auto-assign button (workshop-only feature).
     await login(page, 'employee1', 'shop123');
     const orderNumber = `${PREFIX}EMPNO-001`;
@@ -246,7 +269,7 @@ test.describe('wf4-ui — auto-assign button', () => {
     await expect(page.getByTestId(`order-detail__item-row__auto-assign--${itemId}`)).toHaveCount(0);
   });
 
-  test.fixme('auto-assign button is HIDDEN on locked orders (not 409 toast)', async ({ page }) => {
+  test('auto-assign button is HIDDEN on locked orders (not 409 toast)', async ({ page }) => {
     // FE design decision: button is hidden (canAssignTech=false) when order is locked.
     // Do NOT assert a 409 error toast — assert the button is absent from the DOM.
     await login(page, 'workshop', 'workshop123');
@@ -258,7 +281,7 @@ test.describe('wf4-ui — auto-assign button', () => {
     await expect(page.getByTestId(`order-detail__item-row__auto-assign--${itemId}`)).toHaveCount(0);
   });
 
-  test.fixme('click auto-assign with available tech → tech name appears in assignment', async ({ page }) => {
+  test('click auto-assign with available tech → tech name appears in assignment', async ({ page }) => {
     // Seed a tech with 'rings' spec, seed a خاتم item, click auto-assign, expect assignment to update.
     await login(page, 'workshop', 'workshop123');
     const techId = seedTech(`${TPREFIX}فني`);
@@ -279,7 +302,7 @@ test.describe('wf4-ui — auto-assign button', () => {
       .toContainText(`${TPREFIX}فني`);
   });
 
-  test.fixme('click auto-assign with no available tech → warning toast with Arabic message', async ({ page }) => {
+  test('click auto-assign with no available tech → warning toast with Arabic message', async ({ page }) => {
     // With no active techs in DB, auto-assign should 422 → show Arabic warning.
     await login(page, 'workshop', 'workshop123');
     // Do NOT seed any tech for this test — rely on no available techs
@@ -311,7 +334,7 @@ test.describe('wf4-ui — auto-assign button', () => {
 
 test.describe('wf4-ui — spec-map admin', () => {
 
-  test.fixme('spec-map admin page loads with seeded map entries', async ({ page }) => {
+  test('spec-map admin page loads with seeded map entries', async ({ page }) => {
     // The 5 seeded item types (خاتم, حلق, سوار, سلسلة, ساعة) should all appear.
     await login(page, 'workshop', 'workshop123');
     await openSpecMapAdmin(page);
@@ -323,7 +346,7 @@ test.describe('wf4-ui — spec-map admin', () => {
     }
   });
 
-  test.fixme('edit dialog opens for an item type', async ({ page }) => {
+  test('edit dialog opens for an item type', async ({ page }) => {
     // Click "تعديل" on خاتم row → dialog appears with specialization options.
     await login(page, 'workshop', 'workshop123');
     await openSpecMapAdmin(page);
@@ -334,7 +357,7 @@ test.describe('wf4-ui — spec-map admin', () => {
     await expect(page.getByTestId('spec-map-admin__dialog')).toContainText('خاتم');
   });
 
-  test.fixme('save updated spec values → map refreshes with new values', async ({ page }) => {
+  test('save updated spec values → map refreshes with new values', async ({ page }) => {
     // Edit خاتم row to add 'polishing' spec, save, verify list refreshes.
     await login(page, 'workshop', 'workshop123');
     await openSpecMapAdmin(page);
@@ -350,7 +373,7 @@ test.describe('wf4-ui — spec-map admin', () => {
     setSpecMap('خاتم', ['rings']);
   });
 
-  test.fixme('invalid spec value returns 422 error shown inline in dialog', async ({ page }) => {
+  test('invalid spec value returns 422 error shown inline in dialog', async ({ page }) => {
     // Sending an unknown spec key should show inline error, not close dialog.
     // This tests the FE error-handling path — FE must call PUT with an invalid value.
     // Simulated by directly calling the API from page context with a bogus spec value.
@@ -376,13 +399,13 @@ test.describe('wf4-ui — spec-map admin', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 test.describe('wf4-regression — WF-3 StatusChangeMenu unaffected', () => {
-  const PREFIX  = 'WF4REGST-';
+  const PREFIX  = 'BR1-WF4REGST-';
   const TPREFIX = 'WF4REGTT-';
 
   test.beforeEach(() => { cleanupTechsByPrefix(TPREFIX); });
   test.afterEach(() => { cleanupTechsByPrefix(TPREFIX); });
 
-  test.fixme('StatusChangeMenu still changes technician status after WF-4 merge', async ({ page }) => {
+  test('StatusChangeMenu still changes technician status after WF-4 merge', async ({ page }) => {
     // Verify the WF-3 status-change flow isn't broken by WF-4 changes.
     await login(page, 'workshop', 'workshop123');
     const techId = seedTech(`${TPREFIX}فني`);
@@ -404,7 +427,7 @@ test.describe('wf4-regression — WF-3 StatusChangeMenu unaffected', () => {
 });
 
 test.describe('wf4-regression — WF-2 TechnicianPicker unaffected', () => {
-  const PREFIX  = 'WF4REGPK-';
+  const PREFIX  = 'BR1-WF4REGPK-';
   const TPREFIX = 'WF4REGPT-';
 
   test.beforeEach(() => {
@@ -416,7 +439,7 @@ test.describe('wf4-regression — WF-2 TechnicianPicker unaffected', () => {
     cleanupTechsByPrefix(TPREFIX);
   });
 
-  test.fixme('TechnicianPicker search and suggest still work after WF-4 merge', async ({ page }) => {
+  test('TechnicianPicker search and suggest still work after WF-4 merge', async ({ page }) => {
     // Open an order, use the tech picker to search by name, verify results appear.
     await login(page, 'workshop', 'workshop123');
     const techId = seedTech(`${TPREFIX}فني`);
@@ -428,26 +451,26 @@ test.describe('wf4-regression — WF-2 TechnicianPicker unaffected', () => {
     await openOrderDetail(page, orderNumber);
 
     // Open the technician picker dropdown/search for the item row
-    const pickerTrigger = page.getByTestId(`tech-picker__trigger--${itemId}`);
+    const pickerTrigger = page.locator(`[data-testid="tech-picker-trigger--item--${itemId}"]`);
     await pickerTrigger.click();
 
-    const searchInput = page.getByTestId('tech-picker__search');
+    const searchInput = page.locator('[data-testid="tech-picker__search"]');
     await searchInput.fill(TPREFIX);
 
-    await expect(page.getByTestId(`tech-picker__option--${techId}`)).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(`[data-testid="tech-picker__row--${techId}"]`)).toBeVisible({ timeout: 5000 });
   });
 });
 
 test.describe('wf4-regression — WF-1 admin pages unaffected', () => {
 
-  test.fixme('/roles page loads and shows seeded roles', async ({ page }) => {
+  test('/roles page loads and shows seeded roles', async ({ page }) => {
     // The 4 seeded roles (jeweler, polisher, appraiser, apprentice) must appear.
     await login(page, 'workshop', 'workshop123');
     await page.goto('/roles');
     await expect(page.locator('body')).toContainText('جوهرجي');
   });
 
-  test.fixme('/specializations page loads and shows seeded specializations', async ({ page }) => {
+  test('/specializations page loads and shows seeded specializations', async ({ page }) => {
     // At least one seeded spec (خواتم / rings) should appear.
     await login(page, 'workshop', 'workshop123');
     await page.goto('/specializations');
