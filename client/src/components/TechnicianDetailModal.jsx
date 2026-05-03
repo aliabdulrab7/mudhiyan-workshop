@@ -456,7 +456,7 @@ export default function TechnicianDetailModal({
 
                 {/* Shift schedule — workshop users only */}
                 {isWorkshop && (
-                  <div>
+                  <div data-testid="tech-detail__shifts-section">
                     <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-muted mb-1.5">
                       جدول المناوبات
                     </div>
@@ -482,21 +482,32 @@ export default function TechnicianDetailModal({
                               <span className="text-xs text-text-faint flex-1">—</span>
                             )}
                             <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openShiftDialog(day)}
-                                testId={`tech-detail__shift-edit--${day}`}
-                              >
-                                {shift ? 'تعديل' : 'إضافة'}
-                              </Button>
+                              {shift ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openShiftDialog(day)}
+                                  testId={`tech-detail__shift-edit-btn--${day}`}
+                                >
+                                  تعديل
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openShiftDialog(day)}
+                                  testId={`tech-detail__shift-add-btn--${day}`}
+                                >
+                                  إضافة
+                                </Button>
+                              )}
                               {shift && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   loading={deletingDay === day}
                                   onClick={() => handleShiftDelete(day)}
-                                  testId={`tech-detail__shift-delete--${day}`}
+                                  testId={`tech-detail__shift-delete-btn--${day}`}
                                 >
                                   حذف
                                 </Button>
@@ -552,7 +563,7 @@ export default function TechnicianDetailModal({
               dir="ltr"
               value={shiftDraft.start_time}
               onChange={(e) => { setShiftDraft((d) => ({ ...d, start_time: e.target.value })); setShiftError(''); }}
-              testId="tech-detail__shift-dialog__start"
+              testId="tech-detail__shift-start-input"
             />
           </FormField>
           <FormField label="إلى">
@@ -561,7 +572,7 @@ export default function TechnicianDetailModal({
               dir="ltr"
               value={shiftDraft.end_time}
               onChange={(e) => { setShiftDraft((d) => ({ ...d, end_time: e.target.value })); setShiftError(''); }}
-              testId="tech-detail__shift-dialog__end"
+              testId="tech-detail__shift-end-input"
             />
           </FormField>
         </div>
@@ -577,7 +588,7 @@ export default function TechnicianDetailModal({
             size="sm"
             loading={shiftSaving}
             onClick={handleShiftSave}
-            testId="tech-detail__shift-dialog__save"
+            testId="tech-detail__shift-save-btn"
           >
             حفظ
           </Button>
