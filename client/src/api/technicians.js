@@ -195,6 +195,30 @@ export async function deleteShift(techId, dayOfWeek) {
   return data;
 }
 
+// POST /api/technicians/:id/leaves { leave_date, type, notes? }
+// Upserts by date — server returns 200 with the upserted row.
+export async function addLeave(techId, { leave_date, type, notes }) {
+  const res = await fetch(`/api/technicians/${techId}/leaves`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ leave_date, type, notes: notes || null }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل إضافة الإجازة');
+  return data;
+}
+
+// DELETE /api/technicians/:id/leaves/:leaveDate (YYYY-MM-DD) → { ok: true }
+export async function deleteLeave(techId, leaveDate) {
+  const res = await fetch(`/api/technicians/${techId}/leaves/${leaveDate}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'فشل حذف الإجازة');
+  return data;
+}
+
 // GET /api/technicians/item-type-spec-map
 // Returns { map: [{ item_type, spec_values: string[], updated_at, updated_by_username }] }
 export async function getSpecMap() {

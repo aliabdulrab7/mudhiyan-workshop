@@ -9,6 +9,8 @@ import {
   getShifts,
   upsertShift,
   deleteShift,
+  addLeave,
+  deleteLeave,
 } from '../api/technicians';
 import { getRole } from '../api/auth';
 import StatusIndicator from './ui/StatusIndicator';
@@ -26,6 +28,13 @@ import Textarea from './ui/Textarea';
 import { STATUS_META } from './StatusPill';
 
 const DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+const LEAVE_TYPE_OPTIONS = [
+  { value: 'day_off',  label: 'يوم عطلة' },
+  { value: 'sick',     label: 'إجازة مرضية' },
+  { value: 'vacation', label: 'إجازة' },
+];
+const LEAVE_TYPE_LABEL = Object.fromEntries(LEAVE_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
 const STATUS_OPTIONS = [
   { value: 'available', label: 'متاح' },
@@ -70,6 +79,13 @@ export default function TechnicianDetailModal({
   const [deletingDay, setDeletingDay]   = useState(null); // day awaiting confirm | null
   const isWorkshop = getRole() === 'workshop';
 
+  // Leave management state
+  const [leaves, setLeaves]             = useState([]);
+  const [leaveDraft, setLeaveDraft]     = useState({ leave_date: '', type: 'day_off', notes: '' });
+  const [leaveAdding, setLeaveAdding]   = useState(false);
+  const [leaveError, setLeaveError]     = useState('');
+  const [deletingLeave, setDeletingLeave] = useState(null); // YYYY-MM-DD | null
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -96,6 +112,7 @@ export default function TechnicianDetailModal({
           setTech(t);
           setStatusHistory(histData.history ?? []);
           setShifts(shiftsData.shifts ?? []);
+          setLeaves(shiftsData.leaves ?? []);
           setForm({
             name:    t.name ?? '',
             role_id: t.role_id == null ? '' : String(t.role_id),
@@ -111,6 +128,7 @@ export default function TechnicianDetailModal({
           setTechSpecIds(new Set());
           setStatusHistory([]);
           setShifts([]);
+          setLeaves([]);
         }
       } catch (e) {
         if (!cancelled) setError(e.message || 'فشل تحميل بيانات الفني');
@@ -208,6 +226,36 @@ export default function TechnicianDetailModal({
       setError(e.message || 'فشل حذف المناوبة');
     } finally {
       setDeletingDay(null);
+    }
+  }
+
+  async function handleLeaveAdd() {
+    if (!leaveDraft.leave_date) { setLeaveError('يرجى اختيار التاريخ'); return; }
+    setLeaveAdding(true);
+    setLeaveError('');
+    try {
+      const saved = await addLeave(tech.id, leaveDraft);
+      setLeaves((prev) => {
+        const next = prev.filter((l) => l.leave_date !== saved.leave_date);
+        return [...next, saved].sort((a, b) => a.leave_date.localeCompare(b.leave_date));
+      });
+      setLeaveDraft({ leave_date: '', type: 'day_off', notes: '' });
+    } catch (e) {
+      setLeaveError(e.message || 'فشل إضافة الإجازة');
+    } finally {
+      setLeaveAdding(false);
+    }
+  }
+
+  async function handleLeaveDelete(leaveDate) {
+    setDeletingLeave(leaveDate);
+    try {
+      await deleteLeave(tech.id, leaveDate);
+      setLeaves((prev) => prev.filter((l) => l.leave_date !== leaveDate));
+    } catch (e) {
+      setError(e.message || 'فشل حذف الإجازة');
+    } finally {
+      setDeletingLeave(null);
     }
   }
 
@@ -456,6 +504,7 @@ export default function TechnicianDetailModal({
 
                 {/* Shift schedule — workshop users only */}
                 {isWorkshop && (
+                  <>
                   <div data-testid="tech-detail__shifts-section">
                     <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-muted mb-1.5">
                       جدول المناوبات
@@ -518,6 +567,83 @@ export default function TechnicianDetailModal({
                       })}
                     </div>
                   </div>
+
+                  {/* Leave management */}
+                  <div data-testid="tech-detail__leaves-section">
+                    <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-muted mb-1.5">
+                      الإجازات
+                    </div>
+
+                    {/* Existing leaves list */}
+                    {leaves.length > 0 && (
+                      <div className="flex flex-col mb-3">
+                        {leaves.map((leave) => (
+                          <div
+                            key={leave.leave_date}
+                            data-testid={`tech-detail__leave-row--${leave.leave_date}`}
+                            className="flex items-center justify-between gap-2 py-1.5 border-b border-border last:border-0"
+                          >
+                            <span className="text-xs font-mono text-text shrink-0" dir="ltr">
+                              {new Date(leave.leave_date + 'T00:00:00').toLocaleDateString('ar-SA')}
+                            </span>
+                            <span className="text-xs text-text-muted flex-1">
+                              {LEAVE_TYPE_LABEL[leave.type] ?? leave.type}
+                            </span>
+                            {leave.notes && (
+                              <span className="text-xs text-text-faint flex-1 truncate">{leave.notes}</span>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              loading={deletingLeave === leave.leave_date}
+                              onClick={() => handleLeaveDelete(leave.leave_date)}
+                              testId={`tech-detail__leave-delete-btn--${leave.leave_date}`}
+                            >
+                              حذف
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add form */}
+                    <div className="flex flex-col gap-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          type="date"
+                          dir="ltr"
+                          value={leaveDraft.leave_date}
+                          onChange={(e) => { setLeaveDraft((d) => ({ ...d, leave_date: e.target.value })); setLeaveError(''); }}
+                          testId="tech-detail__leave-add-date"
+                        />
+                        <Select
+                          value={leaveDraft.type}
+                          onChange={(e) => setLeaveDraft((d) => ({ ...d, type: e.target.value }))}
+                          options={LEAVE_TYPE_OPTIONS}
+                          testId="tech-detail__leave-add-type"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          value={leaveDraft.notes}
+                          onChange={(e) => setLeaveDraft((d) => ({ ...d, notes: e.target.value }))}
+                          placeholder="ملاحظات (اختياري)"
+                          testId="tech-detail__leave-add-notes"
+                        />
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          loading={leaveAdding}
+                          onClick={handleLeaveAdd}
+                          testId="tech-detail__leave-add-btn"
+                        >
+                          إضافة
+                        </Button>
+                      </div>
+                      {leaveError && <Alert variant="danger">{leaveError}</Alert>}
+                    </div>
+                  </div>
+                  </>
                 )}
               </div>
             )}
