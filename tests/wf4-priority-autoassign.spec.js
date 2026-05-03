@@ -180,11 +180,17 @@ async function editSpecMapEntry(page, itemType, specValues) {
   // itemType: Arabic string; specValues: array of spec value keys to toggle on
   await page.getByTestId(`spec-map-admin__edit-btn--${encodeURIComponent(itemType)}`).click();
   await page.waitForSelector('[data-testid="spec-map-admin__dialog"]');
-  // Toggle desired specs (click each chip to select)
+  // First deselect all currently active chips to start from a clean state
+  let activeChips = page.locator('[data-testid^="spec-map-admin__spec-chip--"][data-active="true"]');
+  let count = await activeChips.count();
+  while (count > 0) {
+    await activeChips.first().click();
+    count = await page.locator('[data-testid^="spec-map-admin__spec-chip--"][data-active="true"]').count();
+  }
+  // Then activate only the desired specs
   for (const v of specValues) {
     const chip = page.getByTestId(`spec-map-admin__spec-chip--${v}`);
-    const isActive = await chip.getAttribute('data-active');
-    if (isActive !== 'true') await chip.click();
+    if (await chip.getAttribute('data-active') !== 'true') await chip.click();
   }
   await page.getByTestId('spec-map-admin__save-btn').click();
 }
@@ -239,8 +245,9 @@ test.describe('wf4-ui — priority chips on item rows', () => {
     seedOrder(orderNumber, { status: 'in_repair', isUrgent: 1 });
 
     await openOrderDetail(page, orderNumber);
-    const badge = page.locator('.badge, [class*="urgent"], [class*="مستعجل"]').filter({ hasText: 'مستعجل' });
-    await expect(badge.first()).toBeVisible();
+    // Urgent toggle button (workshop role) has testid order-detail__urgent-toggle; text 'مستعجل'
+    await expect(page.getByTestId('order-detail__urgent-toggle')).toBeVisible();
+    await expect(page.getByTestId('order-detail__urgent-toggle')).toContainText('مستعجل');
   });
 });
 
@@ -252,8 +259,8 @@ test.describe('wf4-ui — auto-assign button', () => {
   const PREFIX  = 'BR1-WF4AA-';
   const TPREFIX = 'WF4AAT-';
 
-  test.beforeEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix(TPREFIX); });
-  test.afterEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix(TPREFIX); });
+  test.beforeEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix(TPREFIX); setSpecMap('خاتم', ['rings']); });
+  test.afterEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix(TPREFIX); setSpecMap('خاتم', ['rings']); });
 
   test('auto-assign button is visible in item row for workshop role', async ({ page }) => {
     // Workshop user sees the auto-assign button alongside the technician dropdown.
@@ -339,6 +346,8 @@ test.describe('wf4-ui — auto-assign button', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 test.describe('wf4-ui — spec-map admin', () => {
+  test.beforeEach(() => setSpecMap('خاتم', ['rings']));
+  test.afterEach(() => setSpecMap('خاتم', ['rings']));
 
   test('spec-map admin page loads with seeded map entries', async ({ page }) => {
     // BE seeded: خاتم, حلق, قرط, سوار, عقد, دبلة, ساعة (7 rows)
@@ -370,8 +379,8 @@ test.describe('wf4-ui — spec-map admin', () => {
 
     await editSpecMapEntry(page, 'خاتم', ['rings', 'polishing']);
 
-    // Dialog closes, list refreshes — polishing display label appears in خاتم entry
-    await expect(page.getByTestId('spec-map-admin__dialog')).toHaveCount(0);
+    // Dialog closes (Dialog portal stays in DOM but becomes not-visible); list refreshes
+    await expect(page.getByTestId('spec-map-admin__dialog')).not.toBeVisible({ timeout: 5000 });
     const entry = page.getByTestId(`spec-map-admin__entry--${encodeURIComponent('خاتم')}`);
     await expect(entry).toContainText('تلميع'); // display_label_ar for 'polishing'
 
