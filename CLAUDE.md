@@ -177,7 +177,25 @@ Path C is rebuilding the technician roster from a flat dropdown into real workfo
 - `DELETE /api/technicians/:id/specializations/:specializationId`.
 - `GET|POST|PATCH|DELETE /api/roles` and `/api/specializations` — full CRUD. `value` is **not editable** on PATCH (silently ignored). DELETE is soft + blocks when referenced (`RoleInUseError` / `SpecializationInUseError`). 409 on duplicate `value`.
 
-**Coming in WF-2..6** (none of this exists yet): WF-2 searchable picker, WF-3 workload badges + status flips, WF-4 priority UI migration + auto-assign, WF-5 shift schedules + scheduler, WF-6 reporting/leaderboard.
+**WF-2 picker (backend complete, branch wf-2-backend):**
+
+Two new endpoints, both `requireRole('workshop')`:
+
+- `GET /api/technicians/picker` — lightweight payload for assignment picker UI. Params: `q` (name search, COLLATE NOCASE), `specialization_id` (INNER JOIN filter), `status` (default `'available'`; `'all'` = no status filter; any specific value = filter to that status), `limit` (default 30, max 100), `offset`. Response: `{ items, total }`. Sorted `active_count ASC, name ASC` (least-busy first). Inactive (`active=0`) techs excluded. **Must stay declared before `GET /:id` in technicians.js** to avoid Express matching the literal `picker` as an id.
+
+- `GET /api/order-items/:id/suggested-technicians` — ranks active technicians by suitability for the given item. Params: `limit` (default 5, max 20). Response: `{ item_id, item_type, matched_specializations, suggestions[] }` where each suggestion carries `score`, `matched_specs`, `specializations`, `active_count`. Returns 404 if item not found.
+
+**Scoring algorithm (v1):**
+1. Specialization match: `+10` per spec key that appears in `ITEM_TYPE_SPEC_MAP[item.item_type]`
+2. Status weight: `available +5`, `busy 0`, `off_shift -10`, `on_leave -20`
+3. Workload penalty: `active_count × -1`
+4. Tiebreaker: `name ASC` (localeCompare 'ar')
+
+**`ITEM_TYPE_SPEC_MAP`** is a top-level constant in `server/services/TechnicianService.js`. Maps Arabic item type strings to specialization value keys (`rings`, `earrings`, `bracelets`, `chains`, `watches`). `'أخرى'` and unmapped types return `[]` (rank by status + workload only). Configurable per-item inference deferred to WF-4.
+
+**`_scoreAndRank(techs, matchedSpecValues)`** is exported as a pure function — testable in isolation without DB. `pickerQuery()` and `suggestForItem()` are the public service functions.
+
+**Coming in WF-3..6:** WF-3 workload badges + status flips, WF-4 priority UI migration + auto-assign + `ITEM_TYPE_SPEC_MAP` made configurable, WF-5 shift schedules + scheduler, WF-6 reporting/leaderboard.
 
 ## QA / Test Protocol
 
