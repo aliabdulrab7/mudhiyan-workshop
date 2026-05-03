@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { updateOrderStatus, updateItemCost, sendForApproval, getComments, addComment, getOrderHistory, confirmPayment, setOrderUrgent, assignTechnicianToOrder } from '../api/orders';
-import { assignTechnicianToItem, unassignTechnicianFromItem } from '../api/orderItems';
+import { assignTechnicianToItem, unassignTechnicianFromItem, autoAssign } from '../api/orderItems';
 import { getRole } from '../api/auth';
 import StatusPill from './StatusPill';
 import { Icons } from './icons';
@@ -221,6 +221,28 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     }
   }
 
+  async function handleAutoAssign(itemId) {
+    try {
+      const result = await autoAssign(itemId);
+      const tech = result.technician;
+      setOrder(prev => ({
+        ...prev,
+        items: prev.items.map(it => it.id === itemId ? {
+          ...it,
+          technician_id:       tech.id,
+          technician_name:     tech.name,
+          technician_status:   tech.status,
+          technician_username: tech.username ?? null,
+        } : it),
+      }));
+      toast?.(`تم تعيين ${tech.name} تلقائياً`, 'success');
+    } catch (e) {
+      if (e.status === 422) toast?.(e.message, 'warning');
+      else if (e.status === 409) toast?.('الطلب مقفل', 'error');
+      else toast?.(e.message || 'فشل التعيين التلقائي', 'error');
+    }
+  }
+
   async function handleSendForApproval() {
     setSendingApproval(true); setError('');
     try {
@@ -421,6 +443,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                     saving={savingItemId === item.id}
                     onSave={(c) => handleSaveItemCost(item.id, c)}
                     onAssignTech={(tech) => handleAssignItemTech(item.id, tech)}
+                    onAutoAssign={() => handleAutoAssign(item.id)}
                     isLast={i === order.items.length - 1}
                   />
                 ))}
@@ -757,9 +780,10 @@ const APPROVAL_BADGE = {
 const ITEMS_GRID_COLS = (withTech) =>
   withTech ? '1.2fr 44px 1.2fr 100px 120px 140px' : '1.2fr 44px 1.2fr 100px 120px';
 
-function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave, onAssignTech, isLast }) {
+function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave, onAssignTech, onAutoAssign, isLast }) {
   const initial = item.estimated_cost == null ? '' : String(item.estimated_cost);
   const [draft, setDraft] = useState(initial);
+  const [autoAssigning, setAutoAssigning] = useState(false);
   useEffect(() => { setDraft(initial); }, [initial]);
 
   const commit = () => {
@@ -790,7 +814,7 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
           {priorityChip && (
             <Chip
               size="sm"
-              testId={item.id ? `order-detail__item__${item.id}__priority` : undefined}
+              testId={item.id ? `order-detail__item-row__priority-chip--${item.id}` : undefined}
               style={priorityChip.style || undefined}
             >
               {priorityChip.label}
@@ -854,16 +878,33 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
         )}
       </div>
       {isWorkshop && (
-        <TechnicianPicker
-          value={item.technician_id ?? null}
-          onChange={(_id, tech) => onAssignTech(tech ?? null)}
-          label={item.technician_id ? (item.technician_name || `#${item.technician_id}`) : null}
-          itemId={item.id}
-          allowClear={!!item.technician_id}
-          disabled={!canAssignTech}
-          placeholder="غير معيّن"
-          testId={`tech-picker-trigger--item--${item.id}`}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <TechnicianPicker
+            value={item.technician_id ?? null}
+            onChange={(_id, tech) => onAssignTech(tech ?? null)}
+            label={item.technician_id ? (item.technician_name || `#${item.technician_id}`) : null}
+            itemId={item.id}
+            allowClear={!!item.technician_id}
+            disabled={!canAssignTech}
+            placeholder="غير معيّن"
+            testId={`tech-picker-trigger--item--${item.id}`}
+          />
+          {canAssignTech && (
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={autoAssigning}
+              disabled={autoAssigning}
+              testId={`order-detail__item-row__auto-assign--${item.id}`}
+              onClick={async () => {
+                setAutoAssigning(true);
+                try { await onAutoAssign(); } finally { setAutoAssigning(false); }
+              }}
+            >
+              تعيين تلقائي
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
