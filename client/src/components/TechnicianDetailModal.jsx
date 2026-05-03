@@ -17,6 +17,7 @@ import FormField from './ui/FormField';
 import Input from './ui/Input';
 import Select from './ui/Select';
 import Textarea from './ui/Textarea';
+import { STATUS_META } from './StatusPill';
 
 const STATUS_OPTIONS = [
   { value: 'available', label: 'متاح' },
@@ -24,8 +25,6 @@ const STATUS_OPTIONS = [
   { value: 'off_shift', label: 'خارج الدوام' },
   { value: 'on_leave',  label: 'في إجازة' },
 ];
-
-const STATUS_LABEL = Object.fromEntries(STATUS_OPTIONS.map((o) => [o.value, o.label]));
 
 function emptyForm() {
   return { name: '', role_id: '', phone: '', notes: '', status: 'available', active: 1 };
@@ -186,6 +185,7 @@ export default function TechnicianDetailModal({
           <div className="text-text-muted text-sm text-center py-8">جاري التحميل...</div>
         ) : (
           <form
+            id="tech-create-form"
             onSubmit={isEdit ? (e) => e.preventDefault() : handleCreate}
             className="flex flex-col gap-4"
           >
@@ -331,7 +331,7 @@ export default function TechnicianDetailModal({
                           <span className="font-mono" dir="ltr">{a.order_number || `#${a.order_id}`}</span>
                           <span>{a.item_name || a.item_type || '—'}</span>
                           <span className="text-text-faint">
-                            {STATUS_LABEL[a.status] || a.status || ''}
+                            {STATUS_META[a.status]?.label ?? a.status ?? ''}
                           </span>
                         </div>
                       ))}
@@ -355,7 +355,8 @@ export default function TechnicianDetailModal({
         {!isEdit && (
           <Button
             variant="primary"
-            onClick={handleCreate}
+            type="submit"
+            form="tech-create-form"
             loading={saving}
             disabled={loading}
             testId="tech-modal__submit"
