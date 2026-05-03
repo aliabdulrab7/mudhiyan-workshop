@@ -482,6 +482,26 @@ if (!columnExists('order_items', 'priority')) {
   db.exec(`UPDATE order_items SET priority = 'urgent' WHERE order_id IN (SELECT id FROM orders WHERE is_urgent = 1)`);
 }
 
+// ── WF-3: Technician status audit log ────────────────────────────────────────
+// Captures every status change for a technician. `reason` and the compound
+// (changed_at, to_status) index are forward-compatible with the analytics
+// instrumentation plan (Phase 2 Group A/B) so no backfill is needed later.
+// No existing rows to backfill — log starts at WF-3 deploy.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS technician_status_log (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    technician_id INTEGER NOT NULL REFERENCES technicians(id) ON DELETE CASCADE,
+    from_status   TEXT,
+    to_status     TEXT NOT NULL,
+    changed_by    INTEGER REFERENCES users(id),
+    reason        TEXT,
+    changed_at    TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_status_log_tech     ON technician_status_log(technician_id);
+  CREATE INDEX IF NOT EXISTS idx_status_log_at       ON technician_status_log(changed_at);
+  CREATE INDEX IF NOT EXISTS idx_status_log_at_status ON technician_status_log(changed_at, to_status);
+`);
+
 // Backfill: Ensure all orders have at least one record in order_items
 db.exec(`
   INSERT INTO order_items (order_id, item_type, item_name, quantity, notes, workshop_comment)
