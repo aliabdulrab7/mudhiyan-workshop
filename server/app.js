@@ -13,6 +13,7 @@ const techRouter       = require('./routes/technicians');
 const inventoryRouter  = require('./routes/inventory');
 const printRouter      = require('./routes/print');
 const repairOptsRouter = require('./routes/repair-options');
+const schedulerRouter  = require('./routes/scheduler');
 const rolesRouter      = require('./routes/roles');
 const specsRouter      = require('./routes/specializations');
 const { errorToHttpStatus } = require('./errors');
@@ -84,6 +85,7 @@ app.use('/api/specializations', specsRouter);
 app.use('/api/inventory',   inventoryRouter);
 app.use('/api/print',       printRouter);
 app.use('/api/repair-options', repairOptsRouter);
+app.use('/api/scheduler',     schedulerRouter);
 
 // 8.2 — Catch-all 404 for unmatched routes — returns JSON, not Express HTML page
 app.use((_req, res) => {
