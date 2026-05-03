@@ -13,6 +13,7 @@ const { db } = require('../db');
 const {
   TechnicianHasAssignmentsError,
   ValidationError,
+  InvalidStatusError,
 } = require('../errors');
 
 const STATUS_ENUM = ['available', 'busy', 'off_shift', 'on_leave'];
@@ -220,7 +221,7 @@ function validateName(name) {
 
 function validateStatus(status) {
   if (!STATUS_ENUM.includes(status)) {
-    throw new ValidationError(`الحالة غير صالحة: ${status}`);
+    throw new InvalidStatusError(status);
   }
   return status;
 }
@@ -498,19 +499,23 @@ const STATUS_SORT = { available: 0, busy: 1, off_shift: 2, on_leave: 3 };
 
 // changeStatus — atomic: writes technician_status_log row + updates technicians.status.
 // options: { reason?: string, changedBy?: number (users.id) }
-// Throws NotFoundError (404) on bad techId; ValidationError (422) on bad enum.
-// NOTE: ValidationError is used here because InvalidStatusError (Section 3) hasn't
-// been defined yet — TechnicianService will be updated to use it in Section 3.
+// Throws NotFoundError (404) on bad techId; InvalidStatusError (422) on bad enum.
 function changeStatus(techId, newStatus, { reason = null, changedBy = null } = {}) {
   const tech = readTechRow(techId);
   if (!tech) throw notFound('Technician', techId);
   validateStatus(newStatus);
 
+  // Degrade to null if changedBy doesn't resolve to a real user row (deleted
+  // user, synthetic test token, etc.) — prevents FK violation on the log INSERT.
+  const safeChangedBy = changedBy != null
+    ? (db.prepare('SELECT 1 FROM users WHERE id = ?').get(changedBy) ? changedBy : null)
+    : null;
+
   db.transaction(() => {
     db.prepare(`
       INSERT INTO technician_status_log (technician_id, from_status, to_status, changed_by, reason)
       VALUES (?, ?, ?, ?, ?)
-    `).run(techId, tech.status, newStatus, changedBy ?? null, reason ?? null);
+    `).run(techId, tech.status, newStatus, safeChangedBy, reason ?? null);
     db.prepare(`UPDATE technicians SET status = ? WHERE id = ?`).run(newStatus, techId);
   })();
 

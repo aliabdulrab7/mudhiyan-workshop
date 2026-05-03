@@ -105,6 +105,15 @@ class ValidationError extends Error {
   }
 }
 
+// WF-3: specific error for invalid technician status enum values.
+class InvalidStatusError extends Error {
+  constructor(value) {
+    super(`حالة غير صحيحة: ${value}`);
+    this.name = 'InvalidStatusError';
+    this.value = value;
+  }
+}
+
 /**
  * Map a service error to an HTTP status code.
  * Used by route handlers — keeps HTTP logic out of the service.
@@ -136,6 +145,7 @@ function errorToHttpStatus(err) {
     case 'DuplicateRoleError':             return 409;
     case 'DuplicateSpecializationError':   return 409;
     case 'ValidationError':                return 422;
+    case 'InvalidStatusError':             return 422;
     default:                               return 500;
   }
 }
@@ -154,5 +164,6 @@ module.exports = {
   DuplicateRoleError,
   DuplicateSpecializationError,
   ValidationError,
+  InvalidStatusError,
   errorToHttpStatus,
 };
