@@ -80,9 +80,11 @@ function getAssignedTech(itemId) {
 }
 
 function setSpecMap(itemType, specValues) {
-  // Update DB-backed spec map row directly for test setup
+  // Use single-quoted SQL strings to avoid JSON/double-quote escaping issues
+  const typeSafe = itemType.replace(/'/g, "''");
+  const jsonSafe = JSON.stringify(specValues).replace(/'/g, "''");
   sql(`INSERT OR REPLACE INTO item_type_spec_map (item_type, spec_values, updated_at)
-       VALUES (${JSON.stringify(itemType)}, ${JSON.stringify(JSON.stringify(specValues))}, datetime('now','localtime'));`);
+       VALUES ('${typeSafe}', '${jsonSafe}', datetime('now','localtime'));`);
 }
 
 function cleanupTechsByPrefix(prefix) {
@@ -418,10 +420,12 @@ test.describe('wf4-regression — WF-3 StatusChangeMenu unaffected', () => {
 
     await page.goto('/workshop-status', { waitUntil: 'networkidle' });
     await page.locator('[data-testid="workshop-status__grid"]').waitFor({ state: 'visible', timeout: 8000 });
+    // Wait for the specific tech card to appear before clicking
+    await page.locator(`[data-testid="workshop-status__card--${techId}"]`).waitFor({ state: 'visible', timeout: 8000 });
     await page.locator(`[data-testid="workshop-status__card--${techId}"]`).click();
 
-    // StatusChangeMenu dialog opens — click "مشغول" option by label text
-    await page.locator('[data-testid^="status-change-menu--"]').waitFor({ state: 'visible', timeout: 5000 });
+    // StatusChangeMenu dialog opens — wait for submit button to be visible
+    await page.locator(`[data-testid="status-change-menu--${techId}__submit"]`).waitFor({ state: 'visible', timeout: 5000 });
     await page.getByRole('button', { name: 'مشغول' }).click();
 
     const reasonInput = page.locator(`[data-testid="status-change-menu--${techId}__reason"]`);
