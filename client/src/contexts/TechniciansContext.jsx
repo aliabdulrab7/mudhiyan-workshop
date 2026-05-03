@@ -6,6 +6,11 @@ import { getTechnicians } from '../api/technicians';
 // the rest of the session. A failed fetch leaves status='error' and the
 // next ensureLoaded() retries — the failure is never permanently cached.
 // Mirrors the SettingsContext pattern.
+//
+// invalidate() resets the cache so the next ensureLoaded() refetches.
+// Called from TechniciansPage / TechnicianDetailModal after any mutation
+// (create / update / delete / specialization change) so assignment
+// dropdowns elsewhere see the new roster on their next open.
 
 const TechniciansCtx = createContext(null);
 
@@ -44,8 +49,15 @@ export function TechniciansProvider({ children }) {
     return p;
   }, [status, technicians]);
 
+  const invalidate = useCallback(() => {
+    inFlight.current = null;
+    setTechnicians(null);
+    setStatus('idle');
+    setError(null);
+  }, []);
+
   return (
-    <TechniciansCtx.Provider value={{ technicians, status, error, ensureLoaded }}>
+    <TechniciansCtx.Provider value={{ technicians, status, error, ensureLoaded, invalidate }}>
       {children}
     </TechniciansCtx.Provider>
   );

@@ -156,14 +156,14 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     const nextItems = prevItems.map(it => ({
       ...it,
       technician_id:       tech.id,
-      technician_name:     tech.specialization ?? null,
+      technician_name:     tech.name ?? null,
       technician_username: tech.username ?? null,
     }));
     setAssigningOrderTech(true);
     setOrder({ ...order, items: nextItems });
     try {
       await assignTechnicianToOrder(order.id, tech.id);
-      toast?.(`تم تعيين ${tech.specialization || `#${tech.id}`} لكل الأصناف`, 'success');
+      toast?.(`تم تعيين ${tech.name || `#${tech.id}`} لكل الأصناف`, 'success');
     } catch (e) {
       setOrder({ ...order, items: prevItems });
       toast?.(e.message || 'فشل تعيين الفني', 'error');
@@ -190,7 +190,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     const nextItems = prevItems.map(it => it.id === itemId ? {
       ...it,
       technician_id:       technician?.id ?? null,
-      technician_name:     technician?.specialization ?? null,
+      technician_name:     technician?.name ?? null,
       technician_username: technician?.username ?? null,
     } : it);
     setOrder({ ...order, items: nextItems });
@@ -672,7 +672,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
                 {' '}
                 هل تريد إعادة تعيينها كلها للفني{' '}
                 <strong style={{ color: 'var(--text)' }}>
-                  {pendingOrderTech?.specialization || `#${pendingOrderTech?.id}`}
+                  {pendingOrderTech?.name || `#${pendingOrderTech?.id}`}
                 </strong>
                 ؟
               </div>
@@ -899,7 +899,7 @@ function ItemTechCell({ item, canAssign, onAssign, techCtx }) {
               testId={item.id ? `order-detail__item__${item.id}__assign-option__${t.id}` : undefined}
               onSelect={() => onAssign(t)}
             >
-              {t.specialization || t.username || `#${t.id}`}
+              {t.name || t.username || `#${t.id}`}
               {t.id === item.technician_id && (
                 <Icons.Check size={11} style={{ marginInlineStart: 'auto', color: 'var(--primary)' }} />
               )}
@@ -1003,7 +1003,7 @@ function OrderTechTrigger({ orderTechName, isHeterogeneous, onlyTechId, busy, on
           testId={`order-detail__header__assign-option__${t.id}`}
           onSelect={() => onSelect(t)}
         >
-          {t.specialization || t.username || `#${t.id}`}
+          {t.name || t.username || `#${t.id}`}
           {!isHeterogeneous && t.id === onlyTechId && (
             <Icons.Check size={11} style={{ marginInlineStart: 'auto', color: 'var(--primary)' }} />
           )}

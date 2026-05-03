@@ -13,6 +13,8 @@ import TechniciansPage from './pages/TechniciansPage';
 import InventoryPage   from './pages/InventoryPage';
 import ServicesPage    from './pages/ServicesPage';
 import RepairOptionsPage from './pages/RepairOptionsPage';
+import RolesPage       from './pages/RolesPage';
+import SpecializationsPage from './pages/SpecializationsPage';
 import LabelPrintPage from './pages/LabelPrintPage';
 import OrdersPage     from './pages/OrdersPage';
 
@@ -39,6 +41,8 @@ export default function App() {
                 <Route path="/inventory"   element={<RoleRoute roles={["workshop"]}><InventoryPage /></RoleRoute>} />
                 <Route path="/services"    element={<RoleRoute roles={["workshop"]}><ServicesPage /></RoleRoute>} />
                 <Route path="/repair-options" element={<RoleRoute roles={["workshop"]}><RepairOptionsPage /></RoleRoute>} />
+                <Route path="/roles"           element={<RoleRoute roles={["workshop"]}><RolesPage /></RoleRoute>} />
+                <Route path="/specializations" element={<RoleRoute roles={["workshop"]}><SpecializationsPage /></RoleRoute>} />
                 <Route path="/orders/:id/label" element={<LabelPrintPage />} />
                 <Route path="*"         element={<Navigate to="/" replace />} />
               </Routes>
