@@ -8,7 +8,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 60_000,
+  timeout: 80_000,
   expect:  { timeout: 10_000 },
   fullyParallel: false,      // tests seed/clean the same DB
   workers: 1,

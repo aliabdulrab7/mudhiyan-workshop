@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './components/ToastProvider';
 import Layout       from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
 import RoleRoute    from './components/RoleRoute';
@@ -23,6 +24,7 @@ import SchedulerPage      from './pages/SchedulerPage';
 
 export default function App() {
   return (
+    <ToastProvider>
     <BrowserRouter>
       <Routes>
         {/* Public */}
@@ -57,5 +59,6 @@ export default function App() {
         } />
       </Routes>
     </BrowserRouter>
+    </ToastProvider>
   );
 }
