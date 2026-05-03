@@ -489,8 +489,121 @@ function suggestForItem(itemId, { limit = 5 } = {}) {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// WF-3: Status change (with audit log) + workload summary
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Status sort order for the workload summary board (available first → on_leave last).
+const STATUS_SORT = { available: 0, busy: 1, off_shift: 2, on_leave: 3 };
+
+// changeStatus — atomic: writes technician_status_log row + updates technicians.status.
+// options: { reason?: string, changedBy?: number (users.id) }
+// Throws NotFoundError (404) on bad techId; ValidationError (422) on bad enum.
+// NOTE: ValidationError is used here because InvalidStatusError (Section 3) hasn't
+// been defined yet — TechnicianService will be updated to use it in Section 3.
+function changeStatus(techId, newStatus, { reason = null, changedBy = null } = {}) {
+  const tech = readTechRow(techId);
+  if (!tech) throw notFound('Technician', techId);
+  validateStatus(newStatus);
+
+  db.transaction(() => {
+    db.prepare(`
+      INSERT INTO technician_status_log (technician_id, from_status, to_status, changed_by, reason)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(techId, tech.status, newStatus, changedBy ?? null, reason ?? null);
+    db.prepare(`UPDATE technicians SET status = ? WHERE id = ?`).run(newStatus, techId);
+  })();
+
+  return getDetail(techId);
+}
+
+// getWorkloadSummary — full roster snapshot for the live status board.
+// options: { activeOnly: boolean = true }
+// Sorted: available → busy → off_shift → on_leave, then name ASC.
+// current_item: most recently assigned active item (by oit.id desc), or null.
+function getWorkloadSummary({ activeOnly = true } = {}) {
+  const where = activeOnly ? 'WHERE t.active = 1' : '';
+
+  // Open-order predicate spelled out per-alias (OPEN_ORDER_PREDICATE uses `o.` prefix).
+  const OPEN_WL = `
+    o_wl.locked_at IS NULL
+    AND o_wl.status NOT IN ('cancelled','rejected','closed','delivered')
+  `;
+  const OPEN_CI = `
+    o_ci.locked_at IS NULL
+    AND o_ci.status NOT IN ('cancelled','rejected','closed','delivered')
+  `;
+
+  const rows = db.prepare(`
+    SELECT
+      t.id, t.name, t.status,
+      r.value          AS role_value,
+      r.display_label_ar AS role_display_label_ar,
+      COALESCE(wl.active_count, 0) AS active_count,
+      COALESCE(wl.urgent_count, 0) AS urgent_count,
+      ci.item_id       AS ci_item_id,
+      ci.item_name     AS ci_item_name,
+      ci.order_number  AS ci_order_number
+    FROM technicians t
+    LEFT JOIN roles r ON r.id = t.role_id
+    LEFT JOIN (
+      SELECT oit_wl.technician_id,
+             COUNT(*)  AS active_count,
+             SUM(CASE WHEN oi_wl.priority = 'urgent' THEN 1 ELSE 0 END) AS urgent_count
+      FROM order_item_technicians oit_wl
+      JOIN order_items oi_wl ON oi_wl.id = oit_wl.order_item_id
+      JOIN orders o_wl       ON o_wl.id  = oi_wl.order_id
+      WHERE ${OPEN_WL}
+      GROUP BY oit_wl.technician_id
+    ) wl ON wl.technician_id = t.id
+    LEFT JOIN (
+      SELECT oit_ci.technician_id,
+             oi_ci.id          AS item_id,
+             oi_ci.item_name,
+             o_ci.order_number
+      FROM order_item_technicians oit_ci
+      JOIN order_items oi_ci ON oi_ci.id = oit_ci.order_item_id
+      JOIN orders o_ci       ON o_ci.id  = oi_ci.order_id
+      WHERE ${OPEN_CI}
+        AND oit_ci.id = (
+          SELECT MAX(oit_x.id)
+          FROM order_item_technicians oit_x
+          JOIN order_items oi_x ON oi_x.id = oit_x.order_item_id
+          JOIN orders o_x       ON o_x.id  = oi_x.order_id
+          WHERE oit_x.technician_id = oit_ci.technician_id
+            AND o_x.locked_at IS NULL
+            AND o_x.status NOT IN ('cancelled','rejected','closed','delivered')
+        )
+    ) ci ON ci.technician_id = t.id
+    ${where}
+    ORDER BY
+      CASE t.status
+        WHEN 'available' THEN 0
+        WHEN 'busy'      THEN 1
+        WHEN 'off_shift' THEN 2
+        WHEN 'on_leave'  THEN 3
+        ELSE 4
+      END,
+      t.name ASC
+  `).all();
+
+  return rows.map(r => ({
+    id:                   r.id,
+    name:                 r.name,
+    role_value:           r.role_value,
+    role_display_label_ar: r.role_display_label_ar,
+    status:               r.status,
+    active_count:         r.active_count,
+    urgent_count:         r.urgent_count,
+    current_item:         r.ci_item_id != null
+      ? { item_id: r.ci_item_id, item_name: r.ci_item_name, order_number: r.ci_order_number }
+      : null,
+  }));
+}
+
 module.exports = {
   STATUS_ENUM,
+  STATUS_SORT,
   ITEM_TYPE_SPEC_MAP,
   list,
   getDetail,
@@ -503,6 +616,8 @@ module.exports = {
   pickerQuery,
   suggestForItem,
   _scoreAndRank,
+  changeStatus,
+  getWorkloadSummary,
   // exposed for tests + WF-1c reuse
   countOpenAssignments,
 };
