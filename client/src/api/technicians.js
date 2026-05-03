@@ -80,6 +80,31 @@ export async function deleteTechnician(id) {
   return data;
 }
 
+// Picker-optimised search endpoint.
+// GET /api/technicians/picker?q=&specialization_id=&status=&limit=&offset=
+// Default status=available; pass status=all to include busy/off_shift/on_leave.
+// Sort: active_count ASC, name ASC (least-busy first). Inactive techs excluded.
+export async function getTechniciansPicker({ q, specialization_id, status, limit = 30, offset = 0 } = {}) {
+  const params = { q, specialization_id, status, limit, offset, with: 'workload' };
+  const res = await fetch(`/api/technicians/picker${qs(params)}`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل تحميل الفنيين');
+  return data;
+}
+
+// Suggested technicians for a specific order item — scored by spec match + lowest workload.
+// GET /api/order-items/:id/suggested-technicians?limit=
+// Returns { item_id, item_type, matched_specializations, suggestions: [...] }.
+// Gracefully returns empty suggestions on 404/error (advisory, not load-bearing).
+export async function getSuggestedTechnicians(itemId, { limit = 5 } = {}) {
+  const res = await fetch(`/api/order-items/${itemId}/suggested-technicians${qs({ limit })}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) return { suggestions: [] };
+  const data = await res.json().catch(() => ({ suggestions: [] }));
+  return data;
+}
+
 export async function addTechnicianSpecialization(techId, specId) {
   const res = await fetch(`/api/technicians/${techId}/specializations`, {
     method: 'POST',

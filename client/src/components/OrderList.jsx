@@ -12,8 +12,7 @@ import Checkbox from './ui/Checkbox';
 import Chip from './ui/Chip';
 import Dialog from './ui/Dialog';
 import Input from './ui/Input';
-import Select from './ui/Select';
-import { useTechnicians } from '../contexts/TechniciansContext';
+import TechnicianPicker from './ui/TechnicianPicker';
 import { useToast } from './ToastProvider';
 
 const FILTER_DEFS = [
@@ -65,27 +64,22 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   const [withPhoneOnly, setWithPhoneOnly] = useState(false);
   const [groupBy, setGroupBy]     = useState('none'); // 'none' | 'status' | 'date'
   const isWorkshop = getRole() === 'workshop';
-  const techCtx = useTechnicians();
   const toast = useToast();
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
-  const [bulkAssignTechId, setBulkAssignTechId] = useState('');
+  const [bulkAssignTechId, setBulkAssignTechId] = useState(null);
   const [bulkAssigning, setBulkAssigning] = useState(false);
 
   function openBulkAssign() {
-    setBulkAssignTechId('');
+    setBulkAssignTechId(null);
     setBulkAssignOpen(true);
-    // Promise.resolve wrap: if ensureLoaded returns undefined (no provider) or
-    // null (legacy bug shape), .catch on that throws and would kill the page.
-    Promise.resolve(techCtx?.ensureLoaded?.()).catch(() => { /* surfaced inline */ });
   }
 
   async function submitBulkAssign() {
-    const techId = parseInt(bulkAssignTechId, 10);
-    if (!techId) return;
+    if (!bulkAssignTechId) return;
     const orderIds = [...bulkSelected];
     setBulkAssigning(true);
     try {
-      const res = await bulkAssignTechnician(orderIds, techId);
+      const res = await bulkAssignTechnician(orderIds, bulkAssignTechId);
       toast?.(`تم تعيين الفني لـ ${res.orders_updated} طلب`, 'success');
       setBulkAssignOpen(false);
       setBulkSelected(new Set());
@@ -582,27 +576,12 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
             <div style={{ fontSize: 12.5, color: 'var(--text-soft)' }}>
               سيتم تعيين الفني لكل أصناف الطلبات المحددة. أي تعيين قائم سيتم استبداله.
             </div>
-            {techCtx?.status === 'loading' && (
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>جاري التحميل...</div>
-            )}
-            {techCtx?.status === 'error' && (
-              <Alert variant="danger">فشل تحميل الفنيين. حاول مرة أخرى.</Alert>
-            )}
-            {techCtx?.status === 'ready' && techCtx.technicians?.length === 0 && (
-              <Alert variant="warning">لا يوجد فنيون مسجلون. أضف فنياً أولاً من صفحة الفنيين.</Alert>
-            )}
-            {techCtx?.status === 'ready' && techCtx.technicians?.length > 0 && (
-              <Select
-                value={bulkAssignTechId}
-                onChange={(e) => setBulkAssignTechId(e.target.value)}
-                placeholder="اختر فنياً"
-                testId="orders-list__bulk__assign-dialog__technician-select"
-                options={techCtx.technicians.map(t => ({
-                  value: String(t.id),
-                  label: t.specialization || t.username || `#${t.id}`,
-                }))}
-              />
-            )}
+            <TechnicianPicker
+              value={bulkAssignTechId}
+              onChange={(id) => setBulkAssignTechId(id)}
+              placeholder="اختر فنياً"
+              testId="orders-list__bulk__assign-dialog__technician-select"
+            />
           </div>
         </Dialog.Body>
         <Dialog.Footer>
@@ -617,7 +596,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
           <Button
             size="sm"
             variant="primary"
-            disabled={!bulkAssignTechId || techCtx?.status !== 'ready'}
+            disabled={!bulkAssignTechId}
             loading={bulkAssigning}
             onClick={submitBulkAssign}
             testId="orders-list__bulk__assign-dialog__confirm"
