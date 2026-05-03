@@ -210,7 +210,7 @@ Two new endpoints, both `requireRole('workshop')`:
 
 - **`NoSuitableTechnicianError`** — `server/errors/index.js`, maps to HTTP 422.
 
-**Coming in WF-6:** reporting/leaderboard.
+**WF-6 cancelled** — see `docs/specs/ANALYTICS-INSTRUMENTATION-PLAN.md`.
 
 ### WF-5 — Shift schedules + leave management + automated scheduler
 
