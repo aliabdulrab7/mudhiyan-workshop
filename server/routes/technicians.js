@@ -21,6 +21,14 @@ router.get('/', (req, res) => {
   res.json(result);
 });
 
+// GET /api/technicians/picker — optimized picker payload, least-busy first.
+// MUST stay before /:id to avoid Express matching 'picker' as an id.
+// Params: q, specialization_id, status (default 'available'; 'all' = no filter), limit, offset
+router.get('/picker', (req, res) => {
+  const { q, specialization_id, status, limit, offset } = req.query;
+  res.json(TechnicianService.pickerQuery({ q, specialization_id, status, limit, offset }));
+});
+
 // GET /api/technicians/:id — full detail
 router.get('/:id', (req, res) => {
   res.json(TechnicianService.getDetail(parseInt(req.params.id, 10)));
