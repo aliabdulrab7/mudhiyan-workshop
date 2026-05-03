@@ -24,7 +24,7 @@ import { execSync }      from 'node:child_process';
 const DB = '/Users/waled/Desktop/mudhiyan-workshop-qa-wf4/server/data/workshop.db';
 
 function sql(q) {
-  return execSync(`sqlite3 "${DB}" ${JSON.stringify(q.replace(/\s*\n\s*/g, ' '))}`, { encoding: 'utf8' }).trim();
+  return execSync(`sqlite3 "${DB}"`, { input: q.replace(/\s*\n\s*/g, ' '), encoding: 'utf8' }).trim();
 }
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
@@ -141,11 +141,12 @@ async function login(page, username, password) {
 async function openOrderDetail(page, orderNumber) {
   await page.goto('/orders', { waitUntil: 'networkidle' });
   // Search for the order number to surface it from any paginated/filtered state
-  const search = page.locator('[data-testid="order-list__search-input"]');
+  // OrdersPage uses DataTable with testIdPrefix="orders-list"
+  const search = page.locator('[data-testid="orders-list__search-input"]');
   await search.waitFor({ state: 'visible', timeout: 5000 });
   await search.fill(orderNumber);
   await page.waitForTimeout(400); // debounce
-  await page.locator(`[data-testid="order-list__row__${orderNumber}"]`).click({ timeout: 8000 });
+  await page.locator(`[data-testid="orders-list__row__${orderNumber}"]`).click({ timeout: 8000 });
   await page.waitForSelector('[data-testid^="order-detail__"]', { timeout: 8000 });
 }
 
@@ -338,13 +339,13 @@ test.describe('wf4-ui — auto-assign button', () => {
 test.describe('wf4-ui — spec-map admin', () => {
 
   test('spec-map admin page loads with seeded map entries', async ({ page }) => {
-    // The 5 seeded item types (خاتم, حلق, سوار, سلسلة, ساعة) should all appear.
+    // BE seeded: خاتم, حلق, قرط, سوار, عقد, دبلة, ساعة (7 rows)
     await login(page, 'workshop', 'workshop123');
     await openSpecMapAdmin(page);
 
     const list = page.getByTestId('spec-map-admin__list');
     await expect(list).toBeVisible();
-    for (const itemType of ['خاتم', 'حلق', 'سوار', 'سلسلة', 'ساعة']) {
+    for (const itemType of ['خاتم', 'حلق', 'سوار', 'ساعة']) {
       await expect(list).toContainText(itemType);
     }
   });
@@ -410,22 +411,25 @@ test.describe('wf4-regression — WF-3 StatusChangeMenu unaffected', () => {
 
   test('StatusChangeMenu still changes technician status after WF-4 merge', async ({ page }) => {
     // Verify the WF-3 status-change flow isn't broken by WF-4 changes.
+    // Actual testids: workshop-status__card--{techId} (click to open dialog),
+    // status-change-menu--{techId}__reason, status-change-menu--{techId}__submit
     await login(page, 'workshop', 'workshop123');
     const techId = seedTech(`${TPREFIX}فني`);
 
-    await page.goto('/workshop-status');
-    await page.waitForSelector(`[data-testid="status-page__tech-card--${techId}"]`);
+    await page.goto('/workshop-status', { waitUntil: 'networkidle' });
+    await page.locator('[data-testid="workshop-status__grid"]').waitFor({ state: 'visible', timeout: 8000 });
+    await page.locator(`[data-testid="workshop-status__card--${techId}"]`).click();
 
-    await page.getByTestId(`status-page__status-trigger--${techId}`).click();
-    await page.getByTestId('status-page__status-option--busy').click();
+    // StatusChangeMenu dialog opens — click "مشغول" option by label text
+    await page.locator('[data-testid^="status-change-menu--"]').waitFor({ state: 'visible', timeout: 5000 });
+    await page.getByRole('button', { name: 'مشغول' }).click();
 
-    const reasonInput = page.getByTestId('status-page__reason-input');
+    const reasonInput = page.locator(`[data-testid="status-change-menu--${techId}__reason"]`);
     if (await reasonInput.isVisible()) await reasonInput.fill('regression check');
 
-    const confirmBtn = page.getByTestId('status-page__confirm-change');
-    if (await confirmBtn.isVisible()) await confirmBtn.click();
+    await page.locator(`[data-testid="status-change-menu--${techId}__submit"]`).click();
 
-    await expect(page.getByTestId(`status-page__tech-card--${techId}`)).toContainText('مشغول');
+    await expect(page.locator(`[data-testid="workshop-status__card--${techId}"]`)).toContainText('مشغول');
   });
 });
 
