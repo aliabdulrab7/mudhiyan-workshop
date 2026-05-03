@@ -43,6 +43,7 @@ const navItems = [
   { to: '/roles',          icon: Icons.User,     label: 'الأدوار',       roles: ['workshop'] },
   { to: '/specializations',  icon: Icons.Tag,    label: 'التخصصات',     roles: ['workshop'] },
   { to: '/workshop-status', icon: Icons.Layers, label: 'حالة الورشة',  roles: ['workshop'] },
+  { to: '/spec-map',        icon: Icons.Tag,    label: 'خريطة التخصصات', roles: ['workshop'] },
 ];
 
 const mobileNav = [
