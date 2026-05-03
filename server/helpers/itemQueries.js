@@ -7,16 +7,18 @@
  * item; the subquery picks the most recent (MAX(id)) so this query always
  * returns exactly one row per item.
  *
- * Adds three nullable columns:
+ * Adds four nullable columns:
  *   technician_id       — id from technicians table, or NULL
- *   technician_name     — technicians.specialization (the display name), or NULL
+ *   technician_name     — technicians.name (display name), or NULL
+ *   technician_status   — technicians.status ('available'|'busy'|'off_shift'|'on_leave'), or NULL
  *   technician_username — joined via users, or NULL
  */
 const ITEMS_WITH_TECH_SQL = `
   SELECT
     oi.*,
     oit.technician_id  AS technician_id,
-    t.specialization   AS technician_name,
+    t.name             AS technician_name,
+    t.status           AS technician_status,
     u.username         AS technician_username
   FROM order_items oi
   LEFT JOIN (

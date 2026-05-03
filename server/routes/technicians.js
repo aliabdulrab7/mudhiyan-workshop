@@ -6,13 +6,15 @@ const router = express.Router();
 router.use(requireAuth);
 
 // POST /api/technicians — workshop only
+// WF-1a: minimal compat. Full create flow (role_id, specialization_ids, etc.)
+// lands in WF-1b TechnicianService.
 router.post('/', requireRole('workshop'), (req, res) => {
-  const { user_id, specialization } = req.body;
+  const { user_id, name } = req.body;
 
-  // user_id is optional — technician may not have a system login yet
+  // user_id is optional — technicians don't need a login (per WF-1 design)
   const result = db.prepare(`
-    INSERT INTO technicians (user_id, specialization) VALUES (?, ?)
-  `).run(user_id ?? null, specialization?.trim() ?? null);
+    INSERT INTO technicians (user_id, name) VALUES (?, ?)
+  `).run(user_id ?? null, name?.trim() ?? '');
 
   res.status(201).json(db.prepare(`
     SELECT t.*, u.username

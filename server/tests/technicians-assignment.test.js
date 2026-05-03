@@ -67,8 +67,8 @@ describe('POST /api/orders/:id/technicians', () => {
     makeItem(orderId);
     makeItem(orderId);
     makeItem(orderId);
-    techId     = db.prepare(`INSERT INTO technicians (specialization) VALUES ('ذهب')`).run().lastInsertRowid;
-    techIdAlt  = db.prepare(`INSERT INTO technicians (specialization) VALUES ('فضة')`).run().lastInsertRowid;
+    techId     = db.prepare(`INSERT INTO technicians (name) VALUES ('ذهب')`).run().lastInsertRowid;
+    techIdAlt  = db.prepare(`INSERT INTO technicians (name) VALUES ('فضة')`).run().lastInsertRowid;
   });
 
   it('assigns the technician to all items in the order', async () => {
@@ -171,7 +171,7 @@ describe('POST /api/orders/bulk/technicians', () => {
     reset();
     orderIds = [makeOrder(), makeOrder(), makeOrder()];
     for (const id of orderIds) { makeItem(id); makeItem(id); }
-    techId = db.prepare(`INSERT INTO technicians (specialization) VALUES ('ذهب')`).run().lastInsertRowid;
+    techId = db.prepare(`INSERT INTO technicians (name) VALUES ('ذهب')`).run().lastInsertRowid;
   });
 
   it('assigns the tech to every item across every order', async () => {
