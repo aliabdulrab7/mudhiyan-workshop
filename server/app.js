@@ -13,6 +13,8 @@ const techRouter       = require('./routes/technicians');
 const inventoryRouter  = require('./routes/inventory');
 const printRouter      = require('./routes/print');
 const repairOptsRouter = require('./routes/repair-options');
+const rolesRouter      = require('./routes/roles');
+const specsRouter      = require('./routes/specializations');
 const { errorToHttpStatus } = require('./errors');
 
 // ── Phase 2: wire payment validator + notification hook ───────────────────────
@@ -77,6 +79,8 @@ app.use('/api/customers',   customersRouter);
 app.use('/api/order-items', orderItemsRouter);
 app.use('/api/services',    servicesRouter);
 app.use('/api/technicians', techRouter);
+app.use('/api/roles',           rolesRouter);
+app.use('/api/specializations', specsRouter);
 app.use('/api/inventory',   inventoryRouter);
 app.use('/api/print',       printRouter);
 app.use('/api/repair-options', repairOptsRouter);

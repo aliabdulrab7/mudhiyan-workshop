@@ -226,9 +226,11 @@ describe('GET /api/technicians', () => {
 
   it('lists all technicians', async () => {
     // Workshop-only read (see workshop-only-reads.test.js for the 403 gate).
+    // WF-1b: response shape is { items, total, limit, offset }.
     const res = await request(app).get('/api/technicians').set(auth(wsToken));
     expect(res.status).toBe(200);
-    expect(res.body.length).toBe(2);
+    expect(res.body.total).toBe(2);
+    expect(res.body.items.length).toBe(2);
   });
 });
 

@@ -148,7 +148,36 @@ All three are workshop-only (`requireRole('workshop')`). Locked orders return 40
 
 The technician roster is lazy-fetched once per session via `TechniciansContext` (mirrors `SettingsContext`'s pattern: failed fetches leave `status='error'` and the next `ensureLoaded()` retries).
 
-`server/helpers/itemQueries.js` exposes `ITEMS_WITH_TECH_SQL` — every read of `order_items` goes through this so responses include `technician_id`, `technician_name`, `technician_username` for each item. The subquery picks `MAX(id)` per item so legacy multi-row data (from when the per-item endpoint was additive) doesn't multiply rows. The orders list endpoint also returns `technician_summary` per row: a single name when items are homogeneous, "متعدد" when they differ, or `NULL` when none assigned.
+`server/helpers/itemQueries.js` exposes `ITEMS_WITH_TECH_SQL` — every read of `order_items` goes through this so responses include `technician_id`, `technician_name` (= `technicians.name`), `technician_status`, `technician_username` for each item. The subquery picks `MAX(id)` per item so legacy multi-row data (from when the per-item endpoint was additive) doesn't multiply rows. The orders list endpoint also returns `technician_summary` per row: a single name when items are homogeneous, "متعدد" when they differ, or `NULL` when none assigned.
+
+### Workforce (WF-1) — roles, specializations, technician CRUD
+
+Path C is rebuilding the technician roster from a flat dropdown into real workforce management. WF-1 lays the schema + CRUD foundation; WF-2..6 layer on picker UX, workload visibility, status, schedules, and reporting.
+
+**Schema (db.js):**
+- `technicians`: gained `name` (replaces the old `specialization` text column — that column was load-bearing as the display name and is now dropped), plus `role_id` FK, `status` (`available`|`busy`|`off_shift`|`on_leave`), `phone`, `notes`, `active`. `user_id` stays nullable — technicians do NOT need a login.
+- `roles`: workshop-configurable. 4 seeded defaults (`jeweler`, `polisher`, `appraiser`, `apprentice`). English keys + `display_label_ar`. Same shape as `repair_options` minus `item_type` since these are workshop-global, not per piece-type.
+- `specializations`: same shape as `roles`. 12 seeded defaults (rings/chains/bracelets/earrings/watches/gold_work/silver_work/diamond_setting/gem_setting/engraving/polishing/repair_general).
+- `technician_specializations`: M:M with `UNIQUE(technician_id, specialization_id)` so re-adding a spec is idempotent.
+- `order_items.priority` (`urgent`|`standard`|`low`): schema only in WF-1, backfilled from `orders.is_urgent`. UI/sort/badges stay on `orders.is_urgent` until **WF-4** migrates them.
+
+**Status enum is enforced at the service layer, NOT in the DB.** SQLite `ALTER TABLE … ADD COLUMN` cannot carry a `CHECK` constraint, so the `status` enum lives in `TechnicianService.STATUS_ENUM` and is validated on `update()` / `PATCH`. If you add a new status value, update both `TechnicianService` and the test enum.
+
+**Service layer (`TechnicianService.js`):** mirrors `OrderService` — routes call the service, the service throws typed errors (`TechnicianHasAssignmentsError`, `RoleInUseError`, `SpecializationInUseError`, `DuplicateRoleError`, `DuplicateSpecializationError`, `ValidationError`), the global error middleware maps them. `softDelete()` blocks via `TechnicianHasAssignmentsError` when the tech has open assignments — "open" = items on orders where `locked_at IS NULL` AND `status NOT IN ('cancelled','rejected','closed','delivered')`.
+
+**Workload counts are derived per-technician, NOT joined into ITEMS_WITH_TECH_SQL.** That helper still surfaces only single-row tech metadata (id, name, status, username) for item reads. Workload is a separate aggregate exposed via `GET /api/technicians?with=workload` that returns `active_count` + `urgent_count` per row in the list response. This avoids recomputing aggregates per item row.
+
+**Endpoints (all workshop-only):**
+- `GET /api/technicians?role_id=&status=&search=&active=&with=workload&limit=&offset=` — paginated `{ items, total, limit, offset }`. `limit` default 20, capped at 100. Search is `name LIKE '%q%' COLLATE NOCASE`. Each item carries top-3 specializations; full list is on detail.
+- `GET /api/technicians/:id` — full detail + all specs + last 10 assignments + workload.
+- `POST /api/technicians` `{ name (required), role_id?, phone?, notes?, specialization_ids? }` → 201 detail.
+- `PATCH /api/technicians/:id` — subset of `{ name, role_id, phone, notes, status, active }`. Disallowed fields silently ignored.
+- `DELETE /api/technicians/:id` — soft (`active=0`). 409 if open assignments exist.
+- `POST /api/technicians/:id/specializations { specialization_id }` — idempotent via `INSERT OR IGNORE`.
+- `DELETE /api/technicians/:id/specializations/:specializationId`.
+- `GET|POST|PATCH|DELETE /api/roles` and `/api/specializations` — full CRUD. `value` is **not editable** on PATCH (silently ignored). DELETE is soft + blocks when referenced (`RoleInUseError` / `SpecializationInUseError`). 409 on duplicate `value`.
+
+**Coming in WF-2..6** (none of this exists yet): WF-2 searchable picker, WF-3 workload badges + status flips, WF-4 priority UI migration + auto-assign, WF-5 shift schedules + scheduler, WF-6 reporting/leaderboard.
 
 ## QA / Test Protocol
 
