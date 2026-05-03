@@ -140,9 +140,12 @@ async function login(page, username, password) {
 
 async function openOrderDetail(page, orderNumber) {
   await page.goto('/orders', { waitUntil: 'networkidle' });
-  await page.locator(`[data-testid="order-list__row__${orderNumber}"]`).click();
-  // Wait for the auto-assign button (always rendered for workshop role on unlocked orders)
-  // or the order detail container itself
+  // Search for the order number to surface it from any paginated/filtered state
+  const search = page.locator('[data-testid="order-list__search-input"]');
+  await search.waitFor({ state: 'visible', timeout: 5000 });
+  await search.fill(orderNumber);
+  await page.waitForTimeout(400); // debounce
+  await page.locator(`[data-testid="order-list__row__${orderNumber}"]`).click({ timeout: 8000 });
   await page.waitForSelector('[data-testid^="order-detail__"]', { timeout: 8000 });
 }
 
