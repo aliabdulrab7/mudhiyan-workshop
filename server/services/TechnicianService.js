@@ -336,8 +336,162 @@ function removeSpecialization(techId, specId) {
   return readSpecsForTech(techId);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// WF-2: Picker query + suggestion engine
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Item type → specialization value keys. Hardcoded for WF-2; configurable in WF-4.
+const ITEM_TYPE_SPEC_MAP = {
+  'خاتم': ['rings'],
+  'حلق':  ['earrings'],
+  'قرط':  ['earrings'],
+  'سوار': ['bracelets'],
+  'عقد':  ['chains'],
+  'دبلة': ['rings'],
+  'ساعة': ['watches'],
+};
+
+const STATUS_SCORE = {
+  available:  5,
+  busy:       0,
+  off_shift: -10,
+  on_leave:  -20,
+};
+
+// Workload subquery shared between pickerQuery and suggestForItem.
+const WORKLOAD_SUBQUERY = `
+  (
+    SELECT oit.technician_id, COUNT(*) AS active_count
+    FROM order_item_technicians oit
+    JOIN order_items oi ON oi.id = oit.order_item_id
+    JOIN orders o ON o.id = oi.order_id
+    WHERE ${OPEN_ORDER_PREDICATE}
+    GROUP BY oit.technician_id
+  )
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// pickerQuery — optimized minimal payload for the assignment picker UI.
+// Sorted least-busy first, inactive techs excluded.
+// status: default 'available'; pass 'all' to include all statuses.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function pickerQuery({ q = null, specialization_id = null, status = null, limit = 30, offset = 0 } = {}) {
+  const safeLimit  = Math.min(Math.max(parseInt(limit, 10)  || 30, 1), 100);
+  const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
+  // Build join + where clauses, keeping param order: [specJoin?, ...whereParams]
+  const joinParams  = [];
+  const whereParams = [];
+  const where = ['t.active = 1'];
+
+  const specJoin = specialization_id != null
+    ? `INNER JOIN technician_specializations ts_filter
+         ON ts_filter.technician_id = t.id AND ts_filter.specialization_id = ?`
+    : '';
+  if (specialization_id != null) joinParams.push(parseInt(specialization_id, 10));
+
+  const statusFilter = status === 'all' ? null : (status || 'available');
+  if (statusFilter) {
+    where.push('t.status = ?');
+    whereParams.push(statusFilter);
+  }
+  if (q) {
+    where.push('t.name LIKE ? COLLATE NOCASE');
+    whereParams.push(`%${q}%`);
+  }
+
+  const whereSql  = `WHERE ${where.join(' AND ')}`;
+  const allParams = [...joinParams, ...whereParams];
+
+  const total = db.prepare(`
+    SELECT COUNT(DISTINCT t.id) AS n
+    FROM technicians t
+    ${specJoin}
+    ${whereSql}
+  `).get(...allParams).n;
+
+  const rows = db.prepare(`
+    SELECT t.id, t.name, t.status,
+           r.value AS role_value, r.display_label_ar AS role_display_label_ar,
+           COALESCE(wl.active_count, 0) AS active_count
+    FROM technicians t
+    ${specJoin}
+    LEFT JOIN roles r ON r.id = t.role_id
+    LEFT JOIN ${WORKLOAD_SUBQUERY} wl ON wl.technician_id = t.id
+    ${whereSql}
+    GROUP BY t.id
+    ORDER BY active_count ASC, t.name ASC
+    LIMIT ? OFFSET ?
+  `).all(...allParams, safeLimit, safeOffset);
+
+  const ids = rows.map(r => r.id);
+  const specsByTech = readSpecsForTechs(ids);
+  const items = rows.map(r => ({ ...r, specializations: specsByTech.get(r.id) || [] }));
+
+  return { items, total };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _scoreAndRank — pure scoring function; testable in isolation.
+// techs: array of { id, name, status, active_count, specializations:[{value}] }
+// matchedSpecValues: string[] from ITEM_TYPE_SPEC_MAP lookup
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _scoreAndRank(techs, matchedSpecValues) {
+  return techs
+    .map(t => {
+      const techSpecValues = t.specializations.map(s => s.value);
+      const matched_specs  = matchedSpecValues.filter(v => techSpecValues.includes(v));
+      const score =
+        matched_specs.length * 10 +
+        (STATUS_SCORE[t.status] ?? 0) +
+        (t.active_count ?? 0) * -1;
+      return { ...t, score, matched_specs };
+    })
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, 'ar'));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// suggestForItem — rank active technicians by suitability for an order item.
+// Throws NotFoundError if the item doesn't exist.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function suggestForItem(itemId, { limit = 5 } = {}) {
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 5, 1), 20);
+
+  const item = db.prepare(`SELECT id, item_type FROM order_items WHERE id = ?`).get(itemId);
+  if (!item) throw notFound('OrderItem', itemId);
+
+  const matchedSpecValues = ITEM_TYPE_SPEC_MAP[item.item_type] || [];
+
+  const rows = db.prepare(`
+    SELECT t.id, t.name, t.status,
+           r.display_label_ar AS role_display_label_ar,
+           COALESCE(wl.active_count, 0) AS active_count
+    FROM technicians t
+    LEFT JOIN roles r ON r.id = t.role_id
+    LEFT JOIN ${WORKLOAD_SUBQUERY} wl ON wl.technician_id = t.id
+    WHERE t.active = 1
+  `).all();
+
+  const ids = rows.map(r => r.id);
+  const specsByTech = readSpecsForTechs(ids);
+  const techs = rows.map(r => ({ ...r, specializations: specsByTech.get(r.id) || [] }));
+
+  const ranked = _scoreAndRank(techs, matchedSpecValues);
+
+  return {
+    item_id:                item.id,
+    item_type:              item.item_type,
+    matched_specializations: matchedSpecValues,
+    suggestions:            ranked.slice(0, safeLimit),
+  };
+}
+
 module.exports = {
   STATUS_ENUM,
+  ITEM_TYPE_SPEC_MAP,
   list,
   getDetail,
   create,
@@ -346,6 +500,9 @@ module.exports = {
   addSpecialization,
   removeSpecialization,
   getWorkload,
+  pickerQuery,
+  suggestForItem,
+  _scoreAndRank,
   // exposed for tests + WF-1c reuse
   countOpenAssignments,
 };

@@ -7,7 +7,8 @@
 const express = require('express');
 const { db }  = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const OrderService  = require('../services/OrderService');
+const OrderService       = require('../services/OrderService');
+const TechnicianService  = require('../services/TechnicianService');
 const { syncItemCost, refreshOrderCost } = require('../helpers/costHelpers');
 const { errorToHttpStatus } = require('../errors');
 const { ITEMS_WITH_TECH_SQL } = require('../helpers/itemQueries');
@@ -288,6 +289,15 @@ router.post('/:id/technicians', requireRole('workshop'), (req, res) => {
       WHERE t.id = ?
     `).get(tech.id),
   });
+});
+
+// ── GET /api/order-items/:id/suggested-technicians ───────────────────────────
+// Ranks active technicians by specialization match + status + workload for the
+// given item. Uses ITEM_TYPE_SPEC_MAP from TechnicianService. 404 if item missing.
+router.get('/:id/suggested-technicians', requireRole('workshop'), (req, res) => {
+  const itemId = parseInt(req.params.id, 10);
+  const { limit } = req.query;
+  res.json(TechnicianService.suggestForItem(itemId, { limit }));
 });
 
 // ── DELETE /api/order-items/:id/technicians — unassign all technicians ────────
