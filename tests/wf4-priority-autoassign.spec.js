@@ -132,9 +132,8 @@ async function assertPriorityChip(page, itemId, priority) {
     await expect(chip).toBeVisible();
     await expect(chip).toContainText('منخفض');
   } else {
-    // standard: chip absent or contains "عادي"
-    const count = await chip.count();
-    if (count > 0) await expect(chip).toContainText('عادي');
+    // standard: NO chip rendered (FE design decision — less noise for default priority)
+    await expect(chip).toHaveCount(0);
   }
 }
 
@@ -182,15 +181,15 @@ test.describe('wf4-ui — priority chips on item rows', () => {
     await assertPriorityChip(page, itemId, 'urgent');
   });
 
-  test.fixme('standard item shows no chip (or "عادي") in OrderDetail row', async ({ page }) => {
-    // Seed order with default priority=standard — chip should be absent or show "عادي".
+  test.fixme('standard item shows NO chip in OrderDetail row', async ({ page }) => {
+    // FE design decision: standard priority renders no chip (less noise for the default).
     await login(page, 'workshop', 'workshop123');
     const orderNumber = `${PREFIX}STD-001`;
     const itemId = seedOrder(orderNumber, { status: 'in_repair' });
     // priority defaults to 'standard' in seed
 
     await openOrderDetail(page, orderNumber);
-    await assertPriorityChip(page, itemId, 'standard');
+    await assertPriorityChip(page, itemId, 'standard'); // asserts chip absent
   });
 
   test.fixme('low-priority item shows "منخفض" chip in OrderDetail row', async ({ page }) => {
@@ -242,6 +241,18 @@ test.describe('wf4-ui — auto-assign button', () => {
     await login(page, 'employee1', 'shop123');
     const orderNumber = `${PREFIX}EMPNO-001`;
     const itemId = seedOrder(orderNumber, { status: 'in_repair' });
+
+    await openOrderDetail(page, orderNumber);
+    await expect(page.getByTestId(`order-detail__item-row__auto-assign--${itemId}`)).toHaveCount(0);
+  });
+
+  test.fixme('auto-assign button is HIDDEN on locked orders (not 409 toast)', async ({ page }) => {
+    // FE design decision: button is hidden (canAssignTech=false) when order is locked.
+    // Do NOT assert a 409 error toast — assert the button is absent from the DOM.
+    await login(page, 'workshop', 'workshop123');
+    const orderNumber = `${PREFIX}LOCKED-001`;
+    const itemId = seedOrder(orderNumber, { status: 'in_repair' });
+    setOrderLocked(orderNumber);
 
     await openOrderDetail(page, orderNumber);
     await expect(page.getByTestId(`order-detail__item-row__auto-assign--${itemId}`)).toHaveCount(0);
