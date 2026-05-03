@@ -46,9 +46,27 @@ function TechCard({ tech, onClick }) {
       </div>
 
       {/* Status */}
-      <div style={{ marginBottom: tech.current_item ? 8 : 0 }}>
+      <div style={{ marginBottom: (tech.specializations?.length || tech.current_item) ? 8 : 0 }}>
         <StatusIndicator status={tech.status} label />
       </div>
+
+      {/* Specialization chips */}
+      {tech.specializations?.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: tech.current_item ? 8 : 0 }}>
+          {tech.specializations.map((s) => (
+            <span
+              key={s.id}
+              style={{
+                fontSize: 10, padding: '1px 5px', borderRadius: 3,
+                background: 'var(--surface-raised)', border: '1px solid var(--border)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {s.display_label_ar || s.value}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Current item */}
       {tech.current_item && (
