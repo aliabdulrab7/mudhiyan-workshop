@@ -210,7 +210,41 @@ Two new endpoints, both `requireRole('workshop')`:
 
 - **`NoSuitableTechnicianError`** — `server/errors/index.js`, maps to HTTP 422.
 
-**Coming in WF-5..6:** WF-5 shift schedules + scheduler, WF-6 reporting/leaderboard.
+**Coming in WF-6:** reporting/leaderboard.
+
+### WF-5 — Shift schedules + leave management + automated scheduler
+
+**Schema (db.js):**
+- `technician_shifts`: `(id, technician_id FK CASCADE, day_of_week CHECK(0–6), start_time, end_time, active DEFAULT 1; UNIQUE(technician_id, day_of_week))`. Soft-delete: `active=0`. Index on tech+day.
+- `technician_leaves`: `(id, technician_id FK CASCADE, leave_date, leave_type DEFAULT 'day_off', notes, created_by FK, created_at; UNIQUE(technician_id, leave_date))`. Hard-delete. Index on tech+date.
+- `leave_type` enum: `day_off | sick | vacation` — validated in `ShiftService`, not in DB schema.
+
+**Service layer (`server/services/ShiftService.js`):**
+- `getShifts(techId)` — returns `{ shifts, leaves }` for a tech; 404 if tech not found.
+- `upsertShift(techId, dayOfWeek, startTime, endTime)` — validates 0–6, `HH:MM` format, start < end; `ON CONFLICT DO UPDATE`; returns full row.
+- `deleteShift(techId, dayOfWeek)` — soft-delete (`active=0`); idempotent.
+- `upsertLeave(techId, leaveDate, leaveType, notes, createdBy)` — validates `YYYY-MM-DD` and `leave_type` enum; `ON CONFLICT DO UPDATE`; `createdBy` degraded to null if user row not found (prevents FK violation).
+- `deleteLeave(techId, leaveDate)` — hard-delete; idempotent.
+- `getKSANow()` — returns `{ currentTime: 'HH:MM', todayDate: 'YYYY-MM-DD', currentDay: 0–6 }` using `Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Riyadh', ... }).formatToParts(new Date())`. **Never use `new Date().getHours()`** — always use `Intl` with `Asia/Riyadh` to avoid server TZ dependency.
+- `computeTargetStatus(tech, shift, leave, currentTime)` — pure function (exported for unit tests). Leave beats shift. `busy` is never touched. Returns null if no change needed.
+- `getSchedulerStatus(getNow?)` — snapshot of what scheduler would do right now. `getNow` defaults to `getKSANow`; pass a stub in tests.
+- `runScheduler(getNow?)` — applies status changes for all active techs via `TechnicianService.changeStatus(techId, target, { reason: 'scheduler' })`. Returns `{ updated, skipped, changes }`. Idempotent. `getNow` defaults to `getKSANow`; pass a stub in tests.
+
+**KSA timezone invariant:** both `getSchedulerStatus` and `runScheduler` accept an optional `getNow` parameter (signature: `() => { currentTime, todayDate, currentDay }`) for testability. Tests pass a stub instead of fake timers — `Intl.DateTimeFormat.prototype.formatToParts` reads V8-internal `[[DateValue]]` which fake timers don't reliably patch.
+
+**Scheduler timer (`server/scheduler.js`):**
+- `start()` / `stop()` — exports only; `start()` is idempotent, `_timer.unref()` allows clean process exit without SIGTERM.
+- `index.js` guards the call: `if (process.env.NODE_ENV !== 'test') scheduler.start()` — Jest never starts the interval (avoids open-handle warnings).
+- Interval fires `ShiftService.runScheduler()` every 60 s; errors are caught and logged, not re-thrown.
+
+**Endpoints (all `requireRole('workshop')`):**
+- `GET /api/technicians/:id/shifts` → `{ shifts, leaves }`. 404 if tech not found. 403 for `shop_employee`.
+- `PUT /api/technicians/:id/shifts/:dayOfWeek` `{ start_time, end_time }` → 200 upserted row | 422 validation | 403.
+- `DELETE /api/technicians/:id/shifts/:dayOfWeek` → 200 `{ ok: true }` (idempotent) | 403.
+- `PUT /api/technicians/:id/leaves/:leaveDate` `{ leave_type?, notes? }` — `leave_type` defaults to `day_off` | 422 | 403.
+- `DELETE /api/technicians/:id/leaves/:leaveDate` → 200 `{ ok: true }` (idempotent) | 403.
+- `POST /api/scheduler/run` → `{ updated, skipped, changes }` (triggers scheduler immediately).
+- `GET /api/scheduler/status` → `{ current_time, current_day, today_date, technicians: [{ id, name, current_status, shift_today, leave_today, would_change_to }] }`.
 
 ## QA / Test Protocol
 
