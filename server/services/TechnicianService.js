@@ -14,6 +14,8 @@ const {
   TechnicianHasAssignmentsError,
   ValidationError,
   InvalidStatusError,
+  NoSuitableTechnicianError,
+  OrderLockedError,
 } = require('../errors');
 
 const STATUS_ENUM = ['available', 'busy', 'off_shift', 'on_leave'];
@@ -341,7 +343,71 @@ function removeSpecialization(techId, specId) {
 // WF-2: Picker query + suggestion engine
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Item type → specialization value keys. Hardcoded for WF-2; configurable in WF-4.
+// ─────────────────────────────────────────────────────────────────────────────
+// WF-4: DB-backed item-type → specialization map with 60-second TTL cache.
+// Source of truth is the item_type_spec_map table (seeded in db.js).
+// The legacy constant below is kept only for backwards-compat exports.
+// ─────────────────────────────────────────────────────────────────────────────
+
+let _specMapCache = null;
+
+function getItemTypeSpecMap() {
+  const now = Date.now();
+  if (_specMapCache && (now - _specMapCache.cachedAt) < 60_000) {
+    return _specMapCache.map;
+  }
+  const rows = db.prepare('SELECT item_type, spec_values FROM item_type_spec_map').all();
+  const map = new Map();
+  for (const row of rows) {
+    try { map.set(row.item_type, JSON.parse(row.spec_values)); }
+    catch { map.set(row.item_type, []); }
+  }
+  _specMapCache = { map, cachedAt: now };
+  return map;
+}
+
+function _invalidateSpecMapCache() {
+  _specMapCache = null;
+}
+
+// Upsert one item-type → spec-values row. Validates against active specializations.
+// Throws ValidationError on unknown spec value.
+function updateItemTypeSpecMap(itemType, specValues, updatedBy = null) {
+  if (!itemType || typeof itemType !== 'string') throw new ValidationError('item_type مطلوب');
+  if (!Array.isArray(specValues)) throw new ValidationError('spec_values يجب أن يكون مصفوفة');
+
+  if (specValues.length > 0) {
+    const known = new Set(
+      db.prepare('SELECT value FROM specializations WHERE active = 1').all().map(r => r.value)
+    );
+    const unknown = specValues.filter(v => !known.has(v));
+    if (unknown.length) throw new ValidationError(`تخصصات غير معروفة: ${unknown.join(', ')}`);
+  }
+
+  const safeUpdatedBy = updatedBy != null
+    ? (db.prepare('SELECT 1 FROM users WHERE id = ?').get(updatedBy) ? updatedBy : null)
+    : null;
+
+  db.prepare(`
+    INSERT INTO item_type_spec_map (item_type, spec_values, updated_by, updated_at)
+    VALUES (?, ?, ?, datetime('now','localtime'))
+    ON CONFLICT(item_type) DO UPDATE SET
+      spec_values = excluded.spec_values,
+      updated_by  = excluded.updated_by,
+      updated_at  = excluded.updated_at
+  `).run(itemType, JSON.stringify(specValues), safeUpdatedBy);
+
+  _invalidateSpecMapCache();
+
+  return db.prepare(`
+    SELECT m.*, u.username AS updated_by_username
+    FROM item_type_spec_map m
+    LEFT JOIN users u ON u.id = m.updated_by
+    WHERE m.item_type = ? COLLATE NOCASE
+  `).get(itemType);
+}
+
+// Backwards-compat: kept so existing imports/tests still resolve.
 const ITEM_TYPE_SPEC_MAP = {
   'خاتم': ['rings'],
   'حلق':  ['earrings'],
@@ -464,7 +530,7 @@ function suggestForItem(itemId, { limit = 5 } = {}) {
   const item = db.prepare(`SELECT id, item_type FROM order_items WHERE id = ?`).get(itemId);
   if (!item) throw notFound('OrderItem', itemId);
 
-  const matchedSpecValues = ITEM_TYPE_SPEC_MAP[item.item_type] || [];
+  const matchedSpecValues = getItemTypeSpecMap().get(item.item_type) ?? [];
 
   const rows = db.prepare(`
     SELECT t.id, t.name, t.status,
@@ -488,6 +554,58 @@ function suggestForItem(itemId, { limit = 5 } = {}) {
     matched_specializations: matchedSpecValues,
     suggestions:            ranked.slice(0, safeLimit),
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WF-4: autoAssign — score active techs and atomically assign the top result.
+// 422 NoSuitableTechnicianError when no active techs exist.
+// 409 OrderLockedError when the order is locked.
+// Forward-compat: writes assignment_method='auto' to assignment_history if that
+// table+column exist (analytics plan Phase 2 Group B — silently skipped otherwise).
+// ─────────────────────────────────────────────────────────────────────────────
+
+function autoAssign(orderItemId, { assignedBy = null } = {}) {
+  const item = db.prepare(`
+    SELECT oi.id, oi.item_type, oi.order_id, o.locked_at
+    FROM order_items oi
+    JOIN orders o ON o.id = oi.order_id
+    WHERE oi.id = ?
+  `).get(orderItemId);
+  if (!item) throw notFound('OrderItem', orderItemId);
+  if (item.locked_at) throw new OrderLockedError();
+
+  const result = suggestForItem(orderItemId, { limit: 1 });
+  if (!result.suggestions.length) throw new NoSuitableTechnicianError();
+
+  const top = result.suggestions[0];
+
+  db.transaction(() => {
+    db.prepare('DELETE FROM order_item_technicians WHERE order_item_id = ?').run(orderItemId);
+    db.prepare(`
+      INSERT INTO order_item_technicians (order_item_id, technician_id) VALUES (?, ?)
+    `).run(orderItemId, top.id);
+
+    const hasHistory = db.prepare(
+      "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assignment_history'"
+    ).get();
+    if (hasHistory) {
+      const hasMethodCol = db.prepare(
+        "SELECT 1 FROM pragma_table_info('assignment_history') WHERE name='assignment_method'"
+      ).get();
+      if (hasMethodCol) {
+        db.prepare(`
+          INSERT INTO assignment_history (order_item_id, technician_id, assignment_method, assigned_by)
+          VALUES (?, ?, 'auto', ?)
+        `).run(orderItemId, top.id, assignedBy ?? null);
+      }
+    }
+  })();
+
+  const technician = db.prepare(
+    'SELECT id, name, status, role_id FROM technicians WHERE id = ?'
+  ).get(top.id);
+
+  return { technician, score: top.score, matched_specs: top.matched_specs };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -621,6 +739,9 @@ module.exports = {
   pickerQuery,
   suggestForItem,
   _scoreAndRank,
+  getItemTypeSpecMap,
+  updateItemTypeSpecMap,
+  autoAssign,
   changeStatus,
   getWorkloadSummary,
   // exposed for tests + WF-1c reuse
