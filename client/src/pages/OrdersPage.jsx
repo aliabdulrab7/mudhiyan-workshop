@@ -178,7 +178,7 @@ export default function OrdersPage() {
         />
       </div>
 
-      {detailId && (
+      {detailId && detailOrder && (
         <OrderDetail
           order={detailOrder}
           orderId={detailId}
