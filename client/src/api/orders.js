@@ -22,11 +22,12 @@ export async function getOrder(id) {
   return data.order ?? data;
 }
 
-export async function getOrders({ status, search, shop_id } = {}) {
+export async function getOrders({ status, search, shop_id, limit } = {}) {
   const params = new URLSearchParams();
   if (status && status !== 'all') params.set('status', status);
   if (search) params.set('search', search);
   if (shop_id) params.set('shop_id', shop_id);
+  if (limit) params.set('limit', String(limit));
   const res = await fetch(`${BASE}?${params}`, { headers: authHeaders() });
   if (!res.ok) throw new Error('فشل تحميل الطلبات');
   return res.json();
