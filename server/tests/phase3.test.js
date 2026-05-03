@@ -203,16 +203,16 @@ describe('POST /api/technicians', () => {
     const res = await request(app)
       .post('/api/technicians')
       .set(auth(wsToken))
-      .send({ specialization: 'ذهب وفضة' });
+      .send({ name: 'ذهب وفضة' });
     expect(res.status).toBe(201);
-    expect(res.body.specialization).toBe('ذهب وفضة');
+    expect(res.body.name).toBe('ذهب وفضة');
   });
 
   it('shop_employee cannot create technician', async () => {
     const res = await request(app)
       .post('/api/technicians')
       .set(auth(shopToken))
-      .send({ specialization: 'ساعات' });
+      .send({ name: 'ساعات' });
     expect(res.status).toBe(403);
   });
 });
@@ -220,15 +220,17 @@ describe('POST /api/technicians', () => {
 describe('GET /api/technicians', () => {
   beforeEach(() => {
     db.prepare('DELETE FROM technicians').run();
-    db.prepare(`INSERT INTO technicians (specialization) VALUES ('ذهب')`).run();
-    db.prepare(`INSERT INTO technicians (specialization) VALUES ('فضة')`).run();
+    db.prepare(`INSERT INTO technicians (name) VALUES ('ذهب')`).run();
+    db.prepare(`INSERT INTO technicians (name) VALUES ('فضة')`).run();
   });
 
   it('lists all technicians', async () => {
     // Workshop-only read (see workshop-only-reads.test.js for the 403 gate).
+    // WF-1b: response shape is { items, total, limit, offset }.
     const res = await request(app).get('/api/technicians').set(auth(wsToken));
     expect(res.status).toBe(200);
-    expect(res.body.length).toBe(2);
+    expect(res.body.total).toBe(2);
+    expect(res.body.items.length).toBe(2);
   });
 });
 
@@ -568,8 +570,8 @@ describe('POST /api/order-items/:id/technicians (replace-style)', () => {
     db.prepare('DELETE FROM orders').run();
     orderId   = makeOrder({ order_number: `P3-TK-${Date.now()}` }).lastInsertRowid;
     itemId    = makeItem(orderId).lastInsertRowid;
-    techId    = db.prepare(`INSERT INTO technicians (specialization) VALUES ('ذهب')`).run().lastInsertRowid;
-    techIdAlt = db.prepare(`INSERT INTO technicians (specialization) VALUES ('فضة')`).run().lastInsertRowid;
+    techId    = db.prepare(`INSERT INTO technicians (name) VALUES ('ذهب')`).run().lastInsertRowid;
+    techIdAlt = db.prepare(`INSERT INTO technicians (name) VALUES ('فضة')`).run().lastInsertRowid;
   });
 
   it('assigns technician to item', async () => {
@@ -626,7 +628,7 @@ describe('DELETE /api/order-items/:id/technicians', () => {
     db.prepare('DELETE FROM orders').run();
     orderId = makeOrder({ order_number: `P3-TKD-${Date.now()}` }).lastInsertRowid;
     itemId  = makeItem(orderId).lastInsertRowid;
-    techId  = db.prepare(`INSERT INTO technicians (specialization) VALUES ('ذهب')`).run().lastInsertRowid;
+    techId  = db.prepare(`INSERT INTO technicians (name) VALUES ('ذهب')`).run().lastInsertRowid;
   });
 
   it('unassigns the technician from the item', async () => {

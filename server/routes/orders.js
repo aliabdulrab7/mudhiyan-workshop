@@ -112,7 +112,7 @@ router.get('/', (req, res) => {
       (SELECT
          CASE
            WHEN COUNT(DISTINCT t.id) = 0 THEN NULL
-           WHEN COUNT(DISTINCT t.id) = 1 THEN MAX(t.specialization)
+           WHEN COUNT(DISTINCT t.id) = 1 THEN MAX(t.name)
            ELSE 'متعدد'
          END
        FROM order_items oi

@@ -1,142 +1,402 @@
-import { useState, useEffect } from 'react';
-import { getTechnicians, createTechnician } from '../api/technicians';
+import { useEffect, useState } from 'react';
+import { listTechnicians } from '../api/technicians';
+import { getRoles } from '../api/roles';
+import { useTechnicians } from '../contexts/TechniciansContext';
 import { Icons } from '../components/icons';
+import TechnicianDetailModal from '../components/TechnicianDetailModal';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import FormField from '../components/ui/FormField';
+import Chip from '../components/ui/Chip';
 import Input from '../components/ui/Input';
 
+const PAGE_SIZE = 20;
+
+const STATUS_FILTERS = [
+  { value: 'available', label: 'متاح',         dot: 'var(--success)' },
+  { value: 'busy',      label: 'مشغول',        dot: 'var(--warning)' },
+  { value: 'off_shift', label: 'خارج الدوام', dot: 'var(--text-faint)' },
+  { value: 'on_leave',  label: 'في إجازة',     dot: 'var(--danger)' },
+];
+
+const STATUS_DOT   = Object.fromEntries(STATUS_FILTERS.map((s) => [s.value, s.dot]));
+const STATUS_LABEL = Object.fromEntries(STATUS_FILTERS.map((s) => [s.value, s.label]));
+
+const ACTIVE_FILTERS = [
+  { value: 'all',      label: 'الكل' },
+  { value: 'active',   label: 'فعّال' },
+  { value: 'inactive', label: 'موقوف' },
+];
+
 export default function TechniciansPage() {
-  const [technicians, setTechnicians] = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [showForm, setShowForm]       = useState(false);
-  const [submitting, setSubmitting]   = useState(false);
-  const [error, setError]             = useState('');
-  const [form, setForm]               = useState({ specialization: '' });
+  const techCtx = useTechnicians();
 
-  async function load() {
-    setLoading(true);
-    try { setTechnicians(await getTechnicians()); }
-    catch (e) { setError(e.message); }
-    finally { setLoading(false); }
-  }
+  const [searchInput, setSearchInput]   = useState('');
+  const [search, setSearch]             = useState('');
+  const [roleFilter, setRoleFilter]     = useState('');     // '' | role.id (number string)
+  const [statusFilter, setStatusFilter] = useState('');     // '' | enum
+  const [activeFilter, setActiveFilter] = useState('all');  // all | active | inactive
+  const [page, setPage]                 = useState(0);
 
-  useEffect(() => { load(); }, []);
+  const [items, setItems]   = useState([]);
+  const [total, setTotal]   = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]   = useState('');
+  const [roles, setRoles]   = useState([]);
+  const [reloadTick, setReloadTick] = useState(0);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError('');
-    try {
-      await createTechnician({ specialization: form.specialization });
-      setShowForm(false);
-      setForm({ specialization: '' });
-      await load();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setSubmitting(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
+  const [modalTechId, setModalTechId] = useState(null);
+
+  // Debounce the search input — 200ms, matches the brief. Resetting page is
+  // bundled here so the fetch effect can stay pure-effect (no setState in body).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(0);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Roles list for filter chips (workshop-defined vocabulary).
+  useEffect(() => {
+    async function loadRoles() {
+      try {
+        const r = await getRoles();
+        setRoles(Array.isArray(r) ? r.filter((x) => x.active !== 0) : []);
+      } catch { /* non-critical: filter chips just stay empty */ }
     }
+    loadRoles();
+  }, []);
+
+  // Fetch list. Filter setters reset page directly, so this effect doesn't
+  // need a separate reset-on-filter-change branch.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadList() {
+      setLoading(true);
+      setError('');
+      const params = {
+        search:  search || undefined,
+        role_id: roleFilter || undefined,
+        status:  statusFilter || undefined,
+        limit:   PAGE_SIZE,
+        offset:  page * PAGE_SIZE,
+      };
+      if (activeFilter === 'active')   params.active = 1;
+      if (activeFilter === 'inactive') params.active = 0;
+      try {
+        const data = await listTechnicians(params);
+        if (cancelled) return;
+        setItems(data.items ?? []);
+        setTotal(data.total ?? (data.items?.length ?? 0));
+      } catch (e) {
+        if (!cancelled) setError(e.message || 'فشل تحميل الفنيين');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadList();
+    return () => { cancelled = true; };
+  }, [search, roleFilter, statusFilter, activeFilter, page, reloadTick]);
+
+  function openCreate() {
+    setModalMode('create');
+    setModalTechId(null);
+    setModalOpen(true);
   }
+  function openEdit(t) {
+    setModalMode('edit');
+    setModalTechId(t.id);
+    setModalOpen(true);
+  }
+
+  // After any save, refetch the management list AND invalidate the roster
+  // cache so assignment dropdowns elsewhere see the new state on next open.
+  function handleSaved() {
+    techCtx?.invalidate?.();
+    setPage(0);
+    setReloadTick((n) => n + 1);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Fallback resolver — server normally returns flat role_value/role_display_label_ar
+  // on each tech row, but we keep this for the case where only role_id is set.
+  const roleNameFor = (id) => {
+    const r = roles.find((x) => x.id === id);
+    return r ? (r.display_label_ar || r.value) : null;
+  };
 
   return (
     <div>
       <div className="page-head">
         <div>
           <h1 className="page-title">الفنيون</h1>
-          <div className="page-sub">إدارة فنيي الورشة وتخصصاتهم</div>
+          <div className="page-sub">إدارة فنيي الورشة وأدوارهم وتخصصاتهم</div>
         </div>
         <div className="page-actions">
-          {!showForm && (
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Icons.Plus size={12} />}
-              onClick={() => { setForm({ specialization: '' }); setError(''); setShowForm(true); }}
-              testId="technicians__add-button"
-            >
-              إضافة فني
-            </Button>
-          )}
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Icons.Plus size={12} />}
+            onClick={openCreate}
+            testId="technicians__add-button"
+          >
+            إضافة فني
+          </Button>
         </div>
       </div>
 
-      <div style={{ padding: '0 24px 24px', maxWidth: 680 }}>
-        {/* Create form */}
-        {showForm && (
-          <Card style={{ padding: '20px 24px', marginBottom: 16 }}>
-            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إضافة فني جديد</div>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <FormField label="التخصص">
-                <Input value={form.specialization}
-                  onChange={e => setForm(f => ({ ...f, specialization: e.target.value }))}
-                  placeholder="مثال: تصليح ذهب، تركيب أحجار" required autoFocus
-                  testId="technicians__form__specialization-input" />
-              </FormField>
-              {error && <Alert variant="danger">{error}</Alert>}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button
-                  variant="primary"
-                  type="submit"
-                  loading={submitting}
-                  className="flex-1 justify-center"
-                  testId="technicians__form__submit"
-                >
-                  {submitting ? 'جاري الحفظ...' : 'حفظ'}
-                </Button>
-                <Button
-                  variant="ghost"
-                  type="button"
-                  onClick={() => { setShowForm(false); setError(''); }}
-                  testId="technicians__form__cancel"
-                >
-                  إلغاء
-                </Button>
-              </div>
-            </form>
-          </Card>
-        )}
+      <div style={{ padding: '0 24px 24px' }}>
+        {/* Search + filters */}
+        <Card style={{ padding: '14px 16px', marginBottom: 12 }}>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Icons.Search size={14} stroke="var(--text-muted)" />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="ابحث بالاسم أو الجوال أو الملاحظات..."
+                testId="technicians__search-input"
+              />
+            </div>
 
-        {/* Error outside form */}
-        {error && !showForm && (
+            {/* Status chips */}
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">
+                الحالة:
+              </span>
+              <Chip
+                active={statusFilter === ''}
+                onClick={() => { setStatusFilter(''); setPage(0); }}
+                testId="technicians__filter__status__all"
+              >
+                الكل
+              </Chip>
+              {STATUS_FILTERS.map((s) => (
+                <Chip
+                  key={s.value}
+                  active={statusFilter === s.value}
+                  onClick={() => { setStatusFilter(statusFilter === s.value ? '' : s.value); setPage(0); }}
+                  testId={`technicians__filter__status__${s.value}`}
+                >
+                  {s.label}
+                </Chip>
+              ))}
+            </div>
+
+            {/* Role chips */}
+            {roles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">
+                  الدور:
+                </span>
+                <Chip
+                  active={roleFilter === ''}
+                  onClick={() => { setRoleFilter(''); setPage(0); }}
+                  testId="technicians__filter__role__all"
+                >
+                  الكل
+                </Chip>
+                {roles.map((r) => (
+                  <Chip
+                    key={r.id}
+                    active={roleFilter === String(r.id)}
+                    onClick={() => { setRoleFilter(roleFilter === String(r.id) ? '' : String(r.id)); setPage(0); }}
+                    testId={`technicians__filter__role__${r.value}`}
+                  >
+                    {r.display_label_ar || r.value}
+                  </Chip>
+                ))}
+              </div>
+            )}
+
+            {/* Active toggle */}
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">
+                الإيقاف:
+              </span>
+              {ACTIVE_FILTERS.map((a) => (
+                <Chip
+                  key={a.value}
+                  active={activeFilter === a.value}
+                  onClick={() => { setActiveFilter(a.value); setPage(0); }}
+                  testId={`technicians__filter__active__${a.value}`}
+                >
+                  {a.label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {error && (
           <div style={{ marginBottom: 12 }}>
             <Alert variant="danger">{error}</Alert>
           </div>
         )}
 
-        {/* Technicians list */}
+        {/* List */}
         {loading ? (
-          <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
-        ) : technicians.length === 0 ? (
+          <div className="text-text-muted text-center py-10 text-sm">جاري التحميل...</div>
+        ) : items.length === 0 ? (
           <Card style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
-            لا يوجد فنيون مسجلون
+            لا يوجد فنيون مطابقون لهذا التصفية
           </Card>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {technicians.map(tech => (
-              <Card key={tech.id} style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 'var(--radius-sm)',
-                  background: 'var(--primary-soft)', border: '1px solid var(--border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <Icons.User size={16} stroke="var(--primary)" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{tech.specialization}</div>
-                  {tech.username && (
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                      <span className="mono" style={{ color: 'var(--text-faint)' }}>#{tech.id}</span>
-                      {' · '}{tech.username}
+          <>
+            <div className="flex flex-col gap-2">
+              {items.map((t) => {
+                // Server returns specializations_top3 on list rows; full set on detail.
+                const specsArr = t.specializations_top3 || t.specializations || [];
+                const specs = specsArr.slice(0, 3);
+                const moreSpecs = Math.max(0, (specsArr.length || 0) - 3);
+                const roleLabel = t.role_display_label_ar || t.role_value || roleNameFor(t.role_id);
+                return (
+                  <Card
+                    key={t.id}
+                    as="button"
+                    onClick={() => openEdit(t)}
+                    style={{
+                      padding: '14px 18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 14,
+                      width: '100%',
+                      textAlign: 'start',
+                      cursor: 'pointer',
+                      opacity: t.active === 0 ? 0.55 : 1,
+                    }}
+                    testId={`technicians__row__${t.id}`}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 'var(--radius-sm)',
+                      background: 'var(--primary-soft)', border: '1px solid var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <Icons.User size={16} stroke="var(--primary)" />
                     </div>
-                  )}
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span style={{ fontWeight: 600, fontSize: 13 }}>
+                          {t.name || `#${t.id}`}
+                        </span>
+                        {roleLabel && (
+                          <span
+                            className="text-[10.5px] font-semibold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-sm"
+                            style={{
+                              background: 'var(--primary-soft)',
+                              color: 'var(--primary)',
+                              border: '1px solid var(--border)',
+                            }}
+                          >
+                            {roleLabel}
+                          </span>
+                        )}
+                        {t.active === 0 && (
+                          <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint">
+                            موقوف
+                          </span>
+                        )}
+                      </div>
+
+                      {(specs.length > 0 || t.phone) && (
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                          {specs.map((s) => (
+                            <span
+                              key={s.id}
+                              className="text-[10.5px] px-1.5 py-0.5 rounded-sm"
+                              style={{
+                                background: 'var(--bg-soft)',
+                                color: 'var(--text-muted)',
+                                border: '1px solid var(--border)',
+                              }}
+                            >
+                              {s.display_label_ar || s.value}
+                            </span>
+                          ))}
+                          {moreSpecs > 0 && (
+                            <span className="text-[10.5px] text-text-faint">
+                              +{moreSpecs}
+                            </span>
+                          )}
+                          {t.phone && (
+                            <span className="font-mono text-[11px] text-text-faint" dir="ltr">
+                              {t.phone}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Status dot */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span
+                        aria-label={STATUS_LABEL[t.status] || t.status}
+                        title={STATUS_LABEL[t.status] || t.status}
+                        style={{
+                          width: 8, height: 8, borderRadius: '50%',
+                          background: STATUS_DOT[t.status] || 'var(--text-faint)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span className="text-[11px] text-text-muted">
+                        {STATUS_LABEL[t.status] || ''}
+                      </span>
+                    </div>
+
+                    {/* Workload */}
+                    <div className="flex-shrink-0 text-end" style={{ minWidth: 56 }}>
+                      <div className="font-mono text-sm text-text">{t.active_count ?? 0}</div>
+                      <div className="text-[10px] text-text-faint">قطعة نشطة</div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  testId="technicians__pagination__prev"
+                >
+                  السابق
+                </Button>
+                <div className="text-xs text-text-muted">
+                  صفحة <span className="font-mono">{page + 1}</span> من <span className="font-mono">{totalPages}</span>
+                  {' · '}
+                  <span className="font-mono">{total}</span> فني
                 </div>
-              </Card>
-            ))}
-          </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={page + 1 >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  testId="technicians__pagination__next"
+                >
+                  التالي
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      <TechnicianDetailModal
+        open={modalOpen}
+        mode={modalMode}
+        techId={modalTechId}
+        onClose={() => setModalOpen(false)}
+        onSaved={handleSaved}
+      />
     </div>
   );
 }

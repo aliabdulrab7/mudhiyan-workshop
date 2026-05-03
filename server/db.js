@@ -365,6 +365,123 @@ if (repairOptsCount === 0) {
   console.log(`✓ Seeded repair_options with ${Object.values(DEFAULTS).flat().length} defaults`);
 }
 
+// ── WF-1: Workforce management foundation ────────────────────────────────────
+// Roles + specializations are workshop-configurable lists with seeded defaults
+// (mirrors the repair_options pattern, minus item_type since these are
+// workshop-global, not per piece-type). English keys + Arabic display labels.
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS roles (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    value            TEXT NOT NULL UNIQUE,
+    display_label_ar TEXT NOT NULL,
+    sort_order       INTEGER NOT NULL DEFAULT 0,
+    active           INTEGER NOT NULL DEFAULT 1,
+    created_at       TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+
+  CREATE TABLE IF NOT EXISTS specializations (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    value            TEXT NOT NULL UNIQUE,
+    display_label_ar TEXT NOT NULL,
+    sort_order       INTEGER NOT NULL DEFAULT 0,
+    active           INTEGER NOT NULL DEFAULT 1,
+    created_at       TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+
+  CREATE TABLE IF NOT EXISTS technician_specializations (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    technician_id     INTEGER NOT NULL REFERENCES technicians(id) ON DELETE CASCADE,
+    specialization_id INTEGER NOT NULL REFERENCES specializations(id),
+    created_at        TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    UNIQUE(technician_id, specialization_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_tech_specs_tech ON technician_specializations(technician_id);
+`);
+
+// First-run seed for roles (preserved across restarts via "if empty" guard)
+const rolesCount = db.prepare('SELECT COUNT(*) AS n FROM roles').get().n;
+if (rolesCount === 0) {
+  const insertRole = db.prepare(
+    `INSERT INTO roles (value, display_label_ar, sort_order) VALUES (?, ?, ?)`
+  );
+  const seedRoles = db.transaction(() => {
+    [
+      ['jeweler',    'جوهرجي'],
+      ['polisher',   'ملمّع'],
+      ['appraiser',  'مثمّن'],
+      ['apprentice', 'متدرب'],
+    ].forEach(([value, label], i) => insertRole.run(value, label, i));
+  });
+  seedRoles();
+  console.log('✓ Seeded roles with 4 defaults');
+}
+
+// First-run seed for specializations
+const specsCount = db.prepare('SELECT COUNT(*) AS n FROM specializations').get().n;
+if (specsCount === 0) {
+  const insertSpec = db.prepare(
+    `INSERT INTO specializations (value, display_label_ar, sort_order) VALUES (?, ?, ?)`
+  );
+  const seedSpecs = db.transaction(() => {
+    [
+      ['rings',           'خواتم'],
+      ['chains',          'سلاسل'],
+      ['bracelets',       'أساور'],
+      ['earrings',        'أقراط'],
+      ['watches',         'ساعات'],
+      ['gold_work',       'أعمال ذهب'],
+      ['silver_work',     'أعمال فضة'],
+      ['diamond_setting', 'تركيب الماس'],
+      ['gem_setting',     'تركيب الأحجار'],
+      ['engraving',       'نقش'],
+      ['polishing',       'تلميع'],
+      ['repair_general',  'إصلاح عام'],
+    ].forEach(([value, label], i) => insertSpec.run(value, label, i));
+  });
+  seedSpecs();
+  console.log('✓ Seeded specializations with 12 defaults');
+}
+
+// Technicians schema migration: rename specialization → name + add operational
+// columns. Deterministic, no per-row branching: ALL existing specialization
+// values move into name, with users.username as a fallback only when name is
+// blank AND the row has a user_id. ALTER ADD COLUMN can't carry CHECK
+// constraints, so status is enforced at the application/service layer
+// ('available' | 'busy' | 'off_shift' | 'on_leave').
+if (!columnExists('technicians', 'name')) {
+  db.exec(`ALTER TABLE technicians ADD COLUMN name TEXT NOT NULL DEFAULT ''`);
+}
+if (columnExists('technicians', 'specialization')) {
+  db.exec(`UPDATE technicians SET name = specialization WHERE specialization IS NOT NULL AND name = ''`);
+  db.exec(`UPDATE technicians SET name = (SELECT username FROM users WHERE id = technicians.user_id) WHERE name = '' AND user_id IS NOT NULL`);
+  db.exec(`ALTER TABLE technicians DROP COLUMN specialization`);
+}
+if (!columnExists('technicians', 'role_id')) {
+  db.exec(`ALTER TABLE technicians ADD COLUMN role_id INTEGER REFERENCES roles(id)`);
+}
+if (!columnExists('technicians', 'status')) {
+  db.exec(`ALTER TABLE technicians ADD COLUMN status TEXT NOT NULL DEFAULT 'available'`);
+}
+if (!columnExists('technicians', 'phone')) {
+  db.exec(`ALTER TABLE technicians ADD COLUMN phone TEXT`);
+}
+if (!columnExists('technicians', 'notes')) {
+  db.exec(`ALTER TABLE technicians ADD COLUMN notes TEXT`);
+}
+if (!columnExists('technicians', 'active')) {
+  db.exec(`ALTER TABLE technicians ADD COLUMN active INTEGER NOT NULL DEFAULT 1`);
+}
+
+// Per-item priority (schema only; UI/sort migration deferred to WF-4).
+// Backfilled from the existing orders.is_urgent flag so per-item rows on
+// urgent orders inherit the urgent priority. orders.is_urgent stays
+// authoritative for the UI/sort/badges until WF-4 migrates them.
+if (!columnExists('order_items', 'priority')) {
+  db.exec(`ALTER TABLE order_items ADD COLUMN priority TEXT NOT NULL DEFAULT 'standard'`);
+  db.exec(`UPDATE order_items SET priority = 'urgent' WHERE order_id IN (SELECT id FROM orders WHERE is_urgent = 1)`);
+}
+
 // Backfill: Ensure all orders have at least one record in order_items
 db.exec(`
   INSERT INTO order_items (order_id, item_type, item_name, quantity, notes, workshop_comment)
