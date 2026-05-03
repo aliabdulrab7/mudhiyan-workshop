@@ -1,5 +1,6 @@
-const app  = require('./app');
-const os   = require('os');
+const app       = require('./app');
+const os        = require('os');
+const scheduler = require('./scheduler');
 const PORT = process.env.PORT || 3737;
 
 // 6.1 — Production startup guard
@@ -18,4 +19,5 @@ app.listen(PORT, '0.0.0.0', () => {
     }
   }
   console.log(`✅ Server running on http://localhost:${PORT} (LAN: ${lan}:${PORT})`);
+  if (process.env.NODE_ENV !== 'test') scheduler.start();
 });
