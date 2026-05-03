@@ -533,6 +533,41 @@ db.transaction(() => {
   for (const row of seedMap) insert.run(row.item_type, row.spec_values);
 })();
 
+// ── WF-5: Shift schedules + leave tracking ───────────────────────────────────
+// technician_shifts: one row per tech per day of week (0=Sun … 6=Sat).
+// UNIQUE(technician_id, day_of_week) → upsert via INSERT OR REPLACE.
+// Soft-deleted (active=0) so schedule history is preserved.
+//
+// technician_leaves: per-date override — overrides shift entirely.
+// UNIQUE(technician_id, leave_date) → upsert via INSERT OR REPLACE.
+// Hard-deleted when removed (specific date, not a permanent record).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS technician_shifts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    technician_id INTEGER NOT NULL REFERENCES technicians(id) ON DELETE CASCADE,
+    day_of_week   INTEGER NOT NULL CHECK(day_of_week BETWEEN 0 AND 6),
+    start_time    TEXT NOT NULL,
+    end_time      TEXT NOT NULL,
+    active        INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(technician_id, day_of_week)
+  );
+  CREATE INDEX IF NOT EXISTS idx_shifts_tech ON technician_shifts(technician_id);
+  CREATE INDEX IF NOT EXISTS idx_shifts_day  ON technician_shifts(day_of_week, active);
+
+  CREATE TABLE IF NOT EXISTS technician_leaves (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    technician_id INTEGER NOT NULL REFERENCES technicians(id) ON DELETE CASCADE,
+    leave_date    TEXT NOT NULL,
+    leave_type    TEXT NOT NULL DEFAULT 'day_off',
+    notes         TEXT,
+    created_by    INTEGER REFERENCES users(id),
+    created_at    TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    UNIQUE(technician_id, leave_date)
+  );
+  CREATE INDEX IF NOT EXISTS idx_leaves_tech ON technician_leaves(technician_id);
+  CREATE INDEX IF NOT EXISTS idx_leaves_date ON technician_leaves(leave_date);
+`);
+
 // Backfill: Ensure all orders have at least one record in order_items
 db.exec(`
   INSERT INTO order_items (order_id, item_type, item_name, quantity, notes, workshop_comment)

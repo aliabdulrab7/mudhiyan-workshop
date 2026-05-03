@@ -21,7 +21,7 @@
 import { test, expect } from '@playwright/test';
 import { execSync }      from 'node:child_process';
 
-const DB = '/Users/waled/Desktop/mudhiyan-workshop-qa-wf4/server/data/workshop.db';
+const DB = '/Users/waled/Desktop/mudhiyan-workshop-qa-wf5/server/data/workshop.db';
 
 function sql(q) {
   return execSync(`sqlite3 "${DB}" ${JSON.stringify(q.replace(/\s*\n\s*/g, ' '))}`, { encoding: 'utf8' }).trim();
@@ -583,8 +583,8 @@ test.describe('wf3-regression — WF-2 picker unaffected', () => {
 
   test('per-item TechnicianPicker still opens and assigns', async ({ page }) => {
     await login(page, 'workshop', 'workshop123');
-    await page.goto('/orders', { waitUntil: 'networkidle' });
-    await page.locator(`[data-testid="orders-list__row__${ORDER}"]`).click();
+    await page.goto('/orders', { waitUntil: 'load' });
+    await page.locator(`[data-testid="orders-list__row__${ORDER}"]`).click({ timeout: 8000 });
     await page.waitForTimeout(400);
 
     // Advance status to hydrate items (pre-existing OrderDetail design)

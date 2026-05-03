@@ -21,7 +21,7 @@
 import { test, expect } from '@playwright/test';
 import { execSync }      from 'node:child_process';
 
-const DB = '/Users/waled/Desktop/mudhiyan-workshop-qa-wf4/server/data/workshop.db';
+const DB = '/Users/waled/Desktop/mudhiyan-workshop-qa-wf5/server/data/workshop.db';
 
 function sql(q) {
   return execSync(`sqlite3 "${DB}"`, { input: q.replace(/\s*\n\s*/g, ' '), encoding: 'utf8' }).trim();
@@ -141,7 +141,7 @@ async function login(page, username, password) {
 // ── Inline helpers ────────────────────────────────────────────────────────────
 
 async function openOrderDetail(page, orderNumber) {
-  await page.goto('/orders', { waitUntil: 'networkidle' });
+  await page.goto('/orders', { waitUntil: 'load' });
   // Search for the order number to surface it from any paginated/filtered state
   // OrdersPage uses DataTable with testIdPrefix="orders-list"
   const search = page.locator('[data-testid="orders-list__search-input"]');
@@ -172,7 +172,7 @@ async function clickAutoAssign(page, itemId) {
 }
 
 async function openSpecMapAdmin(page) {
-  await page.goto('/spec-map', { waitUntil: 'networkidle' });
+  await page.goto('/spec-map', { waitUntil: 'load' });
   await page.waitForSelector('[data-testid="spec-map-admin__list"]', { timeout: 8000 });
 }
 
@@ -260,7 +260,7 @@ test.describe('wf4-ui — auto-assign button', () => {
   const TPREFIX = 'WF4AAT-';
 
   test.beforeEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix(TPREFIX); setSpecMap('خاتم', ['rings']); });
-  test.afterEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix(TPREFIX); setSpecMap('خاتم', ['rings']); });
+  test.afterEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix(TPREFIX); setSpecMap('خاتم', ['rings']); sql(`UPDATE technicians SET active=1 WHERE name NOT LIKE '${TPREFIX}%'`); });
 
   test('auto-assign button is visible in item row for workshop role', async ({ page }) => {
     // Workshop user sees the auto-assign button alongside the technician dropdown.
@@ -424,7 +424,7 @@ test.describe('wf4-regression — WF-3 StatusChangeMenu unaffected', () => {
     await login(page, 'workshop', 'workshop123');
     const techId = seedTech(`${TPREFIX}فني`);
 
-    await page.goto('/workshop-status', { waitUntil: 'networkidle' });
+    await page.goto('/workshop-status', { waitUntil: 'load' });
     await page.locator('[data-testid="workshop-status__grid"]').waitFor({ state: 'visible', timeout: 8000 });
     // Wait for the specific tech card to appear before clicking
     await page.locator(`[data-testid="workshop-status__card--${techId}"]`).waitFor({ state: 'visible', timeout: 8000 });

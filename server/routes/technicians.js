@@ -2,6 +2,7 @@ const express = require('express');
 const { db }  = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const TechnicianService  = require('../services/TechnicianService');
+const ShiftService       = require('../services/ShiftService');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -98,6 +99,45 @@ router.get('/:id/status-history', (req, res) => {
 
 
   res.json({ history });
+});
+
+// ── WF-5: Shift + leave endpoints ────────────────────────────────────────────
+
+// GET /api/technicians/:id/shifts → { shifts, leaves }
+router.get('/:id/shifts', (req, res) => {
+  res.json(ShiftService.getShifts(parseInt(req.params.id, 10)));
+});
+
+// PUT /api/technicians/:id/shifts/:dayOfWeek — upsert one shift row
+// Body: { start_time: 'HH:MM', end_time: 'HH:MM' }
+router.put('/:id/shifts/:dayOfWeek', (req, res) => {
+  const techId = parseInt(req.params.id, 10);
+  const { start_time, end_time } = req.body || {};
+  const shift = ShiftService.upsertShift(techId, req.params.dayOfWeek, start_time, end_time);
+  res.json(shift);
+});
+
+// DELETE /api/technicians/:id/shifts/:dayOfWeek — soft-delete (active=0), idempotent
+router.delete('/:id/shifts/:dayOfWeek', (req, res) => {
+  const techId = parseInt(req.params.id, 10);
+  res.json(ShiftService.deleteShift(techId, req.params.dayOfWeek));
+});
+
+// PUT /api/technicians/:id/leaves/:leaveDate — upsert one leave row
+// Body: { leave_type?: string, notes?: string }
+router.put('/:id/leaves/:leaveDate', (req, res) => {
+  const techId = parseInt(req.params.id, 10);
+  const { leave_type, notes } = req.body || {};
+  const leave = ShiftService.upsertLeave(
+    techId, req.params.leaveDate, leave_type, notes, req.user?.id
+  );
+  res.json(leave);
+});
+
+// DELETE /api/technicians/:id/leaves/:leaveDate — hard-delete, idempotent
+router.delete('/:id/leaves/:leaveDate', (req, res) => {
+  const techId = parseInt(req.params.id, 10);
+  res.json(ShiftService.deleteLeave(techId, req.params.leaveDate));
 });
 
 // POST /api/technicians — create
