@@ -81,7 +81,7 @@ export default function SpecMapPage() {
       {loading ? (
         <div style={{ color: 'var(--text-muted)', padding: 24, textAlign: 'center' }}>جارٍ التحميل…</div>
       ) : (
-        <Card data-testid="spec-map-admin__list">
+        <Card testId="spec-map-admin__list">
           {mapEntries.length === 0 ? (
             <div style={{ padding: 24, color: 'var(--text-muted)', textAlign: 'center' }}>
               لا توجد بيانات
