@@ -191,11 +191,26 @@ Two new endpoints, both `requireRole('workshop')`:
 3. Workload penalty: `active_count × -1`
 4. Tiebreaker: `name ASC` (localeCompare 'ar')
 
-**`ITEM_TYPE_SPEC_MAP`** is a top-level constant in `server/services/TechnicianService.js`. Maps Arabic item type strings to specialization value keys (`rings`, `earrings`, `bracelets`, `chains`, `watches`). `'أخرى'` and unmapped types return `[]` (rank by status + workload only). Configurable per-item inference deferred to WF-4.
+**`ITEM_TYPE_SPEC_MAP`** — **deprecated constant** (kept only for backwards-compat exports). The source of truth is now the `item_type_spec_map` DB table (WF-4). Do not add new entries to the constant; update the DB table instead.
 
 **`_scoreAndRank(techs, matchedSpecValues)`** is exported as a pure function — testable in isolation without DB. `pickerQuery()` and `suggestForItem()` are the public service functions.
 
-**Coming in WF-3..6:** WF-3 workload badges + status flips, WF-4 priority UI migration + auto-assign + `ITEM_TYPE_SPEC_MAP` made configurable, WF-5 shift schedules + scheduler, WF-6 reporting/leaderboard.
+**WF-4 (BE) — priority migration + auto-assign + configurable spec map:**
+
+- **`item_type_spec_map` table** — `id, item_type UNIQUE COLLATE NOCASE, spec_values TEXT (JSON array), updated_at, updated_by FK`. Seeded with 7 defaults from the old `ITEM_TYPE_SPEC_MAP` constant. `INSERT OR IGNORE` seed is idempotent. `getItemTypeSpecMap()` in `TechnicianService.js` reads this table with a **60-second TTL cache** (`_specMapCache` module-level variable, invalidated by `updateItemTypeSpecMap()`).
+
+- **`updateItemTypeSpecMap(itemType, specValues, updatedBy)`** — upserts one row. Validates `specValues` against active specializations; throws `ValidationError` (422) on unknown value. Invalidates cache.
+
+- **`autoAssign(orderItemId, { assignedBy })`** — runs `suggestForItem` with `limit:1`, atomically replaces the item's `order_item_technicians` row with the top-scored tech. Throws `NoSuitableTechnicianError` (422, "لا يوجد فني متاح") when zero active techs exist; throws `OrderLockedError` (409) on locked orders. Forward-compat: writes `assignment_method='auto'` to `assignment_history` if that table+column exist (analytics plan Phase 2 Group B) — silently skipped otherwise.
+
+- **New endpoints (all `requireRole('workshop')`, declared before `/:id`):**
+  - `GET /api/technicians/item-type-spec-map` → `{ map: [{ item_type, spec_values: string[], updated_at, updated_by_username }] }`
+  - `PUT /api/technicians/item-type-spec-map/:itemType` (Arabic types must be URL-encoded by client) → 200 updated row | 422 unknown spec
+  - `POST /api/order-items/:id/auto-assign` → 200 `{ technician, score, matched_specs }` | 422 no tech | 409 locked | 404 bad item. **Declared before `POST /:id/technicians`** to avoid Express collision.
+
+- **`NoSuitableTechnicianError`** — `server/errors/index.js`, maps to HTTP 422.
+
+**Coming in WF-5..6:** WF-5 shift schedules + scheduler, WF-6 reporting/leaderboard.
 
 ## QA / Test Protocol
 

@@ -114,6 +114,14 @@ class InvalidStatusError extends Error {
   }
 }
 
+// WF-4: thrown by autoAssign when no active technician is available/scoreable.
+class NoSuitableTechnicianError extends Error {
+  constructor() {
+    super('لا يوجد فني متاح');
+    this.name = 'NoSuitableTechnicianError';
+  }
+}
+
 /**
  * Map a service error to an HTTP status code.
  * Used by route handlers — keeps HTTP logic out of the service.
@@ -146,6 +154,7 @@ function errorToHttpStatus(err) {
     case 'DuplicateSpecializationError':   return 409;
     case 'ValidationError':                return 422;
     case 'InvalidStatusError':             return 422;
+    case 'NoSuitableTechnicianError':      return 422;
     default:                               return 500;
   }
 }
@@ -165,5 +174,6 @@ module.exports = {
   DuplicateSpecializationError,
   ValidationError,
   InvalidStatusError,
+  NoSuitableTechnicianError,
   errorToHttpStatus,
 };

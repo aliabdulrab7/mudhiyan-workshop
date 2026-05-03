@@ -502,6 +502,37 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_status_log_at_status ON technician_status_log(changed_at, to_status);
 `);
 
+// ── WF-4: Configurable item-type → specialization map ────────────────────────
+// Replaces the hardcoded ITEM_TYPE_SPEC_MAP constant in TechnicianService.
+// spec_values is a JSON array stored as TEXT; parsed at the service layer.
+// Seeded with the original hardcoded entries via INSERT OR IGNORE (idempotent).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS item_type_spec_map (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_type   TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    spec_values TEXT NOT NULL DEFAULT '[]',
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_by  INTEGER REFERENCES users(id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_item_type_spec_map_type ON item_type_spec_map(item_type);
+`);
+
+db.transaction(() => {
+  const seedMap = [
+    { item_type: 'خاتم',  spec_values: '["rings"]' },
+    { item_type: 'حلق',   spec_values: '["earrings"]' },
+    { item_type: 'قرط',   spec_values: '["earrings"]' },
+    { item_type: 'سوار',  spec_values: '["bracelets"]' },
+    { item_type: 'عقد',   spec_values: '["chains"]' },
+    { item_type: 'دبلة',  spec_values: '["rings"]' },
+    { item_type: 'ساعة',  spec_values: '["watches"]' },
+  ];
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO item_type_spec_map (item_type, spec_values) VALUES (?, ?)`
+  );
+  for (const row of seedMap) insert.run(row.item_type, row.spec_values);
+})();
+
 // Backfill: Ensure all orders have at least one record in order_items
 db.exec(`
   INSERT INTO order_items (order_id, item_type, item_name, quantity, notes, workshop_comment)
