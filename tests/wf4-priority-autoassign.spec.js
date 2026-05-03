@@ -310,9 +310,9 @@ test.describe('wf4-ui — auto-assign button', () => {
     const toast = page.locator('[data-testid^="toast__"]');
     await expect(toast.filter({ hasText: `${TPREFIX}فني` })).toBeVisible({ timeout: 5000 });
 
-    // Expect tech name appears in item row
-    await expect(page.locator(`[data-testid^="order-detail__item-row"][data-testid*="${itemId}"]`))
-      .toContainText(`${TPREFIX}فني`);
+    // After auto-assign, the picker trigger shows the assigned tech name
+    await expect(page.locator(`[data-testid="tech-picker-trigger--item--${itemId}"]`))
+      .toContainText(`${TPREFIX}فني`, { timeout: 10000 });
   });
 
   test('click auto-assign with no available tech → warning toast with Arabic message', async ({ page }) => {
