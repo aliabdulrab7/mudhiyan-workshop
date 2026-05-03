@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { updateOrderStatus, updateItemCost, sendForApproval, getComments, addComment, getOrderHistory, confirmPayment, setOrderUrgent, assignTechnicianToOrder } from '../api/orders';
-import { assignTechnicianToItem, unassignTechnicianFromItem, autoAssign } from '../api/orderItems';
+import { assignTechnicianToItem, unassignTechnicianFromItem, autoAssign, markItemComplete } from '../api/orderItems';
 import { getRole } from '../api/auth';
 import StatusPill from './StatusPill';
 import { Icons } from './icons';
@@ -784,7 +784,10 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
   const initial = item.estimated_cost == null ? '' : String(item.estimated_cost);
   const [draft, setDraft] = useState(initial);
   const [autoAssigning, setAutoAssigning] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completedAt, setCompletedAt] = useState(item.completed_at ?? null);
   useEffect(() => { setDraft(initial); }, [initial]);
+  useEffect(() => { setCompletedAt(item.completed_at ?? null); }, [item.completed_at]);
 
   const commit = () => {
     if (draft === initial) return;
@@ -903,6 +906,40 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
             >
               تعيين تلقائي
             </Button>
+          )}
+          {item.technician_id && (
+            completedAt ? (
+              <Button
+                variant="subtle"
+                size="sm"
+                loading={completing}
+                testId={`order-detail__item-row__mark-complete--${item.id}`}
+                onClick={async () => {
+                  setCompleting(true);
+                  try { const r = await markItemComplete(item.id); setCompletedAt(r.completed_at ?? null); }
+                  catch { /* ignore */ }
+                  finally { setCompleting(false); }
+                }}
+                style={{ color: 'var(--success)', borderColor: 'var(--success)' }}
+              >
+                <Icons.Check size={11} /> مكتمل
+              </Button>
+            ) : (
+              <Button
+                variant="subtle"
+                size="sm"
+                loading={completing}
+                testId={`order-detail__item-row__mark-complete--${item.id}`}
+                onClick={async () => {
+                  setCompleting(true);
+                  try { const r = await markItemComplete(item.id); setCompletedAt(r.completed_at ?? null); }
+                  catch { /* ignore */ }
+                  finally { setCompleting(false); }
+                }}
+              >
+                تم ✓
+              </Button>
+            )
           )}
         </div>
       )}
