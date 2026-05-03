@@ -195,13 +195,13 @@ export async function deleteShift(techId, dayOfWeek) {
   return data;
 }
 
-// POST /api/technicians/:id/leaves { leave_date, type, notes? }
-// Upserts by date — server returns 200 with the upserted row.
+// PUT /api/technicians/:id/leaves/:leaveDate { leave_type?, notes? }
+// Upserts by date — server returns the upserted row.
 export async function addLeave(techId, { leave_date, type, notes }) {
-  const res = await fetch(`/api/technicians/${techId}/leaves`, {
-    method: 'POST',
+  const res = await fetch(`/api/technicians/${techId}/leaves/${encodeURIComponent(leave_date)}`, {
+    method: 'PUT',
     headers: authHeaders(),
-    body: JSON.stringify({ leave_date, type, notes: notes || null }),
+    body: JSON.stringify({ leave_type: type, notes: notes || null }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'فشل إضافة الإجازة');
