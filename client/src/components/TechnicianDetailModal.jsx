@@ -6,7 +6,11 @@ import {
   addTechnicianSpecialization,
   removeTechnicianSpecialization,
   getStatusHistory,
+  getShifts,
+  upsertShift,
+  deleteShift,
 } from '../api/technicians';
+import { getRole } from '../api/auth';
 import StatusIndicator from './ui/StatusIndicator';
 import { getRoles } from '../api/roles';
 import { getSpecializations } from '../api/specializations';
@@ -20,6 +24,8 @@ import Input from './ui/Input';
 import Select from './ui/Select';
 import Textarea from './ui/Textarea';
 import { STATUS_META } from './StatusPill';
+
+const DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
 const STATUS_OPTIONS = [
   { value: 'available', label: 'متاح' },
@@ -55,6 +61,15 @@ export default function TechnicianDetailModal({
   const [techSpecIds, setTechSpecIds] = useState(new Set());
   const [statusHistory, setStatusHistory] = useState([]);
 
+  // Shift schedule state
+  const [shifts, setShifts]             = useState([]); // { day_of_week, start_time, end_time, active }[]
+  const [shiftDialog, setShiftDialog]   = useState(null); // { day: 0-6 } | null
+  const [shiftDraft, setShiftDraft]     = useState({ start_time: '', end_time: '' });
+  const [shiftError, setShiftError]     = useState('');
+  const [shiftSaving, setShiftSaving]   = useState(false);
+  const [deletingDay, setDeletingDay]   = useState(null); // day awaiting confirm | null
+  const isWorkshop = getRole() === 'workshop';
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -72,13 +87,15 @@ export default function TechnicianDetailModal({
         setAllSpecs(Array.isArray(specsData) ? specsData.filter((s) => s.active !== 0) : []);
 
         if (isEdit && techId) {
-          const [t, histData] = await Promise.all([
+          const [t, histData, shiftsData] = await Promise.all([
             getTechnician(techId),
             getStatusHistory(techId, { limit: 10 }).catch(() => ({ history: [] })),
+            getShifts(techId).catch(() => ({ shifts: [] })),
           ]);
           if (cancelled) return;
           setTech(t);
           setStatusHistory(histData.history ?? []);
+          setShifts(shiftsData.shifts ?? []);
           setForm({
             name:    t.name ?? '',
             role_id: t.role_id == null ? '' : String(t.role_id),
@@ -93,6 +110,7 @@ export default function TechnicianDetailModal({
           setForm(emptyForm());
           setTechSpecIds(new Set());
           setStatusHistory([]);
+          setShifts([]);
         }
       } catch (e) {
         if (!cancelled) setError(e.message || 'فشل تحميل بيانات الفني');
@@ -145,6 +163,54 @@ export default function TechnicianDetailModal({
     }
   }
 
+  function openShiftDialog(day) {
+    const existing = shifts.find((s) => s.day_of_week === day);
+    setShiftDraft({
+      start_time: existing?.start_time ?? '',
+      end_time:   existing?.end_time   ?? '',
+    });
+    setShiftError('');
+    setShiftDialog({ day });
+  }
+
+  async function handleShiftSave() {
+    const { start_time, end_time } = shiftDraft;
+    if (!start_time || !end_time) {
+      setShiftError('يرجى إدخال وقت البداية والنهاية');
+      return;
+    }
+    if (end_time <= start_time) {
+      setShiftError('وقت الانتهاء يجب أن يكون بعد وقت البداية');
+      return;
+    }
+    setShiftSaving(true);
+    setShiftError('');
+    try {
+      const saved = await upsertShift(tech.id, shiftDialog.day, start_time, end_time);
+      setShifts((prev) => {
+        const next = prev.filter((s) => s.day_of_week !== shiftDialog.day);
+        return [...next, saved].sort((a, b) => a.day_of_week - b.day_of_week);
+      });
+      setShiftDialog(null);
+    } catch (e) {
+      setShiftError(e.message || 'فشل حفظ المناوبة');
+    } finally {
+      setShiftSaving(false);
+    }
+  }
+
+  async function handleShiftDelete(day) {
+    setDeletingDay(day);
+    try {
+      await deleteShift(tech.id, day);
+      setShifts((prev) => prev.filter((s) => s.day_of_week !== day));
+    } catch (e) {
+      setError(e.message || 'فشل حذف المناوبة');
+    } finally {
+      setDeletingDay(null);
+    }
+  }
+
   async function handleCreate(e) {
     e.preventDefault();
     if (!form.name.trim()) { setError('الاسم مطلوب'); return; }
@@ -188,6 +254,7 @@ export default function TechnicianDetailModal({
   const activeItemsCount  = tech?.active_count ?? 0;
 
   return (
+    <>
     <Dialog open={open} onClose={close} title={title} size="lg" testId="tech-modal">
       <Dialog.Body>
         {loading ? (
@@ -386,6 +453,61 @@ export default function TechnicianDetailModal({
                     </div>
                   )}
                 </div>
+
+                {/* Shift schedule — workshop users only */}
+                {isWorkshop && (
+                  <div>
+                    <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-muted mb-1.5">
+                      جدول المناوبات
+                    </div>
+                    <div className="flex flex-col">
+                      {DAY_NAMES.map((dayName, day) => {
+                        const shift = shifts.find((s) => s.day_of_week === day);
+                        return (
+                          <div
+                            key={day}
+                            data-testid={`tech-detail__shift-row--${day}`}
+                            className="flex items-center justify-between gap-2 py-1.5 border-b border-border last:border-0"
+                          >
+                            <span className="text-xs text-text-muted w-16 shrink-0">{dayName}</span>
+                            {shift ? (
+                              <span
+                                className="text-xs font-mono text-text flex-1"
+                                dir="ltr"
+                                data-testid={`tech-detail__shift-time--${day}`}
+                              >
+                                {shift.start_time} – {shift.end_time}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-text-faint flex-1">—</span>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openShiftDialog(day)}
+                                testId={`tech-detail__shift-edit--${day}`}
+                              >
+                                {shift ? 'تعديل' : 'إضافة'}
+                              </Button>
+                              {shift && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  loading={deletingDay === day}
+                                  onClick={() => handleShiftDelete(day)}
+                                  testId={`tech-detail__shift-delete--${day}`}
+                                >
+                                  حذف
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </form>
@@ -414,5 +536,54 @@ export default function TechnicianDetailModal({
         )}
       </Dialog.Footer>
     </Dialog>
+
+    {/* Shift add/edit dialog */}
+    <Dialog
+      open={shiftDialog !== null}
+      onClose={() => !shiftSaving && setShiftDialog(null)}
+      title={shiftDialog !== null ? `مناوبة ${DAY_NAMES[shiftDialog.day]}` : 'مناوبة'}
+      testId="tech-detail__shift-dialog"
+    >
+      <div className="flex flex-col gap-4" style={{ minWidth: 260 }}>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="من">
+            <Input
+              type="time"
+              dir="ltr"
+              value={shiftDraft.start_time}
+              onChange={(e) => { setShiftDraft((d) => ({ ...d, start_time: e.target.value })); setShiftError(''); }}
+              testId="tech-detail__shift-dialog__start"
+            />
+          </FormField>
+          <FormField label="إلى">
+            <Input
+              type="time"
+              dir="ltr"
+              value={shiftDraft.end_time}
+              onChange={(e) => { setShiftDraft((d) => ({ ...d, end_time: e.target.value })); setShiftError(''); }}
+              testId="tech-detail__shift-dialog__end"
+            />
+          </FormField>
+        </div>
+        {shiftError && (
+          <Alert variant="danger" testId="tech-detail__shift-dialog__error">{shiftError}</Alert>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" disabled={shiftSaving} onClick={() => setShiftDialog(null)}>
+            إلغاء
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            loading={shiftSaving}
+            onClick={handleShiftSave}
+            testId="tech-detail__shift-dialog__save"
+          >
+            حفظ
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+    </>
   );
 }
