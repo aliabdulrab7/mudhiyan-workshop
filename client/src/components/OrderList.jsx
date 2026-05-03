@@ -13,6 +13,9 @@ import Chip from './ui/Chip';
 import Dialog from './ui/Dialog';
 import Input from './ui/Input';
 import TechnicianPicker from './ui/TechnicianPicker';
+import StatusIndicator from './ui/StatusIndicator';
+import WorkloadBadge from './ui/WorkloadBadge';
+import { useTechnicians } from '../contexts/TechniciansContext';
 import { useToast } from './ToastProvider';
 
 const FILTER_DEFS = [
@@ -65,6 +68,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   const [groupBy, setGroupBy]     = useState('none'); // 'none' | 'status' | 'date'
   const isWorkshop = getRole() === 'workshop';
   const toast = useToast();
+  const techCtx = useTechnicians();
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkAssignTechId, setBulkAssignTechId] = useState(null);
   const [bulkAssigning, setBulkAssigning] = useState(false);
@@ -112,6 +116,11 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
     setSelected(updated);
     onRefresh?.();
   }
+
+  // Lazily load workload data for StatusIndicator + WorkloadBadge in the tech column.
+  useEffect(() => {
+    if (isWorkshop) Promise.resolve(techCtx?.ensureWorkload?.()).catch(() => {});
+  }, [isWorkshop]);
 
   // Fetch all orders once (no filter) for accurate status counts in chips
   useEffect(() => {
@@ -439,24 +448,32 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 500 }}>{o.piece_type}</span>
-                            {isWorkshop && (
-                              <span
-                                data-testid={`order-list__row__${o.order_number}__technician`}
-                                title={o.technician_summary ? `الفني: ${o.technician_summary}` : 'لم يُعيَّن فني'}
-                                style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                                  fontSize: 10.5, lineHeight: 1.2,
-                                  padding: '1px 6px', borderRadius: 3,
-                                  background: o.technician_summary ? 'var(--bg-soft)' : 'transparent',
-                                  border: o.technician_summary ? '1px solid var(--border)' : '1px dashed var(--border)',
-                                  color: o.technician_summary ? 'var(--text-soft)' : 'var(--text-faint)',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                <Icons.User size={9} />
-                                {o.technician_summary || '—'}
-                              </span>
-                            )}
+                            {isWorkshop && (() => {
+                              const wl = o.technician_summary && o.technician_summary !== 'متعدد'
+                                ? techCtx?.workloadByName?.get(o.technician_summary) ?? null
+                                : null;
+                              return (
+                                <span
+                                  data-testid={`order-list__row__${o.order_number}__technician`}
+                                  title={o.technician_summary ? `الفني: ${o.technician_summary}` : 'لم يُعيَّن فني'}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                                    fontSize: 10.5, lineHeight: 1.2,
+                                    padding: '1px 6px', borderRadius: 3,
+                                    background: o.technician_summary ? 'var(--bg-soft)' : 'transparent',
+                                    border: o.technician_summary ? '1px solid var(--border)' : '1px dashed var(--border)',
+                                    color: o.technician_summary ? 'var(--text-soft)' : 'var(--text-faint)',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {wl ? <StatusIndicator status={wl.status} /> : <Icons.User size={9} />}
+                                  {o.technician_summary || '—'}
+                                  {wl?.active_count != null && (
+                                    <WorkloadBadge count={wl.active_count} urgent={wl.urgent_count ?? 0} />
+                                  )}
+                                </span>
+                              );
+                            })()}
                           </div>
                           {o.notes && <div className="subline">{o.notes.slice(0, 35)}</div>}
                         </td>
