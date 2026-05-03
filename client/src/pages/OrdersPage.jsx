@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getOrders, updateOrderStatus } from '../api/orders';
+import { getOrders, getOrder, updateOrderStatus } from '../api/orders';
 import DataTable from '../components/DataTable';
 import StatusPill, { STATUS_META } from '../components/StatusPill';
 import OrderDetail from '../components/OrderDetail';
@@ -45,6 +45,7 @@ export default function OrdersPage() {
   const [filter,   setFilter]   = useState(searchParams.get('status') || 'all');
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
+  const [detailOrder, setDetailOrder] = useState(null);
   const searchRef  = useRef(null);
   const debounceRef = useRef(null);
 
@@ -96,7 +97,14 @@ export default function OrdersPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const detailOrder = orders.find(o => o.id === detailId) || null;
+  useEffect(() => {
+    if (!detailId) { setDetailOrder(null); return; }
+    // Seed from list row immediately (no items yet) then replace with full response.
+    setDetailOrder(orders.find(o => o.id === detailId) || null);
+    getOrder(detailId)
+      .then(full => setDetailOrder(full))
+      .catch(() => {});
+  }, [detailId]);
 
   return (
     <div style={{ minHeight: '100vh' }}>
@@ -170,11 +178,12 @@ export default function OrdersPage() {
         />
       </div>
 
-      {detailId && (
+      {detailId && detailOrder?.items && (
         <OrderDetail
           order={detailOrder}
           orderId={detailId}
           onClose={() => setDetailId(null)}
+          onUpdated={updated => setDetailOrder(updated)}
           onStatusChange={() => load(search, filter)}
         />
       )}

@@ -253,6 +253,16 @@ router.post('/:id/parts', requireRole('workshop'), (req, res) => {
   }
 });
 
+// ── POST /api/order-items/:id/auto-assign — score all active techs and assign the best.
+// MUST stay before /:id/technicians to avoid Express route collision.
+// 422 NoSuitableTechnicianError when no active techs; 409 if order locked; 404 if item missing.
+// Returns { technician: { id, name, status, role_id }, score, matched_specs }.
+router.post('/:id/auto-assign', requireRole('workshop'), (req, res) => {
+  const itemId = parseInt(req.params.id, 10);
+  const result = TechnicianService.autoAssign(itemId, { assignedBy: req.user?.id });
+  res.json(result);
+});
+
 // ── POST /api/order-items/:id/technicians — set the technician for this item ──
 // Replace-style: each item has at most one technician at a time. Idempotent —
 // re-assigning the same tech is a no-op success, not 409. The schema is M:M

@@ -38,6 +38,41 @@ router.get('/workload-summary', (req, res) => {
   res.json({ technicians: TechnicianService.getWorkloadSummary({ activeOnly }) });
 });
 
+// GET /api/technicians/item-type-spec-map — full configurable map for admin UI.
+// Returns { map: [{ item_type, spec_values, updated_at, updated_by_username }] }
+// MUST stay before /:id (literal segment).
+router.get('/item-type-spec-map', (req, res) => {
+  const rows = require('../db').db.prepare(`
+    SELECT m.item_type, m.spec_values, m.updated_at, u.username AS updated_by_username
+    FROM item_type_spec_map m
+    LEFT JOIN users u ON u.id = m.updated_by
+    ORDER BY m.item_type
+  `).all();
+  const map = rows.map(r => ({
+    item_type:           r.item_type,
+    spec_values:         (() => { try { return JSON.parse(r.spec_values); } catch { return []; } })(),
+    updated_at:          r.updated_at,
+    updated_by_username: r.updated_by_username ?? null,
+  }));
+  res.json({ map });
+});
+
+// PUT /api/technicians/item-type-spec-map/:itemType — upsert one row.
+// Body: { spec_values: string[] }. 422 on unknown spec value.
+// Arabic item types must be URL-encoded by the client; Express decodes them.
+// MUST stay before /:id (literal prefix).
+router.put('/item-type-spec-map/:itemType', (req, res) => {
+  const itemType  = decodeURIComponent(req.params.itemType);
+  const { spec_values } = req.body || {};
+  const row = TechnicianService.updateItemTypeSpecMap(itemType, spec_values, req.user?.id);
+  res.json({
+    item_type:           row.item_type,
+    spec_values:         (() => { try { return JSON.parse(row.spec_values); } catch { return []; } })(),
+    updated_at:          row.updated_at,
+    updated_by_username: row.updated_by_username ?? null,
+  });
+});
+
 // GET /api/technicians/:id — full detail
 router.get('/:id', (req, res) => {
   res.json(TechnicianService.getDetail(parseInt(req.params.id, 10)));
