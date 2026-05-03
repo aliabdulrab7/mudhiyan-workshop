@@ -580,6 +580,7 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
               value={bulkAssignTechId}
               onChange={(id) => setBulkAssignTechId(id)}
               placeholder="اختر فنياً"
+              zIndex={1200}
               testId="orders-list__bulk__assign-dialog__technician-select"
             />
           </div>
