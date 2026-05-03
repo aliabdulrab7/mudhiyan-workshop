@@ -140,7 +140,7 @@ async function login(page, username, password) {
 
 async function openOrderDetail(page, orderNumber) {
   await page.goto('/orders', { waitUntil: 'networkidle' });
-  await page.locator(`[data-testid="orders-list__row__${orderNumber}"]`).click();
+  await page.locator(`[data-testid="order-list__row__${orderNumber}"]`).click();
   // Wait for the auto-assign button (always rendered for workshop role on unlocked orders)
   // or the order detail container itself
   await page.waitForSelector('[data-testid^="order-detail__"]', { timeout: 8000 });
