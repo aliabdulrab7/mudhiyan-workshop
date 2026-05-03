@@ -514,10 +514,12 @@ test.describe('wf3-ui — auto-refresh', () => {
     cleanupOrders('BR1-WF3REFRESH-');
   });
 
-  test.fixme('workload badge increments after new item assigned (auto-refresh)', async ({ page }) => {
-    // Requires WorkshopStatusPage to poll/subscribe for workload changes.
-    // Manual-check note: if auto-refresh interval > 30s, this test will need
-    // a longer waitForTimeout or a triggered refresh button.
+  test.fixme('workload badge increments after new item assigned (manual button or auto-refresh)', async ({ page }) => {
+    // Two paths at activation time — pick whichever FE ships:
+    //   Path A (preferred): FE adds a manual "تحديث" button (testid: status-page__refresh-btn)
+    //                       → click it; test stays fast (<2s)
+    //   Path B (fallback):  No manual button → waitForTimeout(65000) for 60s poll + buffer
+    //                       → mark test with test.slow() so Playwright triples its timeout
     await login(page, 'workshop', 'workshop123');
     const techId = seedTech(`${PREFIX}فني`);
     await openStatusPage(page);
@@ -525,11 +527,20 @@ test.describe('wf3-ui — auto-refresh', () => {
     // Workload starts at 0
     await assertWorkloadBadge(page, techId, 0);
 
-    // Assign an order externally (simulates another user assigning)
+    // Assign an order externally (simulates another user assigning in background)
     seedOrderAssignedToTech('BR1-WF3REFRESH-0001', techId);
 
-    // Wait for auto-refresh (assume refresh interval ≤ 10s; adjust if needed)
-    await page.waitForTimeout(12000);
+    // Path A — manual refresh button (preferred: fast, no flake risk)
+    const manualRefreshBtn = page.locator('[data-testid="status-page__refresh-btn"]');
+    const hasRefreshBtn = await manualRefreshBtn.isVisible({ timeout: 500 }).catch(() => false);
+    if (hasRefreshBtn) {
+      await manualRefreshBtn.click();
+      await page.waitForTimeout(600); // let re-fetch settle
+    } else {
+      // Path B — wait for auto-refresh poll (60s interval + buffer)
+      // NOTE: activate this path with test.slow() in the outer describe when Section 2 lands
+      await page.waitForTimeout(65000);
+    }
 
     await assertWorkloadBadge(page, techId, 1);
   });
