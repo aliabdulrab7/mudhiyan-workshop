@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ManualEntryInput from '../components/ManualEntryInput';
 import ScanResult from '../components/ScanResult';
@@ -19,6 +19,7 @@ const cameraSupported =
 
 export default function ScanPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [state, setState]     = useState('scanning'); // scanning | loading | found | error
   const [order, setOrder]     = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -247,7 +248,7 @@ export default function ScanPage() {
           <div className="sec-head">
             <span className="sec-title">نتيجة المسح</span>
             {order && (
-              <Button variant="primary" size="sm" icon={<Icons.Arrow size={12} />} onClick={() => setDrawerOpen(true)} testId="scan__open-order">
+              <Button variant="primary" size="sm" icon={<Icons.Arrow size={12} />} onClick={() => navigate('/orders')} testId="scan__open-order">
                 فتح الطلب
               </Button>
             )}
