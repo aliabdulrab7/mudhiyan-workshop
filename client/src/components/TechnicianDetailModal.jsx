@@ -5,7 +5,9 @@ import {
   updateTechnician,
   addTechnicianSpecialization,
   removeTechnicianSpecialization,
+  getStatusHistory,
 } from '../api/technicians';
+import StatusIndicator from './ui/StatusIndicator';
 import { getRoles } from '../api/roles';
 import { getSpecializations } from '../api/specializations';
 import Alert from './ui/Alert';
@@ -25,6 +27,7 @@ const STATUS_OPTIONS = [
   { value: 'off_shift', label: 'خارج الدوام' },
   { value: 'on_leave',  label: 'في إجازة' },
 ];
+const TECH_STATUS_LABEL = Object.fromEntries(STATUS_OPTIONS.map(s => [s.value, s.label]));
 
 function emptyForm() {
   return { name: '', role_id: '', phone: '', notes: '', status: 'available', active: 1 };
@@ -50,6 +53,7 @@ export default function TechnicianDetailModal({
   const [roles, setRoles]         = useState([]);
   const [allSpecs, setAllSpecs]   = useState([]);
   const [techSpecIds, setTechSpecIds] = useState(new Set());
+  const [statusHistory, setStatusHistory] = useState([]);
 
   useEffect(() => {
     if (!open) return;
@@ -68,9 +72,13 @@ export default function TechnicianDetailModal({
         setAllSpecs(Array.isArray(specsData) ? specsData.filter((s) => s.active !== 0) : []);
 
         if (isEdit && techId) {
-          const t = await getTechnician(techId);
+          const [t, histData] = await Promise.all([
+            getTechnician(techId),
+            getStatusHistory(techId, { limit: 10 }).catch(() => ({ history: [] })),
+          ]);
           if (cancelled) return;
           setTech(t);
+          setStatusHistory(histData.history ?? []);
           setForm({
             name:    t.name ?? '',
             role_id: t.role_id == null ? '' : String(t.role_id),
@@ -84,6 +92,7 @@ export default function TechnicianDetailModal({
           setTech(null);
           setForm(emptyForm());
           setTechSpecIds(new Set());
+          setStatusHistory([]);
         }
       } catch (e) {
         if (!cancelled) setError(e.message || 'فشل تحميل بيانات الفني');
@@ -333,6 +342,45 @@ export default function TechnicianDetailModal({
                           <span className="text-text-faint">
                             {STATUS_META[a.status]?.label ?? a.status ?? ''}
                           </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Status-change history */}
+                <div>
+                  <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-muted mb-1.5">
+                    آخر تغييرات الحالة
+                  </div>
+                  {statusHistory.length === 0 ? (
+                    <div className="text-xs text-text-faint">لا تغييرات حالة مسجّلة</div>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      {statusHistory.map((h, idx) => (
+                        <div
+                          key={idx}
+                          className="flex flex-col gap-0.5 py-1.5 border-b border-border last:border-0"
+                        >
+                          <div className="flex items-center justify-between gap-2 text-xs text-text-muted">
+                            {/* from → to */}
+                            <span className="inline-flex items-center gap-1.5 flex-wrap">
+                              <StatusIndicator status={h.from_status} label />
+                              <span style={{ color: 'var(--text-faint)', fontSize: 10 }}>←</span>
+                              <StatusIndicator status={h.to_status} label />
+                            </span>
+                            {/* who + when */}
+                            <span className="text-text-faint text-[10.5px] shrink-0">
+                              {h.changed_by_username ?? 'نظام'}
+                              {' · '}
+                              {new Date(h.changed_at).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+                          {h.reason && (
+                            <div className="text-[11px] text-text-faint" style={{ paddingInlineStart: 2 }}>
+                              {h.reason}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

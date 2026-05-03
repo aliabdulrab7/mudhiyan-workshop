@@ -105,6 +105,40 @@ export async function getSuggestedTechnicians(itemId, { limit = 5 } = {}) {
   return data;
 }
 
+// GET /api/technicians/workload-summary?active_only=true
+// Returns { technicians: [{ id, name, role_value, role_display_label_ar, status,
+//   active_count, urgent_count, current_item }] }
+export async function getWorkloadSummary({ active_only = true } = {}) {
+  const params = active_only ? { active_only: 'true' } : {};
+  const res = await fetch(`/api/technicians/workload-summary${qs(params)}`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل تحميل بيانات الأعباء');
+  return data;
+}
+
+// PATCH /api/technicians/:id/status { status, reason? }
+export async function changeStatus(techId, status, reason) {
+  const body = { status };
+  if (reason) body.reason = reason;
+  const res = await fetch(`/api/technicians/${techId}/status`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل تغيير الحالة');
+  return data;
+}
+
+// GET /api/technicians/:id/status-history?limit=20
+// Returns { history: [{ from_status, to_status, changed_by_username, reason, changed_at }] }
+export async function getStatusHistory(techId, { limit = 20 } = {}) {
+  const res = await fetch(`/api/technicians/${techId}/status-history${qs({ limit })}`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل تحميل سجل الحالة');
+  return data;
+}
+
 export async function addTechnicianSpecialization(techId, specId) {
   const res = await fetch(`/api/technicians/${techId}/specializations`, {
     method: 'POST',

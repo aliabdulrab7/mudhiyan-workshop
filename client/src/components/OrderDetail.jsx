@@ -12,7 +12,10 @@ import Card from './ui/Card';
 import Dialog from './ui/Dialog';
 import Input from './ui/Input';
 import TechnicianPicker from './ui/TechnicianPicker';
+import StatusIndicator from './ui/StatusIndicator';
+import WorkloadBadge from './ui/WorkloadBadge';
 import Textarea from './ui/Textarea';
+import { useTechnicians } from '../contexts/TechniciansContext';
 import { useToast } from './ToastProvider';
 
 // Status advance buttons — omit transitions that require explicit workflow:
@@ -55,6 +58,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   const commentsEndRef = useRef(null);
   const isWorkshop = getRole() === 'workshop';
   const toast = useToast();
+  const techCtx = useTechnicians();
 
   function copyTrackingLink() {
     navigator.clipboard.writeText(buildTrackingUrl(order.customer_token)).then(() => {
@@ -64,6 +68,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   }
 
   useEffect(() => { loadComments(); loadHistory(); }, [order.id]);
+  useEffect(() => { Promise.resolve(techCtx?.ensureWorkload?.()).catch(() => {}); }, []);
   useEffect(() => { commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [comments]);
 
   useEffect(() => {
@@ -145,6 +150,17 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
     }
     return null; // heterogeneous → no single name
   }, [order.items, techSummary]);
+
+  // Status from item data (available without extra fetch).
+  // Workload count from TechniciansContext workload map (populated lazily on open).
+  const orderTechStatus = useMemo(() => {
+    if (techSummary.distinctIds !== 1) return null;
+    return order.items.find(i => i.technician_id === techSummary.onlyTechId)?.technician_status ?? null;
+  }, [order.items, techSummary]);
+
+  const orderTechWorkload = techSummary.onlyTechId
+    ? techCtx?.workloadById?.get(techSummary.onlyTechId) ?? null
+    : null;
 
   const [pendingOrderTech, setPendingOrderTech]   = useState(null); // confirms shown when truthy
   const [assigningOrderTech, setAssigningOrderTech] = useState(false);
@@ -293,18 +309,29 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
           <StatusPill status={order.status} />
           <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{dateStr}</span>
           {isWorkshop && !order.locked_at && (order.items?.length > 0) && (
-            <TechnicianPicker
-              value={techSummary.distinctIds === 1 ? techSummary.onlyTechId : null}
-              onChange={(_id, tech) => tech && handleSelectOrderTech(tech)}
-              label={
-                techSummary.distinctIds > 1
-                  ? 'متعدد'
-                  : (orderTechName ? `الفني: ${orderTechName}` : null)
-              }
-              disabled={assigningOrderTech}
-              placeholder="غير معيّن"
-              testId="tech-picker-trigger--order"
-            />
+            <span className="inline-flex items-center gap-1.5">
+              <TechnicianPicker
+                value={techSummary.distinctIds === 1 ? techSummary.onlyTechId : null}
+                onChange={(_id, tech) => tech && handleSelectOrderTech(tech)}
+                label={
+                  techSummary.distinctIds > 1
+                    ? 'متعدد'
+                    : (orderTechName ? `الفني: ${orderTechName}` : null)
+                }
+                disabled={assigningOrderTech}
+                placeholder="غير معيّن"
+                testId="tech-picker-trigger--order"
+              />
+              {orderTechStatus && (
+                <StatusIndicator status={orderTechStatus} />
+              )}
+              {orderTechWorkload?.active_count != null && (
+                <WorkloadBadge
+                  count={orderTechWorkload.active_count}
+                  urgent={orderTechWorkload.urgent_count ?? 0}
+                />
+              )}
+            </span>
           )}
           <div style={{ flex: 1 }} />
           {NEXT_STATUS[order.status] && isWorkshop && (
