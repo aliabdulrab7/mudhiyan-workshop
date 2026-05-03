@@ -9,6 +9,7 @@ import ReadyLabelCanvas from './ReadyLabelCanvas';
 import Alert from './ui/Alert';
 import Button from './ui/Button';
 import Card from './ui/Card';
+import Chip from './ui/Chip';
 import Dialog from './ui/Dialog';
 import Input from './ui/Input';
 import TechnicianPicker from './ui/TechnicianPicker';
@@ -734,6 +735,14 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
   );
 }
 
+// Per-item priority chips. 'standard' renders no chip (default, low noise).
+// Urgent uses danger colorway via inline style since Chip has no built-in
+// variant system — no new CSS classes needed.
+const PRIORITY_CHIP = {
+  urgent: { label: 'عاجل', style: { background: 'oklch(0.98 0.02 25)', borderColor: 'oklch(0.55 0.18 25 / 0.35)', color: 'var(--danger)' } },
+  low:    { label: 'منخفض', style: null },
+};
+
 // Per-item approval_status badges — workshop drawer only. The customer's
 // track page has its own display; we don't want to leak these back there.
 // 'pending' renders no badge (normal pre-approval state).
@@ -759,8 +768,9 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
     onSave(draft);
   };
 
-  const badge      = isWorkshop ? (APPROVAL_BADGE[item.approval_status] || null) : null;
-  const isRejected = item.approval_status === 'rejected';
+  const badge        = isWorkshop ? (APPROVAL_BADGE[item.approval_status] || null) : null;
+  const isRejected   = item.approval_status === 'rejected';
+  const priorityChip = PRIORITY_CHIP[item.priority] ?? null;
 
   return (
     <div style={{
@@ -775,7 +785,18 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
       opacity:    isRejected ? 0.82 : 1,
     }}>
       <div>
-        <div style={{ fontWeight: 600 }}>{item.item_name || item.item_type}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 600 }}>{item.item_name || item.item_type}</span>
+          {priorityChip && (
+            <Chip
+              size="sm"
+              testId={item.id ? `order-detail__item__${item.id}__priority` : undefined}
+              style={priorityChip.style || undefined}
+            >
+              {priorityChip.label}
+            </Chip>
+          )}
+        </div>
         {item.serial_number && <div className="mono text-xs text-mute">{item.serial_number}</div>}
       </div>
       <span className="mono" style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: 600 }}>{item.quantity}</span>
