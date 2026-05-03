@@ -618,14 +618,16 @@ test.describe('wf2-regression — per-order assignment', () => {
   const ORDER = 'BR1-WF2REG002-0001';
 
   test.beforeEach(() => {
+    cleanupTechsByPrefix('WF2REG-');
     cleanupOrders('BR1-WF2REG002-');
+    seedTech('WF2REG-فني');
     sql(`INSERT INTO orders (order_number, customer_name, phone, piece_type, shop_id,
          customer_token, status, created_at)
          VALUES ('${ORDER}','WF2-QA','966500000000','خاتم',1,'wf2-tk-${ORDER}','new',CURRENT_TIMESTAMP);`);
     sql(`INSERT INTO order_items (order_id, item_type, item_name, sort_order) SELECT id, 'خاتم', 'خاتم', 0 FROM orders WHERE order_number='${ORDER}';`);
     sql(`INSERT INTO order_items (order_id, item_type, item_name, sort_order) SELECT id, 'قلادة', 'قلادة', 1 FROM orders WHERE order_number='${ORDER}';`);
   });
-  test.afterEach(() => cleanupOrders('BR1-WF2REG002-'));
+  test.afterEach(() => { cleanupOrders('BR1-WF2REG002-'); cleanupTechsByPrefix('WF2REG-'); });
 
   test('per-order picker assigns same tech to all items', async ({ page }) => {
     await login(page, 'workshop', 'workshop123');
@@ -659,11 +661,13 @@ test.describe('wf2-regression — bulk assignment', () => {
   const O2 = `${PREFIX}0002`;
 
   test.beforeEach(() => {
+    cleanupTechsByPrefix('WF2REG-');
     cleanupOrders(PREFIX);
+    seedTech('WF2REG-فني');
     seedOrder(O1, 'new');
     seedOrder(O2, 'new');
   });
-  test.afterEach(() => cleanupOrders(PREFIX));
+  test.afterEach(() => { cleanupOrders(PREFIX); cleanupTechsByPrefix('WF2REG-'); });
 
   test('toolbar bulk assign dialog assigns tech to all selected orders', async ({ page }) => {
     await login(page, 'workshop', 'workshop123');
