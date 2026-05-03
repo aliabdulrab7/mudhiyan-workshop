@@ -19,6 +19,7 @@ import LabelPrintPage from './pages/LabelPrintPage';
 import OrdersPage         from './pages/OrdersPage';
 import WorkshopStatusPage from './pages/WorkshopStatusPage';
 import SpecMapPage        from './pages/SpecMapPage';
+import SchedulerPage      from './pages/SchedulerPage';
 
 export default function App() {
   return (
@@ -47,6 +48,7 @@ export default function App() {
                 <Route path="/specializations"    element={<RoleRoute roles={["workshop"]}><SpecializationsPage /></RoleRoute>} />
                 <Route path="/workshop-status"   element={<RoleRoute roles={["workshop"]}><WorkshopStatusPage /></RoleRoute>} />
                 <Route path="/spec-map"          element={<RoleRoute roles={["workshop"]}><SpecMapPage /></RoleRoute>} />
+                <Route path="/scheduler"         element={<RoleRoute roles={["workshop"]}><SchedulerPage /></RoleRoute>} />
                 <Route path="/orders/:id/label" element={<LabelPrintPage />} />
                 <Route path="*"         element={<Navigate to="/" replace />} />
               </Routes>
