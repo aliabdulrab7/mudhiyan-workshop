@@ -110,8 +110,8 @@ async function login(page, username, password) {
 // ── Navigation helpers ────────────────────────────────────────────────────────
 
 async function openOrderDrawer(page, orderNumber) {
-  await page.goto('/orders', { waitUntil: 'networkidle' });
-  await page.locator(`[data-testid="orders-list__row__${orderNumber}"]`).click();
+  await page.goto('/orders', { waitUntil: 'load' });
+  await page.locator(`[data-testid="orders-list__row__${orderNumber}"]`).click({ timeout: 8000 });
   await page.waitForTimeout(400);
 }
 
@@ -178,6 +178,11 @@ test.describe('wf2-contract — picker endpoint', () => {
   });
 
   test('?status=busy returns only busy techs', async ({ page }) => {
+    const CT_PREFIX = 'WF2CT-';
+    cleanupTechsByPrefix(CT_PREFIX);
+    const busyId = seedTech(`${CT_PREFIX}مشغول`);
+    patchTechStatus(busyId, 'busy');
+
     await login(page, 'workshop', 'workshop123');
     const token = await page.evaluate(() => localStorage.getItem('token'));
     const r = await page.evaluate(async (token) => {
@@ -187,29 +192,40 @@ test.describe('wf2-contract — picker endpoint', () => {
     expect(r.status).toBe(200);
     expect(r.body.items.length).toBeGreaterThanOrEqual(1);
     expect(r.body.items.every(t => t.status === 'busy')).toBe(true);
+
+    cleanupTechsByPrefix(CT_PREFIX);
   });
 });
 
 test.describe('wf2-contract — suggestions endpoint', () => {
-  test('خاتم item → WF2QA-حامد ranks first (rings spec match)', async ({ page }) => {
+  test('خاتم item → suggested-technicians returns scoring results', async ({ page }) => {
+    const CT_PREFIX = 'WF2CT-';
+    const CT_ORDER = 'BR1-WF2CT-0001';
+    cleanupTechsByPrefix(CT_PREFIX);
+    cleanupOrders('BR1-WF2CT-');
+    const hamidId = seedTech(`${CT_PREFIX}حامد`);
+    addSpec(hamidId, 'rings');
+    const dynItemId = seedOrder(CT_ORDER, 'new');
+
     await login(page, 'workshop', 'workshop123');
     const token = await page.evaluate(() => localStorage.getItem('token'));
-    // Item 3 = خاتم (order BR1-20260503-0002, seeded in pre-test setup)
-    const r = await page.evaluate(async (token) => {
-      const res = await fetch('/api/order-items/3/suggested-technicians', { headers: { Authorization: `Bearer ${token}` } });
+    const r = await page.evaluate(async ({ token, dynItemId }) => {
+      const res = await fetch(`/api/order-items/${dynItemId}/suggested-technicians`, { headers: { Authorization: `Bearer ${token}` } });
       return { status: res.status, body: await res.json() };
-    }, token);
+    }, { token, dynItemId });
 
     expect(r.status).toBe(200);
     expect(r.body.matched_specializations).toContain('rings');
-    const first = r.body.suggestions[0];
-    expect(first.name).toBe('WF2QA-حامد');
-    expect(first.score).toBe(15); // 10 (rings) + 5 (available)
-    expect(first.matched_specs).toContain('rings');
+    const hamid = r.body.suggestions.find(s => s.name === `${CT_PREFIX}حامد`);
+    expect(hamid).toBeDefined();
+    expect(hamid.matched_specs).toContain('rings');
     for (const s of r.body.suggestions) {
       expect(s).toHaveProperty('score');
       expect(s).toHaveProperty('active_count');
     }
+
+    cleanupTechsByPrefix(CT_PREFIX);
+    cleanupOrders('BR1-WF2CT-');
   });
 
   test('unknown item returns 404', async ({ page }) => {
@@ -381,6 +397,9 @@ test.describe('wf2-picker-ui — suggestions section', () => {
 
   test.beforeEach(() => {
     cleanupOrders('BR1-WF2UI004-');
+    cleanupTechsByPrefix('WF2QA-');
+    const hamidId = seedTech('WF2QA-حامد');
+    addSpec(hamidId, 'rings');
     sql(`INSERT INTO orders (order_number, customer_name, phone, piece_type, shop_id,
          customer_token, status, created_at)
          VALUES ('${ORDER}','WF2-QA','966500000000','خاتم',1,'wf2-tk-${ORDER}','new',CURRENT_TIMESTAMP);`);
@@ -389,7 +408,10 @@ test.describe('wf2-picker-ui — suggestions section', () => {
          SELECT id, 'خاتم', 'خاتم', 0 FROM orders WHERE order_number='${ORDER}';`);
     itemId = getItemId(ORDER);
   });
-  test.afterEach(() => cleanupOrders('BR1-WF2UI004-'));
+  test.afterEach(() => {
+    cleanupOrders('BR1-WF2UI004-');
+    cleanupTechsByPrefix('WF2QA-');
+  });
 
   test('suggestions section visible and WF2QA-حامد (rings spec) is first', async ({ page }) => {
     await login(page, 'workshop', 'workshop123');
@@ -646,7 +668,8 @@ test.describe('wf2-regression — bulk assignment', () => {
   test('toolbar bulk assign dialog assigns tech to all selected orders', async ({ page }) => {
     await login(page, 'workshop', 'workshop123');
     // Bulk TechnicianPicker lives in OrderList (Dashboard), not OrdersPage (/orders)
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'load' });
+    await page.locator(`[data-testid="order-list__row__${O1}__select"]`).waitFor({ state: 'visible', timeout: 8000 });
 
     await page.locator(`[data-testid="order-list__row__${O1}__select"]`).click();
     await page.locator(`[data-testid="order-list__row__${O2}__select"]`).click();

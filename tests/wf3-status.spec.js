@@ -583,8 +583,8 @@ test.describe('wf3-regression — WF-2 picker unaffected', () => {
 
   test('per-item TechnicianPicker still opens and assigns', async ({ page }) => {
     await login(page, 'workshop', 'workshop123');
-    await page.goto('/orders', { waitUntil: 'networkidle' });
-    await page.locator(`[data-testid="orders-list__row__${ORDER}"]`).click();
+    await page.goto('/orders', { waitUntil: 'load' });
+    await page.locator(`[data-testid="orders-list__row__${ORDER}"]`).click({ timeout: 8000 });
     await page.waitForTimeout(400);
 
     // Advance status to hydrate items (pre-existing OrderDetail design)
