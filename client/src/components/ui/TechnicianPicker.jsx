@@ -3,14 +3,15 @@ import { createPortal } from 'react-dom';
 import { getTechniciansPicker, getSuggestedTechnicians } from '../../api/technicians';
 import { getSpecializations } from '../../api/specializations';
 import { Icons } from '../icons';
+import StatusIndicator from './StatusIndicator';
+import WorkloadBadge from './WorkloadBadge';
 
 const STATUS_OPTIONS = [
-  { value: 'available', label: 'متاح',        dot: 'var(--success)' },
-  { value: 'busy',      label: 'مشغول',       dot: 'var(--warning)' },
-  { value: 'off_shift', label: 'خارج الدوام', dot: 'var(--text-faint)' },
-  { value: 'on_leave',  label: 'في إجازة',    dot: 'var(--danger)' },
+  { value: 'available', label: 'متاح' },
+  { value: 'busy',      label: 'مشغول' },
+  { value: 'off_shift', label: 'خارج الدوام' },
+  { value: 'on_leave',  label: 'في إجازة' },
 ];
-const STATUS_DOT   = Object.fromEntries(STATUS_OPTIONS.map(s => [s.value, s.dot]));
 const STATUS_LABEL = Object.fromEntries(STATUS_OPTIONS.map(s => [s.value, s.label]));
 
 const GAP_PX = 4;
@@ -41,14 +42,9 @@ function TechRow({ tech, selected, onSelect, onKeyDown, testId }) {
       onKeyDown={onKeyDown}
       className="w-full flex items-start gap-2 px-3 py-2 text-start outline-none hover:bg-bg-soft focus:bg-bg-soft transition-colors"
     >
-      {/* Status dot */}
-      <span
-        aria-hidden="true"
-        style={{
-          width: 7, height: 7, borderRadius: '50%', flexShrink: 0, marginTop: 5,
-          background: STATUS_DOT[tech.status] || 'var(--text-faint)',
-        }}
-      />
+      <span style={{ flexShrink: 0, marginTop: 4 }}>
+        <StatusIndicator status={tech.status} />
+      </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="font-medium text-[12.5px] text-text truncate">
@@ -80,14 +76,12 @@ function TechRow({ tech, selected, onSelect, onKeyDown, testId }) {
           </div>
         )}
       </div>
-      {/* Workload badge */}
       {tech.active_count != null && (
-        <span
-          className="font-mono text-[11px] text-text-faint flex-shrink-0 self-center"
-          title={`${tech.active_count} قطعة نشطة`}
-        >
-          {tech.active_count}
-        </span>
+        <WorkloadBadge
+          count={tech.active_count}
+          urgent={tech.urgent_count ?? 0}
+          className="self-center"
+        />
       )}
     </button>
   );

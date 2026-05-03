@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { getTechnicians } from '../api/technicians';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { getTechnicians, getWorkloadSummary } from '../api/technicians';
 
 // Lazy-fetch the workshop's technician roster the first time any consumer
 // needs it (per-item dropdown, per-order dropdown, bulk dialog). Cached for
@@ -23,6 +23,23 @@ export function TechniciansProvider({ children }) {
   const [status, setStatus] = useState('idle'); // idle | loading | ready | error
   const [error, setError] = useState(null);
   const inFlight = useRef(null);
+
+  // Workload summary — separate lazy fetch, same retry pattern.
+  // workloadById: Map<techId, { status, active_count, urgent_count, current_item }>
+  // workloadByName: Map<name, same> — best-effort name lookup for order-list rows
+  const [workloadData, setWorkloadData] = useState(null); // null | array
+  const [workloadStatus, setWorkloadStatus] = useState('idle');
+  const workloadInFlight = useRef(null);
+
+  const workloadById = useMemo(() => {
+    if (!workloadData) return new Map();
+    return new Map(workloadData.map(t => [t.id, t]));
+  }, [workloadData]);
+
+  const workloadByName = useMemo(() => {
+    if (!workloadData) return new Map();
+    return new Map(workloadData.map(t => [t.name, t]));
+  }, [workloadData]);
 
   const ensureLoaded = useCallback(() => {
     // ensureLoaded must always return a thenable. The cache-hit path (`ready`)
@@ -49,6 +66,30 @@ export function TechniciansProvider({ children }) {
     return p;
   }, [status, technicians]);
 
+  const ensureWorkload = useCallback(() => {
+    if (workloadStatus === 'ready') return Promise.resolve(workloadData);
+    if (workloadStatus === 'loading' && workloadInFlight.current) return workloadInFlight.current;
+    setWorkloadStatus('loading');
+    const p = getWorkloadSummary()
+      .then((data) => {
+        setWorkloadData(data.technicians ?? []);
+        setWorkloadStatus('ready');
+        return data.technicians;
+      })
+      .catch(() => {
+        setWorkloadStatus('error');
+      })
+      .finally(() => { workloadInFlight.current = null; });
+    workloadInFlight.current = p;
+    return p;
+  }, [workloadStatus, workloadData]);
+
+  const invalidateWorkload = useCallback(() => {
+    workloadInFlight.current = null;
+    setWorkloadData(null);
+    setWorkloadStatus('idle');
+  }, []);
+
   const invalidate = useCallback(() => {
     inFlight.current = null;
     setTechnicians(null);
@@ -57,7 +98,10 @@ export function TechniciansProvider({ children }) {
   }, []);
 
   return (
-    <TechniciansCtx.Provider value={{ technicians, status, error, ensureLoaded, invalidate }}>
+    <TechniciansCtx.Provider value={{
+      technicians, status, error, ensureLoaded, invalidate,
+      workloadById, workloadByName, workloadStatus, ensureWorkload, invalidateWorkload,
+    }}>
       {children}
     </TechniciansCtx.Provider>
   );
