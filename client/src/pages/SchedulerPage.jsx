@@ -7,6 +7,8 @@ import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import StatusIndicator from '../components/ui/StatusIndicator';
 
+const LEAVE_TYPE_LABEL = { day_off: 'يوم عطلة', sick: 'إجازة مرضية', vacation: 'إجازة' };
+
 export default function SchedulerPage() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -122,7 +124,7 @@ export default function SchedulerPage() {
 
                   {/* Current status */}
                   <span data-testid={`scheduler-page__tech-current-status--${t.id}`}>
-                    <StatusIndicator status={t.status} label />
+                    <StatusIndicator status={t.current_status} label />
                   </span>
 
                   {/* Shift */}
@@ -131,7 +133,7 @@ export default function SchedulerPage() {
                     style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}
                     dir="ltr"
                   >
-                    {t.shift ? `${t.shift.start_time} – ${t.shift.end_time}` : '—'}
+                    {t.shift_today ? `${t.shift_today.start_time} – ${t.shift_today.end_time}` : '—'}
                   </span>
 
                   {/* Leave */}
@@ -139,8 +141,8 @@ export default function SchedulerPage() {
                     data-testid={`scheduler-page__tech-leave--${t.id}`}
                     style={{ fontSize: 12, color: 'var(--text-muted)' }}
                   >
-                    {t.leave
-                      ? new Date(t.leave.leave_date + 'T00:00:00').toLocaleDateString('ar-SA')
+                    {t.leave_today
+                      ? LEAVE_TYPE_LABEL[t.leave_today.leave_type] ?? t.leave_today.leave_type
                       : '—'}
                   </span>
 

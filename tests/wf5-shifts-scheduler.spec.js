@@ -97,7 +97,7 @@ async function login(page, username, password) {
 
 async function openTechDetailModal(page, techId) {
   await page.goto('/technicians', { waitUntil: 'networkidle' });
-  await page.locator(`[data-testid="technicians__row--${techId}"]`).click({ timeout: 8000 });
+  await page.locator(`[data-testid="technicians__row__${techId}"]`).click({ timeout: 8000 });
   await page.waitForSelector('[data-testid^="tech-detail__"]', { timeout: 8000 });
 }
 
@@ -127,7 +127,7 @@ async function addLeave(page, techId, date, leaveType) {
 // Click the scheduler manual trigger and wait for the result toast.
 async function runScheduler(page) {
   await page.getByTestId('scheduler-page__run-btn').click();
-  const toast = page.locator('[role="status"], [class*="toast"]');
+  const toast = page.locator('[data-testid^="toast__"]');
   await toast.waitFor({ state: 'visible', timeout: 10000 });
   return toast;
 }
@@ -347,16 +347,20 @@ test.describe('wf5-ui — scheduler status page', () => {
   });
 
   test('page auto-refreshes: second GET /api/scheduler/status fires within 65s', async ({ page }) => {
+    test.setTimeout(90_000); // interval is 60s; need headroom beyond default 60s timeout
     await login(page, 'workshop', 'workshop123');
-    await page.goto('/scheduler', { waitUntil: 'networkidle' });
 
+    // Register listener BEFORE navigation so initial load is counted
     let requestCount = 0;
     page.on('request', req => {
       if (req.url().includes('/api/scheduler/status')) requestCount++;
     });
 
+    await page.goto('/scheduler', { waitUntil: 'networkidle' }); // first request fires here
+
+    // Wait for a SECOND request (auto-refresh at ~60s)
     await page.waitForRequest(
-      req => req.url().includes('/api/scheduler/status') && requestCount > 0,
+      req => req.url().includes('/api/scheduler/status') && requestCount >= 2,
       { timeout: 70_000 }
     );
   });
