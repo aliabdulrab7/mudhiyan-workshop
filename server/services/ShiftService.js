@@ -191,8 +191,8 @@ function computeTargetStatus(tech, shift, leave, currentTime) {
 // getSchedulerStatus — snapshot of what the scheduler would do right now.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function getSchedulerStatus() {
-  const { currentTime, todayDate, currentDay } = getKSANow();
+function getSchedulerStatus(getNow = getKSANow) {
+  const { currentTime, todayDate, currentDay } = getNow();
 
   const techs = db.prepare(`
     SELECT id, name, status FROM technicians WHERE active = 1
@@ -200,7 +200,7 @@ function getSchedulerStatus() {
 
   const technicianSummaries = techs.map(tech => {
     const shift = db.prepare(`
-      SELECT start_time, end_time FROM technician_shifts
+      SELECT start_time, end_time, active FROM technician_shifts
       WHERE technician_id = ? AND day_of_week = ? AND active = 1
     `).get(tech.id, currentDay);
 
@@ -229,8 +229,8 @@ function getSchedulerStatus() {
 // Safe to call repeatedly — idempotent when status already matches target.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function runScheduler() {
-  const { currentTime, todayDate, currentDay } = getKSANow();
+function runScheduler(getNow = getKSANow) {
+  const { currentTime, todayDate, currentDay } = getNow();
 
   const techs = db.prepare(`
     SELECT id, name, status FROM technicians WHERE active = 1
@@ -242,7 +242,7 @@ function runScheduler() {
 
   for (const tech of techs) {
     const shift = db.prepare(`
-      SELECT start_time, end_time FROM technician_shifts
+      SELECT start_time, end_time, active FROM technician_shifts
       WHERE technician_id = ? AND day_of_week = ? AND active = 1
     `).get(tech.id, currentDay);
 
