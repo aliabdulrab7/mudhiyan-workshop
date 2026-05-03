@@ -21,7 +21,7 @@
 import { test, expect } from '@playwright/test';
 import { execSync }      from 'node:child_process';
 
-const DB = '/Users/waled/Desktop/mudhiyan-workshop-qa-wf4/server/data/workshop.db';
+const DB = '/Users/waled/Desktop/mudhiyan-workshop-qa-wf5/server/data/workshop.db';
 
 function sql(q) {
   return execSync(`sqlite3 "${DB}" ${JSON.stringify(q.replace(/\s*\n\s*/g, ' '))}`, { encoding: 'utf8' }).trim();
