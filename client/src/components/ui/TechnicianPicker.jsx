@@ -125,6 +125,7 @@ export default function TechnicianPicker({
   allowClear = false,
   disabled = false,
   placeholder = 'اختر فنياً',
+  zIndex = 1000,
   testId,
 }) {
   const [open, setOpen]               = useState(false);
@@ -350,7 +351,7 @@ export default function TechnicianPicker({
             top: pos ? pos.top : 0,
             left: pos ? pos.left : 0,
             visibility: pos ? 'visible' : 'hidden',
-            zIndex: 1000,
+            zIndex,
             width: `min(340px, calc(100vw - ${VM * 2}px))`,
           }}
           className="bg-bg-raised border border-border rounded shadow-lg outline-none flex flex-col"
