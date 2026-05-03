@@ -306,8 +306,8 @@ test.describe('wf4-ui — auto-assign button', () => {
     await openOrderDetail(page, orderNumber);
     await clickAutoAssign(page, itemId);
 
-    // Expect success toast
-    const toast = page.locator('[role="status"], [class*="toast"]');
+    // Expect success toast (ToastProvider uses data-testid="toast__success")
+    const toast = page.locator('[data-testid^="toast__"]');
     await expect(toast.filter({ hasText: `${TPREFIX}فني` })).toBeVisible({ timeout: 5000 });
 
     // Expect tech name appears in item row
@@ -316,28 +316,25 @@ test.describe('wf4-ui — auto-assign button', () => {
   });
 
   test('click auto-assign with no available tech → warning toast with Arabic message', async ({ page }) => {
-    // With no active techs in DB, auto-assign should 422 → show Arabic warning.
+    // autoAssign throws NoSuitableTechnicianError (422) only when suggestForItem returns zero results,
+    // which happens only when there are literally no active (active=1) technicians in the DB.
+    // seed.js always creates 'علي' as a permanent tech, so we must deactivate all non-TPREFIX
+    // techs for the duration of this test.
     await login(page, 'workshop', 'workshop123');
-    // Do NOT seed any tech for this test — rely on no available techs
-    // Deactivate any seeded techs that might match (best-effort; scoring may still find someone)
-    // A more robust approach: seed only off_shift/on_leave techs
-    const techId = seedTech(`${TPREFIX}غير-متاح`, { status: 'on_leave' });
+    sql(`UPDATE technicians SET active = 0 WHERE name NOT LIKE '${TPREFIX}%'`);
 
     const orderNumber = `${PREFIX}NOTECH-001`;
     const itemId = seedOrder(orderNumber, { status: 'in_repair' });
 
     await openOrderDetail(page, orderNumber);
-
-    // Override spec-map to require a non-existent spec so scoring yields no suggestions
-    setSpecMap('خاتم', ['nonexistent_spec_value_qa']);
-
     await clickAutoAssign(page, itemId);
 
-    const toast = page.locator('[role="status"], [class*="toast"]');
+    // BE sends 422 NoSuitableTechnicianError with message 'لا يوجد فني متاح'; FE toasts e.message
+    const toast = page.locator('[data-testid^="toast__"]');
     await expect(toast.filter({ hasText: 'لا يوجد فني' })).toBeVisible({ timeout: 5000 });
 
-    // Restore spec-map
-    setSpecMap('خاتم', ['rings']);
+    // Restore permanent techs
+    sql(`UPDATE technicians SET active = 1 WHERE name NOT LIKE '${TPREFIX}%'`);
   });
 });
 
@@ -477,7 +474,8 @@ test.describe('wf4-regression — WF-2 TechnicianPicker unaffected', () => {
     const searchInput = page.locator('[data-testid="tech-picker__search"]');
     await searchInput.fill(TPREFIX);
 
-    await expect(page.locator(`[data-testid="tech-picker__row--${techId}"]`)).toBeVisible({ timeout: 5000 });
+    // Tech appears in both "suggested" and "all" sections; .first() avoids strict-mode violation
+    await expect(page.locator(`[data-testid="tech-picker__row--${techId}"]`).first()).toBeVisible({ timeout: 5000 });
   });
 });
 
