@@ -45,6 +45,8 @@ const navItems = [
   { to: '/workshop-status', icon: Icons.Layers, label: 'حالة الورشة',  roles: ['workshop'] },
   { to: '/spec-map',        icon: Icons.Tag,    label: 'خريطة التخصصات', roles: ['workshop'] },
   { to: '/scheduler',       icon: Icons.Clock,  label: 'الجدولة',         roles: ['workshop'] },
+  { to: '/flow',            icon: Icons.Bolt,   label: 'The Flow',         roles: ['workshop'] },
+  { to: '/bulk-assign',     icon: Icons.QR,     label: 'تعيين جماعي',     roles: ['workshop'] },
 ];
 
 const mobileNav = [
@@ -66,6 +68,10 @@ const PAGE_LABELS = {
   '/roles':         'الأدوار',
   '/specializations':  'التخصصات',
   '/workshop-status':  'حالة الورشة',
+  '/spec-map':         'خريطة التخصصات',
+  '/scheduler':        'الجدولة',
+  '/flow':             'The Flow',
+  '/bulk-assign':      'تعيين جماعي',
 };
 
 export default function Layout({ children }) {

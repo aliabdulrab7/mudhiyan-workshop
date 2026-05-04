@@ -21,6 +21,8 @@ import OrdersPage         from './pages/OrdersPage';
 import WorkshopStatusPage from './pages/WorkshopStatusPage';
 import SpecMapPage        from './pages/SpecMapPage';
 import SchedulerPage      from './pages/SchedulerPage';
+import FlowPage           from './pages/FlowPage';
+import BulkAssignPage     from './pages/BulkAssignPage';
 
 export default function App() {
   return (
@@ -51,6 +53,8 @@ export default function App() {
                 <Route path="/workshop-status"   element={<RoleRoute roles={["workshop"]}><WorkshopStatusPage /></RoleRoute>} />
                 <Route path="/spec-map"          element={<RoleRoute roles={["workshop"]}><SpecMapPage /></RoleRoute>} />
                 <Route path="/scheduler"         element={<RoleRoute roles={["workshop"]}><SchedulerPage /></RoleRoute>} />
+                <Route path="/flow"             element={<RoleRoute roles={["workshop"]}><FlowPage /></RoleRoute>} />
+                <Route path="/bulk-assign"      element={<RoleRoute roles={["workshop"]}><BulkAssignPage /></RoleRoute>} />
                 <Route path="/orders/:id/label" element={<LabelPrintPage />} />
                 <Route path="*"         element={<Navigate to="/" replace />} />
               </Routes>
