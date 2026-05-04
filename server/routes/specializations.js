@@ -23,9 +23,12 @@ function readRow(id) {
 }
 
 function specRefCount(id) {
-  const n = db.prepare(
-    `SELECT COUNT(*) AS n FROM technician_specializations WHERE specialization_id = ?`
-  ).get(id).n;
+  const n = db.prepare(`
+    SELECT COUNT(*) AS n
+    FROM technician_specializations ts
+    JOIN technicians t ON t.id = ts.technician_id
+    WHERE ts.specialization_id = ? AND t.active = 1 AND t.archived_at IS NULL
+  `).get(id).n;
   return { reference_count: n, referencing_tables: n > 0 ? [{ table: 'technician_specializations', count: n }] : [] };
 }
 
@@ -129,6 +132,11 @@ router.delete('/:id', (req, res) => {
       referencing_tables,
     });
   }
+  db.prepare(`
+    DELETE FROM technician_specializations
+    WHERE specialization_id = ?
+      AND technician_id IN (SELECT id FROM technicians WHERE archived_at IS NOT NULL)
+  `).run(id);
   db.prepare(`DELETE FROM specializations WHERE id = ?`).run(id);
   res.json({ ok: true, id });
 });

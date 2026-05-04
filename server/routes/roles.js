@@ -130,6 +130,7 @@ router.delete('/:id', (req, res) => {
       referencing_tables,
     });
   }
+  db.prepare(`UPDATE technicians SET role_id = NULL WHERE role_id = ? AND archived_at IS NOT NULL`).run(id);
   db.prepare(`DELETE FROM roles WHERE id = ?`).run(id);
   res.json({ ok: true, id });
 });
