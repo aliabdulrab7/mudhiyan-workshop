@@ -145,6 +145,8 @@ export default function NewOrder() {
   const [createdOrder, setCreatedOrder] = useState(null);
   const [repairOpts, setRepairOpts] = useState([]);
 
+  useEffect(() => { document.title = 'طلب جديد | مضيان'; }, []);
+
   useEffect(() => {
     let cancelled = false;
     getRepairOptions()

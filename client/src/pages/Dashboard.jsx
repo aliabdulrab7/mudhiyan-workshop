@@ -67,6 +67,8 @@ export default function Dashboard() {
     setBranchStats(branches);
   }
 
+  useEffect(() => { document.title = 'لوحة التحكم | مضيان'; }, []);
+
   useEffect(() => { loadData(); }, [refresh]);
 
   const handleApproved = useCallback((order) => {

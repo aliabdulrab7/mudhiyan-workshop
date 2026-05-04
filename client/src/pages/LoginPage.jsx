@@ -18,6 +18,8 @@ export default function LoginPage() {
   const location = useLocation();
   const toast = useToast();
 
+  useEffect(() => { document.title = 'تسجيل الدخول | مضيان'; }, []);
+
   useEffect(() => {
     const msg = location.state?.reloginToast;
     if (msg) {

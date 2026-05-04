@@ -51,6 +51,8 @@ export default function TechniciansPage() {
 
   // Debounce the search input — 200ms, matches the brief. Resetting page is
   // bundled here so the fetch effect can stay pure-effect (no setState in body).
+  useEffect(() => { document.title = 'الفنيون | مضيان'; }, []);
+
   useEffect(() => {
     const t = setTimeout(() => {
       setSearch(searchInput.trim());
@@ -240,7 +242,18 @@ export default function TechniciansPage() {
 
         {/* List */}
         {loading ? (
-          <div className="text-text-muted text-center py-10 text-sm">جاري التحميل...</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
+                <div className="skeleton" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div className="skeleton" style={{ width: 120, height: 13 }} />
+                  <div className="skeleton" style={{ width: 80, height: 11 }} />
+                </div>
+                <div className="skeleton" style={{ width: 60, height: 22, borderRadius: 999 }} />
+              </div>
+            ))}
+          </div>
         ) : items.length === 0 ? (
           <Card style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
             لا يوجد فنيون مطابقون لهذا التصفية

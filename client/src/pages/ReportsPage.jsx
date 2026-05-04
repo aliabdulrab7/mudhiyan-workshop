@@ -27,6 +27,8 @@ export default function ReportsPage() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
 
+  useEffect(() => { document.title = 'التقارير | مضيان'; }, []);
+
   useEffect(() => {
     async function loadData() {
       setLoading(true); setError(null);

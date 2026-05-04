@@ -22,6 +22,8 @@ export default function BranchesPage() {
     finally { setLoading(false); }
   }
 
+  useEffect(() => { document.title = 'الفروع | مضيان'; }, []);
+
   useEffect(() => { load(); }, []);
 
   function handleShowForm() {
