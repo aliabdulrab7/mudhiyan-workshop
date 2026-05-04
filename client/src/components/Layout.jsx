@@ -205,14 +205,6 @@ export default function Layout({ children }) {
             >
               صيانة جديدة
             </Button>
-            <Button
-              variant="subtle"
-              size="sm"
-              icon={<Icons.Bell size={13} />}
-              testId="layout__topbar__action__notifications"
-              aria-label="إشعارات"
-              className="!px-1.5"
-            />
             <Dropdown
               align="end"
               testId="layout__user-menu"
