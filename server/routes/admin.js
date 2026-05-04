@@ -67,4 +67,82 @@ router.delete('/branches/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Workshop users management ─────────────────────────────────────────────────
+
+router.get('/users', (_req, res) => {
+  const users = db.prepare(
+    `SELECT id, username, role, active, created_at FROM users WHERE role = 'workshop' ORDER BY created_at ASC`
+  ).all();
+  res.json(users);
+});
+
+router.post('/users', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'اسم المستخدم وكلمة المرور مطلوبان' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' });
+  }
+  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username.trim());
+  if (existing) return res.status(409).json({ error: 'اسم المستخدم مستخدم بالفعل' });
+
+  const hash   = bcrypt.hashSync(password, 10);
+  const result = db.prepare(
+    `INSERT INTO users (username, password_hash, role, active) VALUES (?, ?, 'workshop', 1)`
+  ).run(username.trim(), hash);
+
+  const user = db.prepare(
+    `SELECT id, username, role, active, created_at FROM users WHERE id = ?`
+  ).get(result.lastInsertRowid);
+  res.status(201).json(user);
+});
+
+router.patch('/users/:id', (req, res) => {
+  const id     = Number(req.params.id);
+  const target = db.prepare(`SELECT id, username, role, active FROM users WHERE id = ?`).get(id);
+  if (!target) return res.status(404).json({ error: 'المستخدم غير موجود' });
+  if (target.role !== 'workshop') return res.status(403).json({ error: 'غير مسموح' });
+
+  const { username, active } = req.body;
+
+  if (username !== undefined) {
+    if (!String(username).trim()) return res.status(400).json({ error: 'اسم المستخدم لا يمكن أن يكون فارغاً' });
+    const conflict = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(String(username).trim(), id);
+    if (conflict) return res.status(409).json({ error: 'اسم المستخدم مستخدم بالفعل' });
+  }
+  if (active !== undefined && (active === 0 || active === false) && id === req.user.id) {
+    return res.status(400).json({ error: 'لا يمكن تعطيل حسابك الخاص' });
+  }
+
+  const sets = []; const params = [];
+  if (username !== undefined) { sets.push('username = ?'); params.push(String(username).trim()); }
+  if (active  !== undefined) { sets.push('active = ?');   params.push(active ? 1 : 0); }
+  if (sets.length === 0) return res.status(400).json({ error: 'لا توجد تحديثات' });
+
+  params.push(id);
+  db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+
+  const updated = db.prepare(
+    `SELECT id, username, role, active, created_at FROM users WHERE id = ?`
+  ).get(id);
+  res.json(updated);
+});
+
+router.patch('/users/:id/password', (req, res) => {
+  const id     = Number(req.params.id);
+  const target = db.prepare(`SELECT id, role FROM users WHERE id = ?`).get(id);
+  if (!target) return res.status(404).json({ error: 'المستخدم غير موجود' });
+  if (target.role !== 'workshop') return res.status(403).json({ error: 'غير مسموح' });
+
+  const { new_password } = req.body;
+  if (!new_password || new_password.length < 8) {
+    return res.status(400).json({ error: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' });
+  }
+
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, id);
+  res.json({ ok: true });
+});
+
 module.exports = router;
