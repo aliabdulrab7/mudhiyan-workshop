@@ -133,10 +133,13 @@ describe('DELETE /api/roles/:id', () => {
     unusedId = res.body.id;
   });
 
-  it('soft-deletes when no technician references the role', async () => {
+  it('hard-deletes when no technician references the role', async () => {
     const res = await request(app).delete(`/api/roles/${unusedId}`).set(auth(wsToken));
     expect(res.status).toBe(200);
-    expect(res.body.active).toBe(0);
+    expect(res.body.ok).toBe(true);
+    // Row must be gone
+    const gone = db.prepare(`SELECT id FROM roles WHERE id = ?`).get(unusedId);
+    expect(gone).toBeUndefined();
   });
 
   it('returns 409 RoleInUseError when an active technician references it', async () => {

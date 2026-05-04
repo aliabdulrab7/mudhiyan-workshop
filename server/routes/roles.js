@@ -116,7 +116,7 @@ router.patch('/:id', (req, res) => {
   res.json(readRow(id));
 });
 
-// DELETE /api/roles/:id — soft-delete (active=0); blocked if active technicians reference it.
+// DELETE /api/roles/:id — hard-delete; blocked if active technicians reference it.
 // Returns { reference_count, referencing_tables } in 409 body for UI dependency display.
 router.delete('/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);
@@ -130,8 +130,8 @@ router.delete('/:id', (req, res) => {
       referencing_tables,
     });
   }
-  db.prepare(`UPDATE roles SET active = 0 WHERE id = ?`).run(id);
-  res.json(readRow(id));
+  db.prepare(`DELETE FROM roles WHERE id = ?`).run(id);
+  res.json({ ok: true, id });
 });
 
 module.exports = router;

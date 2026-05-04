@@ -44,7 +44,12 @@ export async function deleteRole(id) {
     headers: authHeaders(),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'فشل حذف الدور');
+  if (!res.ok) {
+    const err = new Error(data.error || 'فشل حذف الدور');
+    err.status = res.status;
+    err.reference_count = data.reference_count ?? 0;
+    throw err;
+  }
   return data;
 }
 

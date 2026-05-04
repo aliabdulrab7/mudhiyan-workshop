@@ -43,7 +43,12 @@ export async function deleteSpecialization(id) {
     headers: authHeaders(),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'فشل حذف التخصص');
+  if (!res.ok) {
+    const err = new Error(data.error || 'فشل حذف التخصص');
+    err.status = res.status;
+    err.reference_count = data.reference_count ?? 0;
+    throw err;
+  }
   return data;
 }
 

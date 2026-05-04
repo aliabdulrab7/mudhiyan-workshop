@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { listTechnicians } from '../api/technicians';
+import { listTechnicians, archiveTechnician, restoreTechnician, getTechRefCount } from '../api/technicians';
 import { getRoles } from '../api/roles';
 import { useTechnicians } from '../contexts/TechniciansContext';
 import { Icons } from '../components/icons';
+import ArchiveConfirmDialog from '../components/ArchiveConfirmDialog';
 import TechnicianDetailModal from '../components/TechnicianDetailModal';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Chip from '../components/ui/Chip';
 import Input from '../components/ui/Input';
+import { useToast } from '../components/ToastProvider';
 
 const PAGE_SIZE = 20;
 
@@ -30,61 +32,59 @@ const ACTIVE_FILTERS = [
 
 export default function TechniciansPage() {
   const techCtx = useTechnicians();
+  const toast   = useToast();
 
   const [searchInput, setSearchInput]   = useState('');
   const [search, setSearch]             = useState('');
-  const [roleFilter, setRoleFilter]     = useState('');     // '' | role.id (number string)
-  const [statusFilter, setStatusFilter] = useState('');     // '' | enum
-  const [activeFilter, setActiveFilter] = useState('all');  // all | active | inactive
+  const [roleFilter, setRoleFilter]     = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [showArchived, setShowArchived] = useState(false);
   const [page, setPage]                 = useState(0);
 
-  const [items, setItems]   = useState([]);
-  const [total, setTotal]   = useState(0);
+  const [items, setItems]     = useState([]);
+  const [total, setTotal]     = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState('');
-  const [roles, setRoles]   = useState([]);
+  const [error, setError]     = useState('');
+  const [roles, setRoles]     = useState([]);
   const [reloadTick, setReloadTick] = useState(0);
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState('create');
+  const [modalOpen, setModalOpen]   = useState(false);
+  const [modalMode, setModalMode]   = useState('create');
   const [modalTechId, setModalTechId] = useState(null);
 
-  // Debounce the search input — 200ms, matches the brief. Resetting page is
-  // bundled here so the fetch effect can stay pure-effect (no setState in body).
+  const [archiveTarget, setArchiveTarget]         = useState(null);
+  const [archiveConfirming, setArchiveConfirming] = useState(false);
+
   useEffect(() => { document.title = 'الفنيون | مضيان'; }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(0);
-    }, 200);
+    const t = setTimeout(() => { setSearch(searchInput.trim()); setPage(0); }, 200);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // Roles list for filter chips (workshop-defined vocabulary).
   useEffect(() => {
     async function loadRoles() {
       try {
         const r = await getRoles();
         setRoles(Array.isArray(r) ? r.filter((x) => x.active !== 0) : []);
-      } catch { /* non-critical: filter chips just stay empty */ }
+      } catch { /* filter chips stay empty */ }
     }
     loadRoles();
   }, []);
 
-  // Fetch list. Filter setters reset page directly, so this effect doesn't
-  // need a separate reset-on-filter-change branch.
   useEffect(() => {
     let cancelled = false;
     async function loadList() {
       setLoading(true);
       setError('');
       const params = {
-        search:  search || undefined,
-        role_id: roleFilter || undefined,
-        status:  statusFilter || undefined,
-        limit:   PAGE_SIZE,
-        offset:  page * PAGE_SIZE,
+        search:           search || undefined,
+        role_id:          roleFilter || undefined,
+        status:           statusFilter || undefined,
+        include_archived: showArchived,
+        limit:            PAGE_SIZE,
+        offset:           page * PAGE_SIZE,
       };
       if (activeFilter === 'active')   params.active = 1;
       if (activeFilter === 'inactive') params.active = 0;
@@ -101,31 +101,44 @@ export default function TechniciansPage() {
     }
     loadList();
     return () => { cancelled = true; };
-  }, [search, roleFilter, statusFilter, activeFilter, page, reloadTick]);
+  }, [search, roleFilter, statusFilter, activeFilter, showArchived, page, reloadTick]);
 
-  function openCreate() {
-    setModalMode('create');
-    setModalTechId(null);
-    setModalOpen(true);
-  }
-  function openEdit(t) {
-    setModalMode('edit');
-    setModalTechId(t.id);
-    setModalOpen(true);
-  }
+  function openCreate() { setModalMode('create'); setModalTechId(null); setModalOpen(true); }
+  function openEdit(t)  { setModalMode('edit');   setModalTechId(t.id);  setModalOpen(true); }
 
-  // After any save, refetch the management list AND invalidate the roster
-  // cache so assignment dropdowns elsewhere see the new state on next open.
   function handleSaved() {
     techCtx?.invalidate?.();
     setPage(0);
     setReloadTick((n) => n + 1);
   }
 
+  async function confirmArchive() {
+    if (!archiveTarget) return;
+    setArchiveConfirming(true);
+    try {
+      await archiveTechnician(archiveTarget.id);
+      setArchiveTarget(null);
+      techCtx?.invalidate?.();
+      setReloadTick((n) => n + 1);
+    } catch (e) {
+      toast?.(e.message, 'error');
+    } finally {
+      setArchiveConfirming(false);
+    }
+  }
+
+  async function handleRestore(t) {
+    try {
+      await restoreTechnician(t.id);
+      techCtx?.invalidate?.();
+      setReloadTick((n) => n + 1);
+    } catch (e) {
+      toast?.(e.message, 'error');
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // Fallback resolver — server normally returns flat role_value/role_display_label_ar
-  // on each tech row, but we keep this for the case where only role_id is set.
   const roleNameFor = (id) => {
     const r = roles.find((x) => x.id === id);
     return r ? (r.display_label_ar || r.value) : null;
@@ -139,13 +152,8 @@ export default function TechniciansPage() {
           <div className="page-sub">إدارة فنيي الورشة وأدوارهم وتخصصاتهم</div>
         </div>
         <div className="page-actions">
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Icons.Plus size={12} />}
-            onClick={openCreate}
-            testId="technicians__add-button"
-          >
+          <Button variant="primary" size="sm" icon={<Icons.Plus size={12} />} onClick={openCreate}
+            testId="technicians__add-button">
             إضافة فني
           </Button>
         </div>
@@ -167,23 +175,13 @@ export default function TechniciansPage() {
 
             {/* Status chips */}
             <div className="flex flex-wrap gap-1.5 items-center">
-              <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">
-                الحالة:
-              </span>
-              <Chip
-                active={statusFilter === ''}
-                onClick={() => { setStatusFilter(''); setPage(0); }}
-                testId="technicians__filter__status__all"
-              >
-                الكل
-              </Chip>
+              <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">الحالة:</span>
+              <Chip active={statusFilter === ''} onClick={() => { setStatusFilter(''); setPage(0); }}
+                testId="technicians__filter__status__all">الكل</Chip>
               {STATUS_FILTERS.map((s) => (
-                <Chip
-                  key={s.value}
-                  active={statusFilter === s.value}
+                <Chip key={s.value} active={statusFilter === s.value}
                   onClick={() => { setStatusFilter(statusFilter === s.value ? '' : s.value); setPage(0); }}
-                  testId={`technicians__filter__status__${s.value}`}
-                >
+                  testId={`technicians__filter__status__${s.value}`}>
                   {s.label}
                 </Chip>
               ))}
@@ -192,23 +190,13 @@ export default function TechniciansPage() {
             {/* Role chips */}
             {roles.length > 0 && (
               <div className="flex flex-wrap gap-1.5 items-center">
-                <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">
-                  الدور:
-                </span>
-                <Chip
-                  active={roleFilter === ''}
-                  onClick={() => { setRoleFilter(''); setPage(0); }}
-                  testId="technicians__filter__role__all"
-                >
-                  الكل
-                </Chip>
+                <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">الدور:</span>
+                <Chip active={roleFilter === ''} onClick={() => { setRoleFilter(''); setPage(0); }}
+                  testId="technicians__filter__role__all">الكل</Chip>
                 {roles.map((r) => (
-                  <Chip
-                    key={r.id}
-                    active={roleFilter === String(r.id)}
+                  <Chip key={r.id} active={roleFilter === String(r.id)}
                     onClick={() => { setRoleFilter(roleFilter === String(r.id) ? '' : String(r.id)); setPage(0); }}
-                    testId={`technicians__filter__role__${r.value}`}
-                  >
+                    testId={`technicians__filter__role__${r.value}`}>
                     {r.display_label_ar || r.value}
                   </Chip>
                 ))}
@@ -217,19 +205,29 @@ export default function TechniciansPage() {
 
             {/* Active toggle */}
             <div className="flex flex-wrap gap-1.5 items-center">
-              <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">
-                الإيقاف:
-              </span>
+              <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">الإيقاف:</span>
               {ACTIVE_FILTERS.map((a) => (
-                <Chip
-                  key={a.value}
-                  active={activeFilter === a.value}
+                <Chip key={a.value} active={activeFilter === a.value}
                   onClick={() => { setActiveFilter(a.value); setPage(0); }}
-                  testId={`technicians__filter__active__${a.value}`}
-                >
+                  testId={`technicians__filter__active__${a.value}`}>
                   {a.label}
                 </Chip>
               ))}
+            </div>
+
+            {/* Archive toggle */}
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint ml-1">الأرشيف:</span>
+              <Chip active={!showArchived}
+                onClick={() => { setShowArchived(false); setPage(0); }}
+                testId="technicians__filter__archived__no">
+                الحاليون
+              </Chip>
+              <Chip active={showArchived}
+                onClick={() => { setShowArchived(true); setPage(0); }}
+                testId="technicians__filter__archived__yes">
+                المؤرشفون
+              </Chip>
             </div>
           </div>
         </Card>
@@ -256,115 +254,127 @@ export default function TechniciansPage() {
           </div>
         ) : items.length === 0 ? (
           <Card style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
-            لا يوجد فنيون مطابقون لهذا التصفية
+            {showArchived ? 'لا يوجد فنيون مؤرشفون' : 'لا يوجد فنيون مطابقون لهذه التصفية'}
           </Card>
         ) : (
           <>
             <div className="flex flex-col gap-2">
               {items.map((t) => {
-                // Server returns specializations_top3 on list rows; full set on detail.
-                const specsArr = t.specializations_top3 || t.specializations || [];
-                const specs = specsArr.slice(0, 3);
+                const specsArr  = t.specializations_top3 || t.specializations || [];
+                const specs     = specsArr.slice(0, 3);
                 const moreSpecs = Math.max(0, (specsArr.length || 0) - 3);
                 const roleLabel = t.role_display_label_ar || t.role_value || roleNameFor(t.role_id);
+                const isArchived = !!t.archived_at;
                 return (
                   <Card
                     key={t.id}
-                    as="button"
-                    onClick={() => openEdit(t)}
                     style={{
-                      padding: '14px 18px',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: 14,
-                      width: '100%',
-                      textAlign: 'start',
-                      cursor: 'pointer',
-                      opacity: t.active === 0 ? 0.55 : 1,
+                      alignItems: 'stretch',
+                      opacity: (t.active === 0 || isArchived) ? 0.6 : 1,
                     }}
                     testId={`technicians__row__${t.id}`}
                   >
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 'var(--radius-sm)',
-                      background: 'var(--primary-soft)', border: '1px solid var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <Icons.User size={16} stroke="var(--primary)" />
-                    </div>
+                    {/* Main clickable zone */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openEdit(t)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(t); } }}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 14,
+                        padding: '14px 18px',
+                        cursor: 'pointer',
+                        minWidth: 0,
+                        textAlign: 'start',
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                      }}
+                    >
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 'var(--radius-sm)',
+                        background: isArchived ? 'var(--bg-soft)' : 'var(--primary-soft)',
+                        border: '1px solid var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Icons.User size={16} stroke={isArchived ? 'var(--text-faint)' : 'var(--primary)'} />
+                      </div>
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span style={{ fontWeight: 600, fontSize: 13 }}>
-                          {t.name || `#${t.id}`}
-                        </span>
-                        {roleLabel && (
-                          <span
-                            className="text-[10.5px] font-semibold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-sm"
-                            style={{
-                              background: 'var(--primary-soft)',
-                              color: 'var(--primary)',
-                              border: '1px solid var(--border)',
-                            }}
-                          >
-                            {roleLabel}
-                          </span>
-                        )}
-                        {t.active === 0 && (
-                          <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint">
-                            موقوف
-                          </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span style={{ fontWeight: 600, fontSize: 13 }}>{t.name || `#${t.id}`}</span>
+                          {roleLabel && (
+                            <span className="text-[10.5px] font-semibold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-sm"
+                              style={{ background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--border)' }}>
+                              {roleLabel}
+                            </span>
+                          )}
+                          {isArchived && (
+                            <span className="text-[10.5px] uppercase tracking-[0.06em]"
+                              style={{ color: 'var(--text-faint)', background: 'var(--bg-soft)', padding: '1px 5px', borderRadius: 3 }}>
+                              مؤرشف
+                            </span>
+                          )}
+                          {!isArchived && t.active === 0 && (
+                            <span className="text-[10.5px] uppercase tracking-[0.06em] text-text-faint">موقوف</span>
+                          )}
+                        </div>
+
+                        {(specs.length > 0 || t.phone) && (
+                          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                            {specs.map((s) => (
+                              <span key={s.id} className="text-[10.5px] px-1.5 py-0.5 rounded-sm"
+                                style={{ background: 'var(--bg-soft)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                                {s.display_label_ar || s.value}
+                              </span>
+                            ))}
+                            {moreSpecs > 0 && <span className="text-[10.5px] text-text-faint">+{moreSpecs}</span>}
+                            {t.phone && <span className="font-mono text-[11px] text-text-faint" dir="ltr">{t.phone}</span>}
+                          </div>
                         )}
                       </div>
 
-                      {(specs.length > 0 || t.phone) && (
-                        <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                          {specs.map((s) => (
-                            <span
-                              key={s.id}
-                              className="text-[10.5px] px-1.5 py-0.5 rounded-sm"
-                              style={{
-                                background: 'var(--bg-soft)',
-                                color: 'var(--text-muted)',
-                                border: '1px solid var(--border)',
-                              }}
-                            >
-                              {s.display_label_ar || s.value}
-                            </span>
-                          ))}
-                          {moreSpecs > 0 && (
-                            <span className="text-[10.5px] text-text-faint">
-                              +{moreSpecs}
-                            </span>
-                          )}
-                          {t.phone && (
-                            <span className="font-mono text-[11px] text-text-faint" dir="ltr">
-                              {t.phone}
-                            </span>
-                          )}
+                      {/* Status dot */}
+                      {!isArchived && (
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span aria-label={STATUS_LABEL[t.status] || t.status} title={STATUS_LABEL[t.status] || t.status}
+                            style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_DOT[t.status] || 'var(--text-faint)', flexShrink: 0 }} />
+                          <span className="text-[11px] text-text-muted">{STATUS_LABEL[t.status] || ''}</span>
+                        </div>
+                      )}
+
+                      {/* Workload */}
+                      {!isArchived && (
+                        <div className="flex-shrink-0 text-end" style={{ minWidth: 56 }}>
+                          <div className="font-mono text-sm text-text">{t.active_count ?? 0}</div>
+                          <div className="text-[10px] text-text-faint">قطعة نشطة</div>
                         </div>
                       )}
                     </div>
 
-                    {/* Status dot */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span
-                        aria-label={STATUS_LABEL[t.status] || t.status}
-                        title={STATUS_LABEL[t.status] || t.status}
-                        style={{
-                          width: 8, height: 8, borderRadius: '50%',
-                          background: STATUS_DOT[t.status] || 'var(--text-faint)',
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span className="text-[11px] text-text-muted">
-                        {STATUS_LABEL[t.status] || ''}
-                      </span>
-                    </div>
-
-                    {/* Workload */}
-                    <div className="flex-shrink-0 text-end" style={{ minWidth: 56 }}>
-                      <div className="font-mono text-sm text-text">{t.active_count ?? 0}</div>
-                      <div className="text-[10px] text-text-faint">قطعة نشطة</div>
+                    {/* Archive / Restore action */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingInlineEnd: 12,
+                      borderInlineStart: '1px solid var(--border-faint, var(--border))',
+                      paddingInlineStart: 8,
+                    }}>
+                      {isArchived ? (
+                        <Button variant="ghost" size="sm" onClick={() => handleRestore(t)}
+                          testId={`technicians__row__${t.id}__restore`}>
+                          استعادة
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" onClick={() => setArchiveTarget(t)}
+                          testId={`technicians__row__${t.id}__archive`}>
+                          أرشفة
+                        </Button>
+                      )}
                     </div>
                   </Card>
                 );
@@ -374,27 +384,18 @@ export default function TechniciansPage() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page === 0}
+                <Button variant="ghost" size="sm" disabled={page === 0}
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  testId="technicians__pagination__prev"
-                >
+                  testId="technicians__pagination__prev">
                   السابق
                 </Button>
                 <div className="text-xs text-text-muted">
                   صفحة <span className="font-mono">{page + 1}</span> من <span className="font-mono">{totalPages}</span>
-                  {' · '}
-                  <span className="font-mono">{total}</span> فني
+                  {' · '}<span className="font-mono">{total}</span> فني
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page + 1 >= totalPages}
+                <Button variant="ghost" size="sm" disabled={page + 1 >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  testId="technicians__pagination__next"
-                >
+                  testId="technicians__pagination__next">
                   التالي
                 </Button>
               </div>
@@ -409,6 +410,15 @@ export default function TechniciansPage() {
         techId={modalTechId}
         onClose={() => setModalOpen(false)}
         onSaved={handleSaved}
+      />
+
+      <ArchiveConfirmDialog
+        open={!!archiveTarget}
+        onClose={() => setArchiveTarget(null)}
+        onConfirm={confirmArchive}
+        entityLabel="الفني"
+        fetchRefCount={() => getTechRefCount(archiveTarget?.id)}
+        confirming={archiveConfirming}
       />
     </div>
   );

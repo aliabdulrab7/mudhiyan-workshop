@@ -1,82 +1,208 @@
 import { useEffect, useState } from 'react';
-import { getSpecializations, createSpecialization, updateSpecialization, deleteSpecialization } from '../api/specializations';
+import {
+  getSpecializations, createSpecialization, updateSpecialization, deleteSpecialization,
+  archiveSpecialization, restoreSpecialization, getSpecRefCount,
+} from '../api/specializations';
 import { Icons } from '../components/icons';
+import ArchiveConfirmDialog from '../components/ArchiveConfirmDialog';
+import BulkActionBar from '../components/BulkActionBar';
+import EntityFormModal from '../components/EntityFormModal';
+import EntityListView from '../components/EntityListView';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
 import Dialog from '../components/ui/Dialog';
-import FormField from '../components/ui/FormField';
-import Input from '../components/ui/Input';
+import { useToast } from '../components/ToastProvider';
+
+const CREATE_FIELDS = [
+  { key: 'value',            label: 'القيمة (إنجليزي)', required: true, placeholder: 'e.g. stone_setting', dir: 'ltr' },
+  { key: 'display_label_ar', label: 'الاسم العربي',     required: true, placeholder: 'مثال: تركيب أحجار' },
+];
+const EDIT_FIELDS = [
+  { key: 'display_label_ar', label: 'الاسم العربي', required: true },
+];
+
+const COLUMNS = [
+  { key: 'value',            label: 'القيمة',      sortable: true, mono: true, dir: 'ltr', width: '1fr' },
+  { key: 'display_label_ar', label: 'الاسم العربي', sortable: true, width: '1.5fr' },
+  {
+    key: 'archived_at',
+    label: 'الحالة',
+    width: '72px',
+    render: (item) => item.archived_at
+      ? <span style={{ fontSize: 11, color: 'var(--text-faint)', background: 'var(--bg-soft)', padding: '1px 5px', borderRadius: 3 }}>مؤرشف</span>
+      : null,
+  },
+];
 
 export default function SpecializationsPage() {
-  const [rows, setRows]           = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [newForm, setNewForm]     = useState({ value: '', display_label_ar: '' });
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm]   = useState({ display_label_ar: '' });
-  const [error, setError]         = useState('');
-  const [confirmDel, setConfirmDel] = useState(null);
-  const [deleting, setDeleting]   = useState(false);
+  const toast = useToast();
+
+  const [items, setItems]               = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [loadError, setLoadError]       = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [search, setSearch]             = useState('');
+  const [selectedIds, setSelectedIds]   = useState(new Set());
+
+  const [formOpen, setFormOpen]         = useState(false);
+  const [formMode, setFormMode]         = useState('create');
+  const [editItem, setEditItem]         = useState(null);
+  const [formLoading, setFormLoading]   = useState(false);
+  const [formError, setFormError]       = useState('');
+
+  const [archiveTarget, setArchiveTarget]         = useState(null);
+  const [archiveConfirming, setArchiveConfirming] = useState(false);
+
+  const [deleteTarget, setDeleteTarget]   = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError]     = useState('');
+
+  const [bulkArchiving, setBulkArchiving] = useState(false);
+
+  useEffect(() => { document.title = 'التخصصات | مضيان'; }, []);
 
   async function load() {
     setLoading(true);
-    try { setRows(await getSpecializations()); }
-    catch (e) { setError(e.message); }
-    finally { setLoading(false); }
-  }
-  useEffect(() => { load(); }, []);
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    setError('');
-    if (!newForm.value.trim() || !newForm.display_label_ar.trim()) {
-      setError('القيمة والاسم العربي مطلوبان');
-      return;
+    setLoadError('');
+    try {
+      setItems(await getSpecializations({ include_archived: showArchived }));
+      setSelectedIds(new Set());
+    } catch (e) {
+      setLoadError(e.message);
+    } finally {
+      setLoading(false);
     }
-    try {
-      await createSpecialization({
-        value:            newForm.value.trim(),
-        display_label_ar: newForm.display_label_ar.trim(),
-      });
-      setNewForm({ value: '', display_label_ar: '' });
-      await load();
-    } catch (e) { setError(e.message); }
+  }
+  useEffect(() => { load(); }, [showArchived]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function openCreate() {
+    setFormMode('create');
+    setEditItem(null);
+    setFormError('');
+    setFormOpen(true);
+  }
+  function openEdit(item) {
+    setFormMode('edit');
+    setEditItem(item);
+    setFormError('');
+    setFormOpen(true);
   }
 
-  function startEdit(row) {
-    setEditingId(row.id);
-    setEditForm({ display_label_ar: row.display_label_ar || '' });
-    setError('');
+  async function handleFormSubmit(values) {
+    setFormLoading(true);
+    setFormError('');
+    try {
+      if (formMode === 'create') {
+        await createSpecialization({ value: values.value.trim(), display_label_ar: values.display_label_ar.trim() });
+      } else {
+        await updateSpecialization(editItem.id, { display_label_ar: values.display_label_ar.trim() });
+      }
+      setFormOpen(false);
+      await load();
+    } catch (e) {
+      setFormError(e.message);
+    } finally {
+      setFormLoading(false);
+    }
   }
 
-  async function saveEdit(e, id) {
-    e.preventDefault();
-    setError('');
+  async function handleRestore(item) {
     try {
-      await updateSpecialization(id, { display_label_ar: editForm.display_label_ar.trim() });
-      setEditingId(null);
+      await restoreSpecialization(item.id);
       await load();
-    } catch (e) { setError(e.message); }
+    } catch (e) {
+      toast?.(e.message, 'error');
+    }
   }
 
-  async function toggleActive(row) {
-    setError('');
+  async function confirmArchive() {
+    if (!archiveTarget) return;
+    setArchiveConfirming(true);
     try {
-      await updateSpecialization(row.id, { active: row.active ? 0 : 1 });
+      await archiveSpecialization(archiveTarget.id);
+      setArchiveTarget(null);
       await load();
-    } catch (e) { setError(e.message); }
+    } catch (e) {
+      toast?.(e.message, 'error');
+    } finally {
+      setArchiveConfirming(false);
+    }
+  }
+
+  async function handleBulkArchive() {
+    setBulkArchiving(true);
+    try {
+      await Promise.all([...selectedIds].map((id) => archiveSpecialization(id)));
+      await load();
+    } catch (e) {
+      toast?.(e.message, 'error');
+    } finally {
+      setBulkArchiving(false);
+    }
   }
 
   async function confirmDelete() {
-    if (!confirmDel) return;
-    setDeleting(true);
-    setError('');
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    setDeleteError('');
     try {
-      await deleteSpecialization(confirmDel.id);
-      setConfirmDel(null);
+      await deleteSpecialization(deleteTarget.id);
+      setDeleteTarget(null);
       await load();
-    } catch (e) { setError(e.message); }
-    finally { setDeleting(false); }
+    } catch (e) {
+      if (e.reference_count > 0) {
+        setDeleteError(`لا يمكن الحذف — التخصص مرتبط بـ ${e.reference_count} فني. أرشفه أولاً إن أردت إخفاءه.`);
+      } else {
+        setDeleteError(e.message);
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
+  function handleSelect(id, checked) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  }
+
+  function handleSelectAll(checked) {
+    setSelectedIds(checked ? new Set(items.map((i) => i.id)) : new Set());
+  }
+
+  function renderRowActions(item) {
+    const isArchived = !!item.archived_at;
+    return (
+      <>
+        {!isArchived && (
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(item); }}
+            testId={`specializations__row__${item.id}__edit`}>
+            تعديل
+          </Button>
+        )}
+        {isArchived ? (
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleRestore(item); }}
+            testId={`specializations__row__${item.id}__restore`}>
+            استعادة
+          </Button>
+        ) : (
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setArchiveTarget(item); }}
+            testId={`specializations__row__${item.id}__archive`}>
+            أرشفة
+          </Button>
+        )}
+        <Button
+          variant="ghost" size="sm"
+          icon={<Icons.X size={12} />}
+          onClick={(e) => { e.stopPropagation(); setDeleteError(''); setDeleteTarget(item); }}
+          title="حذف نهائي"
+          className="!px-1.5"
+          testId={`specializations__row__${item.id}__delete`}
+        />
+      </>
+    );
   }
 
   return (
@@ -84,154 +210,88 @@ export default function SpecializationsPage() {
       <div className="page-head">
         <div>
           <h1 className="page-title">التخصصات</h1>
-          <div className="page-sub">إدارة قائمة تخصصات الفنيين — تُستخدم في تعيين القطع تلقائياً للفني المناسب</div>
+          <div className="page-sub">إدارة تخصصات الفنيين — تُستخدم في تعيين القطع تلقائياً للفني المناسب</div>
+        </div>
+        <div className="page-actions">
+          <Button variant="primary" size="sm" icon={<Icons.Plus size={12} />} onClick={openCreate}
+            testId="specializations__add-button">
+            إضافة تخصص
+          </Button>
         </div>
       </div>
 
       <div style={{ padding: '0 24px 24px' }}>
-        {error && (
+        {loadError && (
           <div style={{ marginBottom: 12 }}>
-            <Alert variant="danger">{error}</Alert>
+            <Alert variant="danger">{loadError}</Alert>
           </div>
         )}
 
-        {/* Add form */}
-        <Card style={{ padding: '14px 18px', marginBottom: 12 }}>
-          <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 10, color: 'var(--text-muted)' }}>
-            إضافة تخصص جديد
-          </div>
-          <form onSubmit={handleAdd} style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <FormField label="القيمة (إنجليزي)" className="!flex-1 !basis-[180px]">
-              <Input
-                placeholder="e.g. stone_setting"
-                value={newForm.value}
-                onChange={(e) => setNewForm((f) => ({ ...f, value: e.target.value }))}
-                dir="ltr"
-                testId="specializations__form__value-input"
-              />
-            </FormField>
-            <FormField label="الاسم العربي" className="!flex-1 !basis-[200px]">
-              <Input
-                placeholder="مثال: تركيب أحجار"
-                value={newForm.display_label_ar}
-                onChange={(e) => setNewForm((f) => ({ ...f, display_label_ar: e.target.value }))}
-                testId="specializations__form__label-input"
-              />
-            </FormField>
-            <Button variant="primary" type="submit" icon={<Icons.Plus size={12} />} style={{ height: 32 }} testId="specializations__form__submit">
-              إضافة
-            </Button>
-          </form>
-        </Card>
-
-        {/* List */}
-        {loading ? (
-          <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
-        ) : rows.length === 0 ? (
-          <Card style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>
-            لا توجد تخصصات — أضف الأول أعلاه
-          </Card>
-        ) : (
-          <div className="items-table">
-            <div className="items-thead" style={{ gridTemplateColumns: '1fr 1.5fr 80px 120px' }}>
-              <span>القيمة</span>
-              <span>الاسم العربي</span>
-              <span style={{ textAlign: 'center' }}>نشط</span>
-              <span />
-            </div>
-            {rows.map((row) => (
-              <div key={row.id} className="items-row" style={{ gridTemplateColumns: '1fr 1.5fr 80px 120px', alignItems: 'center' }}>
-                {editingId === row.id ? (
-                  <>
-                    <span className="font-mono text-[12px] text-text-faint" dir="ltr">{row.value}</span>
-                    <Input
-                      size="sm"
-                      value={editForm.display_label_ar}
-                      onChange={(e) => setEditForm((f) => ({ ...f, display_label_ar: e.target.value }))}
-                      autoFocus
-                    />
-                    <span />
-                    <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <Button variant="primary" size="sm" icon={<Icons.Check size={11} />} onClick={(e) => saveEdit(e, row.id)} testId={`specializations__row__${row.id}__save`}>
-                        حفظ
-                      </Button>
-                      <Button variant="ghost" size="sm" type="button" onClick={() => setEditingId(null)} testId={`specializations__row__${row.id}__cancel`}>
-                        إلغاء
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-mono text-[12px]" dir="ltr" style={{ color: row.active ? 'var(--text-muted)' : 'var(--text-faint)' }}>
-                      {row.value}
-                    </span>
-                    <span style={{ fontSize: 13, color: row.active ? 'var(--text)' : 'var(--text-faint)' }}>
-                      {row.display_label_ar || '—'}
-                    </span>
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => toggleActive(row)}
-                        title={row.active ? 'إيقاف' : 'تفعيل'}
-                        style={{
-                          width: 28, height: 16, borderRadius: 8, position: 'relative',
-                          border: '1px solid var(--border)',
-                          background: row.active ? 'var(--primary)' : 'var(--bg-soft)',
-                          cursor: 'pointer',
-                        }}
-                        data-testid={`specializations__row__${row.id}__toggle-active`}
-                      >
-                        <span style={{
-                          position: 'absolute', top: 1, insetInlineStart: row.active ? 13 : 1,
-                          width: 12, height: 12, borderRadius: '50%',
-                          background: '#fff', transition: 'inset-inline-start 120ms',
-                        }} />
-                      </button>
-                    </div>
-                    <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <Button variant="ghost" size="sm" type="button" onClick={() => startEdit(row)} testId={`specializations__row__${row.id}__edit`}>
-                        تعديل
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        type="button"
-                        icon={<Icons.X size={12} />}
-                        onClick={() => setConfirmDel(row)}
-                        title="حذف"
-                        testId={`specializations__row__${row.id}__delete`}
-                        className="!px-1.5"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <EntityListView
+          items={items}
+          columns={COLUMNS}
+          loading={loading}
+          showArchived={showArchived}
+          onToggleArchived={(v) => setShowArchived(v)}
+          search={search}
+          onSearch={setSearch}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+          renderRowActions={renderRowActions}
+          emptyMessage={showArchived ? 'لا توجد تخصصات' : 'لا توجد تخصصات نشطة — أضف الأول من أعلى'}
+        />
       </div>
 
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        onBulkArchive={handleBulkArchive}
+        loading={bulkArchiving}
+      />
+
+      <EntityFormModal
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleFormSubmit}
+        title={formMode === 'create' ? 'إضافة تخصص جديد' : `تعديل: ${editItem?.display_label_ar || editItem?.value}`}
+        fields={formMode === 'create' ? CREATE_FIELDS : EDIT_FIELDS}
+        initialValues={editItem ?? {}}
+        submitLabel={formMode === 'create' ? 'إضافة' : 'حفظ'}
+        error={formError}
+        loading={formLoading}
+      />
+
+      <ArchiveConfirmDialog
+        open={!!archiveTarget}
+        onClose={() => setArchiveTarget(null)}
+        onConfirm={confirmArchive}
+        entityLabel="التخصص"
+        fetchRefCount={() => getSpecRefCount(archiveTarget?.id)}
+        confirming={archiveConfirming}
+      />
+
       <Dialog
-        open={!!confirmDel}
-        onClose={() => !deleting && setConfirmDel(null)}
-        title="حذف تخصص"
+        open={!!deleteTarget}
+        onClose={() => !deleteLoading && setDeleteTarget(null)}
+        title="حذف تخصص نهائياً"
         size="sm"
         testId="specializations__delete-dialog"
       >
         <Dialog.Body>
-          <div className="text-sm text-text">
-            هل أنت متأكد من حذف التخصص <strong>"{confirmDel?.display_label_ar || confirmDel?.value}"</strong>؟
+          <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 8 }}>
+            سيُحذف التخصص <strong>"{deleteTarget?.display_label_ar || deleteTarget?.value}"</strong> نهائياً ولا يمكن التراجع عن هذه العملية.
           </div>
-          <div className="text-xs text-text-faint mt-2">
-            سيتم إزالة هذا التخصص من جميع الفنيين الذين تم تعيينه لهم.
-          </div>
+          {deleteError && <Alert variant="danger">{deleteError}</Alert>}
         </Dialog.Body>
         <Dialog.Footer>
-          <Button variant="ghost" onClick={() => setConfirmDel(null)} disabled={deleting} testId="specializations__delete-dialog__cancel">
+          <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={deleteLoading}
+            testId="specializations__delete-dialog__cancel">
             إلغاء
           </Button>
-          <Button variant="danger" onClick={confirmDelete} loading={deleting} testId="specializations__delete-dialog__confirm">
-            حذف
+          <Button variant="danger" onClick={confirmDelete} loading={deleteLoading}
+            testId="specializations__delete-dialog__confirm">
+            حذف نهائي
           </Button>
         </Dialog.Footer>
       </Dialog>

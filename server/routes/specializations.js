@@ -116,7 +116,7 @@ router.patch('/:id', (req, res) => {
   res.json(readRow(id));
 });
 
-// DELETE /api/specializations/:id — soft-delete; blocked if referenced by any tech assignment.
+// DELETE /api/specializations/:id — hard-delete; blocked if referenced by any tech assignment.
 router.delete('/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);
   const row = readRow(id);
@@ -129,8 +129,8 @@ router.delete('/:id', (req, res) => {
       referencing_tables,
     });
   }
-  db.prepare(`UPDATE specializations SET active = 0 WHERE id = ?`).run(id);
-  res.json(readRow(id));
+  db.prepare(`DELETE FROM specializations WHERE id = ?`).run(id);
+  res.json({ ok: true, id });
 });
 
 module.exports = router;

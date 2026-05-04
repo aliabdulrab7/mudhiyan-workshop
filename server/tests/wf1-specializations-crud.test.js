@@ -113,10 +113,13 @@ describe('DELETE /api/specializations/:id', () => {
     unusedId = res.body.id;
   });
 
-  it('soft-deletes when no technician references it', async () => {
+  it('hard-deletes when no technician references it', async () => {
     const res = await request(app).delete(`/api/specializations/${unusedId}`).set(auth(wsToken));
     expect(res.status).toBe(200);
-    expect(res.body.active).toBe(0);
+    expect(res.body.ok).toBe(true);
+    // Row must be gone
+    const gone = db.prepare(`SELECT id FROM specializations WHERE id = ?`).get(unusedId);
+    expect(gone).toBeUndefined();
   });
 
   it('returns 409 SpecializationInUseError when a technician_specializations row exists', async () => {
