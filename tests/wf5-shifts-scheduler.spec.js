@@ -322,7 +322,7 @@ test.describe('wf5-ui — scheduler status page', () => {
   test('tech with leave today shows leave type chip', async ({ page }) => {
     await login(page, 'workshop', 'workshop123');
     const techId = seedTech(`${TPREFIX}فني`);
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
     seedLeave(techId, today, 'sick');
 
     await page.goto('/scheduler', { waitUntil: 'networkidle' });
