@@ -53,6 +53,60 @@ router.post('/branches', (req, res) => {
   }
 });
 
+// PATCH /api/admin/branches/:id — rename a branch
+router.patch('/branches/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const { name } = req.body || {};
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'الاسم مطلوب' });
+  }
+  const shop = db.prepare('SELECT id FROM shops WHERE id = ?').get(id);
+  if (!shop) return res.status(404).json({ error: 'الفرع غير موجود' });
+  db.prepare('UPDATE shops SET name = ? WHERE id = ?').run(name.trim(), id);
+  res.json({ ok: true, branch: { id, name: name.trim() } });
+});
+
+// PATCH /api/admin/branches/:id/password — reset the branch employee's password
+router.patch('/branches/:id/password', async (req, res) => {
+  const id = Number(req.params.id);
+  const { new_password } = req.body || {};
+  if (!new_password || typeof new_password !== 'string' || new_password.length < 8) {
+    return res.status(400).json({ error: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' });
+  }
+  const employee = db.prepare(
+    "SELECT id FROM users WHERE shop_id = ? AND role = 'shop_employee' LIMIT 1"
+  ).get(id);
+  if (!employee) return res.status(404).json({ error: 'لا يوجد موظف لهذا الفرع' });
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, employee.id);
+  res.json({ ok: true });
+});
+
+// GET /api/admin/branches/:id/summary — branch order statistics
+router.get('/branches/:id/summary', (req, res) => {
+  const id = Number(req.params.id);
+  const shop = db.prepare('SELECT id FROM shops WHERE id = ?').get(id);
+  if (!shop) return res.status(404).json({ error: 'الفرع غير موجود' });
+
+  const total_orders = db.prepare(
+    'SELECT COUNT(*) AS n FROM orders WHERE shop_id = ?'
+  ).get(id).n;
+
+  const open_orders = db.prepare(
+    "SELECT COUNT(*) AS n FROM orders WHERE shop_id = ? AND status NOT IN ('delivered','cancelled','rejected','closed')"
+  ).get(id).n;
+
+  const today_orders = db.prepare(
+    "SELECT COUNT(*) AS n FROM orders WHERE shop_id = ? AND date(created_at,'localtime') = date('now','localtime')"
+  ).get(id).n;
+
+  const recent_orders = db.prepare(
+    'SELECT order_number, status, piece_type, is_urgent, created_at FROM orders WHERE shop_id = ? ORDER BY created_at DESC LIMIT 5'
+  ).all(id);
+
+  res.json({ total_orders, open_orders, today_orders, recent_orders });
+});
+
 // DELETE /api/admin/branches/:id — remove shop and its employees
 router.delete('/branches/:id', (req, res) => {
   const id = Number(req.params.id);
