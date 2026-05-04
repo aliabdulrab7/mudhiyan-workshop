@@ -593,6 +593,11 @@ db.exec(`
     AND NOT EXISTS (SELECT 1 FROM order_status_history osh WHERE osh.order_id = o.id AND osh.to_status = o.status)
 `);
 
+// ── Polish Phase 3: users.active ─────────────────────────────────────────────
+if (!columnExists('users', 'active')) {
+  db.exec(`ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1`);
+}
+
 // ── createOrder transaction ───────────────────────────────────────────────────
 
 const createOrder = db.transaction((data) => {

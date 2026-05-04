@@ -29,6 +29,9 @@ router.post('/login', loginLimiter, (req, res) => {
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: 'بيانات غير صحيحة' });
   }
+  if (user.active === 0) {
+    return res.status(403).json({ error: 'الحساب معطّل' });
+  }
 
   const token = jwt.sign(
     { id: user.id, role: user.role, shop_id: user.shop_id, username: user.username },
