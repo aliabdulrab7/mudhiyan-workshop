@@ -103,3 +103,13 @@ export async function autoAssign(itemId) {
   }
   return data;
 }
+
+export async function markItemComplete(itemId) {
+  const res = await fetch(`/api/order-items/${itemId}/mark-complete`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل تحديث الصنف');
+  return data;
+}

@@ -22,11 +22,14 @@ export async function getOrder(id) {
   return data.order ?? data;
 }
 
-export async function getOrders({ status, search, shop_id } = {}) {
+export async function getOrders({ status, search, shop_id, technician_id, created_from, created_to } = {}) {
   const params = new URLSearchParams();
   if (status && status !== 'all') params.set('status', status);
   if (search) params.set('search', search);
   if (shop_id) params.set('shop_id', shop_id);
+  if (technician_id) params.set('technician_id', technician_id);
+  if (created_from) params.set('created_from', created_from);
+  if (created_to) params.set('created_to', created_to);
   const res = await fetch(`${BASE}?${params}`, { headers: authHeaders() });
   if (!res.ok) throw new Error('فشل تحميل الطلبات');
   return res.json();

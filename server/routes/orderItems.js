@@ -263,6 +263,25 @@ router.post('/:id/auto-assign', requireRole('workshop'), (req, res) => {
   res.json(result);
 });
 
+// ── POST /api/order-items/:id/mark-complete — toggle completed_at ─────────────
+// MUST stay before /:id/technicians to avoid Express route collision.
+router.post('/:id/mark-complete', requireRole('workshop'), (req, res) => {
+  const item = getItem(req.params.id);
+  if (!item) return res.status(404).json({ error: 'الصنف غير موجود' });
+
+  const order = getOrder(item.order_id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  if (checkLocked(order, res)) return;
+
+  if (item.completed_at) {
+    db.prepare("UPDATE order_items SET completed_at = NULL WHERE id = ?").run(item.id);
+  } else {
+    db.prepare("UPDATE order_items SET completed_at = datetime('now','localtime') WHERE id = ?").run(item.id);
+  }
+
+  res.json(db.prepare('SELECT * FROM order_items WHERE id = ?').get(item.id));
+});
+
 // ── POST /api/order-items/:id/technicians — set the technician for this item ──
 // Replace-style: each item has at most one technician at a time. Idempotent —
 // re-assigning the same tech is a no-op success, not 409. The schema is M:M

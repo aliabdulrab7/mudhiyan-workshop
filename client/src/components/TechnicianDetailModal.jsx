@@ -12,6 +12,7 @@ import {
   addLeave,
   deleteLeave,
 } from '../api/technicians';
+import { getOrders } from '../api/orders';
 import { getRole } from '../api/auth';
 import StatusIndicator from './ui/StatusIndicator';
 import { getRoles } from '../api/roles';
@@ -86,6 +87,10 @@ export default function TechnicianDetailModal({
   const [leaveError, setLeaveError]     = useState('');
   const [deletingLeave, setDeletingLeave] = useState(null); // YYYY-MM-DD | null
 
+  // Orders for this technician
+  const [techOrders, setTechOrders]     = useState([]);
+  const [techOrdersStatus, setTechOrdersStatus] = useState('idle'); // 'idle' | 'loading' | 'done' | 'error'
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -122,6 +127,13 @@ export default function TechnicianDetailModal({
             active:  t.active == null ? 1 : t.active,
           });
           setTechSpecIds(new Set((t.specializations ?? []).map((s) => s.id)));
+          // Load orders for this tech
+          setTechOrdersStatus('loading');
+          getOrders({ technician_id: techId }).then(rows => {
+            if (!cancelled) { setTechOrders(rows ?? []); setTechOrdersStatus('done'); }
+          }).catch(() => {
+            if (!cancelled) setTechOrdersStatus('error');
+          });
         } else {
           setTech(null);
           setForm(emptyForm());
@@ -129,6 +141,8 @@ export default function TechnicianDetailModal({
           setStatusHistory([]);
           setShifts([]);
           setLeaves([]);
+          setTechOrders([]);
+          setTechOrdersStatus('idle');
         }
       } catch (e) {
         if (!cancelled) setError(e.message || 'فشل تحميل بيانات الفني');
@@ -642,6 +656,42 @@ export default function TechnicianDetailModal({
                       </div>
                       {leaveError && <Alert variant="danger">{leaveError}</Alert>}
                     </div>
+                  </div>
+
+                  {/* Orders assigned to this technician */}
+                  <div data-testid="tech-detail__orders-section">
+                    <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-muted mb-1.5">
+                      الطلبات
+                    </div>
+                    {techOrdersStatus === 'loading' && (
+                      <div className="text-xs text-text-faint">جاري التحميل…</div>
+                    )}
+                    {techOrdersStatus === 'error' && (
+                      <div className="text-xs text-danger">تعذّر تحميل الطلبات</div>
+                    )}
+                    {techOrdersStatus === 'done' && techOrders.length === 0 && (
+                      <div className="text-xs text-text-faint">لا طلبات مرتبطة بهذا الفني</div>
+                    )}
+                    {techOrdersStatus === 'done' && techOrders.length > 0 && (
+                      <div className="flex flex-col">
+                        {techOrders.slice(0, 20).map((o) => (
+                          <div
+                            key={o.id}
+                            className="flex items-center justify-between gap-2 py-1.5 border-b border-border last:border-0"
+                          >
+                            <span className="text-xs font-mono text-text shrink-0" dir="ltr">
+                              {o.order_number}
+                            </span>
+                            <span className="text-xs text-text-muted flex-1 truncate">
+                              {o.customer_name}
+                            </span>
+                            <span className="text-xs text-text-faint shrink-0">
+                              {STATUS_META[o.status]?.label ?? o.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   </>
                 )}

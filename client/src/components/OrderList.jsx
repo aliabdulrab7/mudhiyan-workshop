@@ -66,6 +66,9 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   const [urgentOnly, setUrgentOnly] = useState(false);
   const [withPhoneOnly, setWithPhoneOnly] = useState(false);
   const [groupBy, setGroupBy]     = useState('none'); // 'none' | 'status' | 'date'
+  const [techFilter, setTechFilter] = useState(null); // technician id or null
+  const [dateFrom, setDateFrom]   = useState('');
+  const [dateTo, setDateTo]       = useState('');
   const isWorkshop = getRole() === 'workshop';
   const toast = useToast();
   const techCtx = useTechnicians();
@@ -117,9 +120,12 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
     onRefresh?.();
   }
 
-  // Lazily load workload data for StatusIndicator + WorkloadBadge in the tech column.
+  // Lazily load technician list (for filter chips) and workload data.
   useEffect(() => {
-    if (isWorkshop) Promise.resolve(techCtx?.ensureWorkload?.()).catch(() => {});
+    if (isWorkshop) {
+      Promise.resolve(techCtx?.ensureLoaded?.()).catch(() => {});
+      Promise.resolve(techCtx?.ensureWorkload?.()).catch(() => {});
+    }
   }, [isWorkshop]);
 
   // Fetch all orders once (no filter) for accurate status counts in chips
@@ -130,11 +136,18 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
   useEffect(() => {
     setLoading(true);
     setListError('');
-    getOrders({ status, search, shop_id: shopId })
+    getOrders({
+      status,
+      search,
+      shop_id: shopId,
+      technician_id: techFilter || undefined,
+      created_from: dateFrom || undefined,
+      created_to: dateTo || undefined,
+    })
       .then(data => { setOrders(data); setBulkSelected(new Set()); })
       .catch(() => setListError('تعذّر تحميل الطلبات، يرجى إعادة المحاولة'))
       .finally(() => setLoading(false));
-  }, [status, search, refresh, shopId]);
+  }, [status, search, refresh, shopId, techFilter, dateFrom, dateTo]);
 
   async function changeStatus(order, newSt) {
     try {
@@ -259,6 +272,61 @@ export default function OrderList({ refresh, defaultStatus = 'all', onRefresh, s
           );
         })}
       </div>
+
+      {/* Tech + date range filters — workshop only */}
+      {isWorkshop && (techCtx?.items?.length > 0 || dateFrom || dateTo) && (
+        <div style={{ padding: '0 24px 10px', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span className="field-label" style={{ fontSize: 11, color: 'var(--text-muted)', marginInlineEnd: 2 }}>الفني:</span>
+          <Chip
+            active={!techFilter}
+            onClick={() => setTechFilter(null)}
+            testId="order-list__tech-filter__all"
+          >
+            الكل
+          </Chip>
+          {(techCtx?.items ?? []).map(t => (
+            <Chip
+              key={t.id}
+              active={techFilter === t.id}
+              onClick={() => setTechFilter(techFilter === t.id ? null : t.id)}
+              testId={`order-list__tech-filter--${t.id}`}
+            >
+              {t.name}
+            </Chip>
+          ))}
+          <div style={{ flex: 1, minWidth: 12 }} />
+          <span className="field-label" style={{ fontSize: 11, color: 'var(--text-muted)' }}>من:</span>
+          <Input
+            size="sm"
+            type="date"
+            dir="ltr"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            style={{ width: 130 }}
+            testId="order-list__date-from"
+          />
+          <span className="field-label" style={{ fontSize: 11, color: 'var(--text-muted)' }}>إلى:</span>
+          <Input
+            size="sm"
+            type="date"
+            dir="ltr"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            style={{ width: 130 }}
+            testId="order-list__date-to"
+          />
+          {(techFilter || dateFrom || dateTo) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setTechFilter(null); setDateFrom(''); setDateTo(''); }}
+              testId="order-list__filter-clear-secondary"
+            >
+              مسح
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Error */}
       {listError && (

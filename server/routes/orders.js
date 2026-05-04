@@ -94,7 +94,7 @@ router.get('/barcode/:value', (req, res) => {
 
 // GET /api/orders
 router.get('/', (req, res) => {
-  const { status, search, limit, offset, shop_id } = req.query;
+  const { status, search, limit, offset, shop_id, technician_id, created_from, created_to } = req.query;
   const isWorkshop = req.user.role === 'workshop';
 
   if (status && status !== 'all' && !ALLOWED_STATUSES.includes(status)) {
@@ -151,6 +151,22 @@ router.get('/', (req, res) => {
     query += ' AND (o.customer_name LIKE ? OR o.order_number LIKE ? OR o.phone LIKE ?)';
     const like = `%${search}%`;
     params.push(like, like, like);
+  }
+  if (technician_id) {
+    query += ` AND EXISTS (
+      SELECT 1 FROM order_items oi
+      JOIN order_item_technicians oit ON oit.order_item_id = oi.id
+      WHERE oi.order_id = o.id AND oit.technician_id = ?
+    )`;
+    params.push(parseInt(technician_id, 10));
+  }
+  if (created_from) {
+    query += ' AND o.created_at >= ?';
+    params.push(created_from);
+  }
+  if (created_to) {
+    query += ' AND o.created_at <= ?';
+    params.push(created_to + ' 23:59:59');
   }
 
   // Urgent orders float to the top (active only); within each bucket, newest first.
