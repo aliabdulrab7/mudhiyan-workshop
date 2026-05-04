@@ -1,19 +1,105 @@
-import { useState, useEffect } from 'react';
-import { getBranches, createBranch, deleteBranch } from '../api/admin';
+import { useState, useEffect, useRef } from 'react';
+import { getBranches, createBranch, deleteBranch, patchBranchName, patchBranchPassword, getBranchSummary } from '../api/admin';
 import { Icons } from '../components/icons';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import Dialog from '../components/ui/Dialog';
+import Dropdown from '../components/ui/Dropdown';
 import FormField from '../components/ui/FormField';
 import Input from '../components/ui/Input';
+import { useToast } from '../components/ToastProvider';
+
+const PencilIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"
+    style={{ flexShrink: 0 }}>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+);
+
+const KeyIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"
+    style={{ flexShrink: 0 }}>
+    <circle cx="7.5" cy="15.5" r="5.5"/>
+    <path d="M21 2 13.4 9.57"/>
+    <path d="M15.5 6.5 17 8"/>
+    <path d="m19 4 1 1"/>
+  </svg>
+);
+
+const STATUS_LABELS = {
+  new: 'جديد', received: 'مستلم', inspection: 'فحص',
+  waiting_approval: 'انتظار موافقة', in_repair: 'إصلاح',
+  quality_check: 'جودة', ready_for_return: 'جاهز', returned_to_shop: 'بالفرع',
+  delivered: 'تم التسليم', rejected: 'مرفوض', cancelled: 'ملغي',
+};
+
+const STATUS_COLORS = {
+  new: '#6B7280', received: '#3B82F6', inspection: '#8B5CF6',
+  waiting_approval: '#F59E0B', in_repair: '#F97316', quality_check: '#06B6D4',
+  ready_for_return: '#10B981', returned_to_shop: '#84CC16',
+  delivered: '#22C55E', rejected: '#EF4444', cancelled: '#9CA3AF',
+};
+
+function SummaryShimmer() {
+  return (
+    <div style={{ padding: '14px 18px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} className="skeleton" style={{ height: 52, flex: 1, borderRadius: 'var(--radius-sm)' }} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {[90, 130, 100, 120, 95].map((w, i) => (
+          <div key={i} className="skeleton" style={{ height: 22, width: w, borderRadius: 20 }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, accent }) {
+  return (
+    <div style={{
+      flex: 1, padding: '10px 12px', borderRadius: 'var(--radius-sm)',
+      background: 'var(--bg-soft)', border: '1px solid var(--border)',
+      display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0,
+    }}>
+      <div style={{ fontSize: 20, fontWeight: 700, color: accent || 'var(--text)', fontFamily: 'var(--font-mono)' }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</div>
+    </div>
+  );
+}
 
 export default function BranchesPage() {
+  const push = useToast();
+
   const [branches, setBranches]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [showForm, setShowForm]     = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
   const [form, setForm]             = useState({ name: '', username: '', password: '' });
+
+  // Inline name edit
+  const [editingId, setEditingId]   = useState(null);
+  const [editName, setEditName]     = useState('');
+  const [editError, setEditError]   = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const editRef = useRef(null);
+
+  // Password reset dialog
+  const [pwDialog, setPwDialog]     = useState({ open: false, branchId: null, branchName: '' });
+  const [pwPassword, setPwPassword] = useState('');
+  const [pwError, setPwError]       = useState('');
+  const [pwSaving, setPwSaving]     = useState(false);
+
+  // Order summary expansion
+  const [expandedId, setExpandedId] = useState(null);
+  const [summaries, setSummaries]   = useState({});
 
   async function load() {
     setLoading(true);
@@ -25,6 +111,10 @@ export default function BranchesPage() {
   useEffect(() => { document.title = 'الفروع | مضيان'; }, []);
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (editingId !== null) editRef.current?.focus();
+  }, [editingId]);
 
   function handleShowForm() {
     const next = `BR${branches.length + 1}`;
@@ -51,8 +141,82 @@ export default function BranchesPage() {
 
   async function handleDelete(id, name) {
     if (!confirm(`هل تريد حذف فرع "${name}"؟ سيتم حذف المستخدم المرتبط به أيضاً.`)) return;
-    try { await deleteBranch(id); await load(); }
-    catch (e) { setError(e.message); }
+    try {
+      await deleteBranch(id);
+      if (expandedId === id) setExpandedId(null);
+      await load();
+    } catch (e) { setError(e.message); }
+  }
+
+  function startEdit(branch) {
+    setEditingId(branch.id);
+    setEditName(branch.name);
+    setEditError('');
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditError('');
+  }
+
+  async function saveEdit(id) {
+    if (!editName.trim()) { setEditError('الاسم مطلوب'); return; }
+    setEditSaving(true);
+    setEditError('');
+    try {
+      await patchBranchName(id, editName.trim());
+      setBranches(bs => bs.map(b => b.id === id ? { ...b, name: editName.trim() } : b));
+      setEditingId(null);
+    } catch (e) {
+      setEditError(e.message);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  function openPwDialog(branch) {
+    setPwDialog({ open: true, branchId: branch.id, branchName: branch.name });
+    setPwPassword('');
+    setPwError('');
+  }
+
+  function closePwDialog() {
+    setPwDialog({ open: false, branchId: null, branchName: '' });
+    setPwError('');
+  }
+
+  async function handlePwSave() {
+    if (pwPassword.length < 8) {
+      setPwError('كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+      return;
+    }
+    setPwSaving(true);
+    setPwError('');
+    try {
+      await patchBranchPassword(pwDialog.branchId, pwPassword);
+      closePwDialog();
+      push('تم تغيير كلمة المرور', 'success');
+    } catch (e) {
+      setPwError(e.message);
+    } finally {
+      setPwSaving(false);
+    }
+  }
+
+  async function toggleExpand(id) {
+    if (expandedId === id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(id);
+    if (summaries[id]?.data || summaries[id]?.loading) return;
+    setSummaries(s => ({ ...s, [id]: { loading: true, data: null, error: null } }));
+    try {
+      const data = await getBranchSummary(id);
+      setSummaries(s => ({ ...s, [id]: { loading: false, data, error: null } }));
+    } catch (e) {
+      setSummaries(s => ({ ...s, [id]: { loading: false, data: null, error: e.message } }));
+    }
   }
 
   return (
@@ -78,7 +242,6 @@ export default function BranchesPage() {
       </div>
 
       <div style={{ padding: '0 24px 24px', maxWidth: 680 }}>
-        {/* Create form */}
         {showForm && (
           <Card style={{ padding: '20px 24px', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>إنشاء فرع جديد</div>
@@ -127,14 +290,12 @@ export default function BranchesPage() {
           </Card>
         )}
 
-        {/* Error outside form */}
         {error && !showForm && (
           <div style={{ marginBottom: 12 }}>
             <Alert variant="danger">{error}</Alert>
           </div>
         )}
 
-        {/* Branches list */}
         {loading ? (
           <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40, fontSize: 13 }}>جاري التحميل...</div>
         ) : branches.length === 0 ? (
@@ -143,36 +304,235 @@ export default function BranchesPage() {
           </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {branches.map(branch => (
-              <Card key={branch.id} style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 'var(--radius-sm)',
-                  background: 'var(--primary-soft)', border: '1px solid var(--border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <Icons.Branch size={16} stroke="var(--primary)" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{branch.name}</div>
-                  {branch.username && (
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                      مستخدم: <span className="mono" style={{ color: 'var(--primary)' }}>{branch.username}</span>
+            {branches.map(branch => {
+              const isEditing  = editingId === branch.id;
+              const isExpanded = expandedId === branch.id;
+              const summary    = summaries[branch.id];
+
+              return (
+                <Card key={branch.id} style={{ padding: 0, overflow: 'hidden' }}>
+                  {/* Main row */}
+                  <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 'var(--radius-sm)', flexShrink: 0,
+                      background: 'var(--primary-soft)', border: '1px solid var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Icons.Branch size={16} stroke="var(--primary)" />
                     </div>
+
+                    {/* Name area — normal or edit mode */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {isEditing ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Input
+                            ref={editRef}
+                            value={editName}
+                            onChange={e => setEditName(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') saveEdit(branch.id);
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                            size="sm"
+                            invalid={!!editError}
+                            testId={`branches__row__${branch.id}__edit-input`}
+                            style={{ flex: 1 }}
+                          />
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            loading={editSaving}
+                            onClick={() => saveEdit(branch.id)}
+                            aria-label="حفظ"
+                            testId={`branches__row__${branch.id}__edit-save`}
+                          >
+                            <Icons.Check size={13} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={cancelEdit}
+                            aria-label="إلغاء"
+                            testId={`branches__row__${branch.id}__edit-cancel`}
+                          >
+                            <Icons.X size={13} />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {branch.name}
+                          </div>
+                          {branch.username && (
+                            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                              مستخدم: <span className="mono" style={{ color: 'var(--primary)' }}>{branch.username}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {isEditing && editError && (
+                        <div style={{ fontSize: 11.5, color: 'var(--danger)', marginTop: 4 }}>{editError}</div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    {!isEditing && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEdit(branch)}
+                          aria-label="تعديل اسم الفرع"
+                          testId={`branches__row__${branch.id}__edit-btn`}
+                        >
+                          <PencilIcon size={14} />
+                        </Button>
+
+                        <Dropdown
+                          align="end"
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              aria-label="خيارات إضافية"
+                              testId={`branches__row__${branch.id}__menu-btn`}
+                            >
+                              <Icons.Ellipsis size={14} />
+                            </Button>
+                          }
+                        >
+                          <Dropdown.Item
+                            icon={<KeyIcon size={14} />}
+                            onSelect={() => openPwDialog(branch)}
+                            testId={`branches__row__${branch.id}__reset-pw`}
+                          >
+                            إعادة تعيين كلمة المرور
+                          </Dropdown.Item>
+                          <Dropdown.Separator />
+                          <Dropdown.Item
+                            destructive
+                            onSelect={() => handleDelete(branch.id, branch.name)}
+                            testId={`branches__row__${branch.id}__delete`}
+                          >
+                            حذف الفرع
+                          </Dropdown.Item>
+                        </Dropdown>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleExpand(branch.id)}
+                          aria-label={isExpanded ? 'إخفاء الملخص' : 'عرض الملخص'}
+                          testId={`branches__row__${branch.id}__expand`}
+                          style={{ transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none' }}
+                        >
+                          <Icons.ChevDown size={14} />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Expanded summary */}
+                  {isExpanded && (
+                    summary?.loading ? (
+                      <SummaryShimmer />
+                    ) : summary?.error ? (
+                      <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)' }}>
+                        <Alert variant="danger">{summary.error}</Alert>
+                      </div>
+                    ) : summary?.data ? (
+                      <div style={{ padding: '14px 18px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <StatCard label="إجمالي الطلبات" value={summary.data.total ?? 0} />
+                          <StatCard label="طلبات مفتوحة" value={summary.data.open ?? 0} accent="var(--primary)" />
+                          <StatCard label="اليوم" value={summary.data.today ?? 0} accent="var(--success)" />
+                        </div>
+
+                        {summary.data.last_orders?.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>آخر الطلبات</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                              {summary.data.last_orders.map(o => (
+                                <span key={o.order_number} style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  padding: '3px 8px', borderRadius: 20,
+                                  background: 'var(--bg-soft)', border: '1px solid var(--border)',
+                                  fontSize: 11.5,
+                                }}>
+                                  <span className="mono" style={{ color: 'var(--text)', fontSize: 11 }}>{o.order_number}</span>
+                                  <span style={{
+                                    padding: '1px 6px', borderRadius: 20, fontSize: 10.5,
+                                    background: `${STATUS_COLORS[o.status] ?? '#9CA3AF'}22`,
+                                    color: STATUS_COLORS[o.status] ?? '#9CA3AF',
+                                    fontWeight: 600,
+                                  }}>
+                                    {STATUS_LABELS[o.status] ?? o.status}
+                                  </span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <a
+                          href="/orders"
+                          style={{ fontSize: 12, color: 'var(--primary)', textDecoration: 'none', alignSelf: 'flex-start' }}
+                        >
+                          عرض جميع الطلبات ←
+                        </a>
+                      </div>
+                    ) : null
                   )}
-                </div>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => handleDelete(branch.id, branch.name)}
-                  testId={`branches__row__${branch.id}__delete`}
-                >
-                  حذف
-                </Button>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Password reset dialog */}
+      <Dialog
+        open={pwDialog.open}
+        onClose={closePwDialog}
+        title="إعادة تعيين كلمة المرور"
+        size="sm"
+        testId="branches__pw-dialog"
+      >
+        <Dialog.Body>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
+            فرع: <strong style={{ color: 'var(--text)' }}>{pwDialog.branchName}</strong>
+          </div>
+          <FormField label="كلمة المرور الجديدة">
+            <Input
+              type="password"
+              value={pwPassword}
+              onChange={e => { setPwPassword(e.target.value); setPwError(''); }}
+              placeholder="كلمة المرور الجديدة"
+              onKeyDown={e => e.key === 'Enter' && handlePwSave()}
+              invalid={!!pwError}
+              testId="branches__pw-dialog__input"
+            />
+          </FormField>
+          {pwError && (
+            <div style={{ marginTop: 8 }}>
+              <Alert variant="danger">{pwError}</Alert>
+            </div>
+          )}
+        </Dialog.Body>
+        <Dialog.Footer>
+          <Button variant="ghost" onClick={closePwDialog} testId="branches__pw-dialog__cancel">
+            إلغاء
+          </Button>
+          <Button
+            variant="primary"
+            loading={pwSaving}
+            onClick={handlePwSave}
+            testId="branches__pw-dialog__save"
+          >
+            حفظ
+          </Button>
+        </Dialog.Footer>
+      </Dialog>
     </div>
   );
 }
