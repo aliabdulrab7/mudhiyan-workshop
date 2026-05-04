@@ -23,6 +23,7 @@ import SpecMapPage        from './pages/SpecMapPage';
 import SchedulerPage      from './pages/SchedulerPage';
 import FlowPage           from './pages/FlowPage';
 import BulkAssignPage     from './pages/BulkAssignPage';
+import ControlTowerPage   from './pages/ControlTowerPage';
 
 export default function App() {
   return (
@@ -55,6 +56,7 @@ export default function App() {
                 <Route path="/scheduler"         element={<RoleRoute roles={["workshop"]}><SchedulerPage /></RoleRoute>} />
                 <Route path="/flow"             element={<RoleRoute roles={["workshop"]}><FlowPage /></RoleRoute>} />
                 <Route path="/bulk-assign"      element={<RoleRoute roles={["workshop"]}><BulkAssignPage /></RoleRoute>} />
+                <Route path="/control-tower"    element={<RoleRoute roles={["workshop"]}><ControlTowerPage /></RoleRoute>} />
                 <Route path="/orders/:id/label" element={<LabelPrintPage />} />
                 <Route path="*"         element={<Navigate to="/" replace />} />
               </Routes>

@@ -31,22 +31,13 @@ function labelFor(options, value, fallback) {
 }
 
 const navItems = [
-  { to: '/',            icon: Icons.Orders,    label: 'الطلبات',      badge: null },
-  { to: '/new',         icon: Icons.Plus,      label: 'صيانة جديدة', roles: ['shop_employee'] },
-  { to: '/scan',        icon: Icons.Scan,      label: 'مسح' },
-  { to: '/branches',    icon: Icons.Branch,    label: 'الفروع',      roles: ['workshop'] },
-  { to: '/reports',     icon: Icons.Chart,     label: 'التقارير',    roles: ['workshop'] },
-  { to: '/technicians', icon: Icons.User,      label: 'الفنيون',     roles: ['workshop'] },
-  { to: '/inventory',   icon: Icons.Box,       label: 'المخزون',     roles: ['workshop'] },
-  { to: '/services',    icon: Icons.Tag,       label: 'الخدمات',     roles: ['workshop'] },
-  { to: '/repair-options', icon: Icons.Settings, label: 'خيارات الإصلاح', roles: ['workshop'] },
-  { to: '/roles',          icon: Icons.User,     label: 'الأدوار',       roles: ['workshop'] },
-  { to: '/specializations',  icon: Icons.Tag,    label: 'التخصصات',     roles: ['workshop'] },
-  { to: '/workshop-status', icon: Icons.Layers, label: 'حالة الورشة',  roles: ['workshop'] },
-  { to: '/spec-map',        icon: Icons.Tag,    label: 'خريطة التخصصات', roles: ['workshop'] },
-  { to: '/scheduler',       icon: Icons.Clock,  label: 'الجدولة',         roles: ['workshop'] },
-  { to: '/flow',            icon: Icons.Bolt,   label: 'The Flow',         roles: ['workshop'] },
-  { to: '/bulk-assign',     icon: Icons.QR,     label: 'تعيين جماعي',     roles: ['workshop'] },
+  { to: '/control-tower',   icon: Icons.Bolt,     label: 'Control Tower',  roles: ['workshop'] },
+  { to: '/scheduler',       icon: Icons.Clock,    label: 'الجدولة',         roles: ['workshop'] },
+  { to: '/spec-map',        icon: Icons.Group,    label: 'خريطة التخصصات', roles: ['workshop'] },
+  { to: '/technicians',     icon: Icons.User,     label: 'الفنيون',         roles: ['workshop'] },
+  { to: '/specializations', icon: Icons.Tag,      label: 'التخصصات',        roles: ['workshop'] },
+  { to: '/roles',           icon: Icons.Layers,   label: 'الأدوار',         roles: ['workshop'] },
+  { to: '/repair-options',  icon: Icons.Settings, label: 'خيارات الإصلاح', roles: ['workshop'] },
 ];
 
 const mobileNav = [
@@ -56,22 +47,27 @@ const mobileNav = [
 ];
 
 const PAGE_LABELS = {
-  '/':            'الطلبات',
-  '/new':         'صيانة جديدة',
-  '/scan':        'مسح الباركود',
-  '/branches':    'الفروع',
-  '/reports':     'التقارير',
-  '/technicians': 'الفنيون',
-  '/inventory':   'المخزون',
-  '/services':    'الخدمات',
+  // Core routes (accessible directly, no longer in sidebar)
+  '/':             'الطلبات',
+  '/new':          'صيانة جديدة',
+  '/scan':         'مسح الباركود',
+  '/orders':       'قائمة الطلبات',
+  // 7-item nav
+  '/control-tower':  'Control Tower',
+  '/scheduler':      'الجدولة',
+  '/spec-map':       'خريطة التخصصات',
+  '/technicians':    'الفنيون',
+  '/specializations': 'التخصصات',
+  '/roles':          'الأدوار',
   '/repair-options': 'خيارات الإصلاح',
-  '/roles':         'الأدوار',
-  '/specializations':  'التخصصات',
-  '/workshop-status':  'حالة الورشة',
-  '/spec-map':         'خريطة التخصصات',
-  '/scheduler':        'الجدولة',
-  '/flow':             'The Flow',
-  '/bulk-assign':      'تعيين جماعي',
+  // Off-nav routes — breadcrumb still works if visited directly
+  '/branches':       'الفروع',
+  '/reports':        'التقارير',
+  '/inventory':      'المخزون',
+  '/services':       'الخدمات',
+  '/workshop-status': 'حالة الورشة',
+  '/flow':           'The Flow',
+  '/bulk-assign':    'تعيين جماعي',
 };
 
 export default function Layout({ children }) {
