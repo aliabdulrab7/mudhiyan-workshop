@@ -6,13 +6,13 @@
 const ROW_COLORS = {
   success: {
     left:  'var(--success)',
-    bg:    'oklch(0.56 0.13 150 / 0.06)',
+    bg:    'rgba(74, 155, 111, 0.07)',
     text:  'var(--text)',
     icon:  '✓',
   },
   error: {
     left:  'var(--danger)',
-    bg:    'oklch(0.58 0.21 25 / 0.06)',
+    bg:    'rgba(200, 75, 58, 0.07)',
     text:  'var(--danger)',
     icon:  '✗',
   },
@@ -89,7 +89,7 @@ export default function BulkScanList({ rows }) {
 
       <style>{`
         @keyframes bulk-row-flash {
-          0%   { background: oklch(0.58 0.21 25 / 0.30); }
+          0%   { background: rgba(200, 75, 58, 0.22); }
           100% { background: transparent; }
         }
         .bulk-row-flash {

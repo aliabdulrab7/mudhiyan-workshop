@@ -68,8 +68,8 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
         <div style={{
           width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-          background: 'oklch(0.60 0.15 150 / 0.12)',
-          border: '1px solid oklch(0.60 0.15 150 / 0.25)',
+          background: 'rgba(74, 155, 111, 0.12)',
+          border: '1px solid rgba(74, 155, 111, 0.25)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <Icons.Check size={14} stroke="var(--success)" />
@@ -153,9 +153,9 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       {/* Approval link — waiting_approval */}
       {!order.locked_at && order.status === 'waiting_approval' && (
         <div style={{
-          background: 'oklch(0.80 0.12 80 / 0.08)',
-          border: '1px solid oklch(0.80 0.12 80 / 0.25)',
-          borderRight: '3px solid oklch(0.75 0.15 80)',
+          background: 'rgba(212, 133, 74, 0.08)',
+          border: '1px solid rgba(212, 133, 74, 0.25)',
+          borderRight: '3px solid #D4854A',
           borderRadius: 'var(--radius-sm)',
           padding: '10px 14px', marginBottom: 12,
         }}>
@@ -181,7 +181,7 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       {isWorkshop && !order.locked_at && order.status === 'in_repair' && (
         <div style={{
           background: 'var(--primary-soft)',
-          border: '1px solid oklch(0.55 0.19 270 / 0.2)',
+          border: '1px solid rgba(107, 127, 204, 0.20)',
           borderRight: '3px solid var(--primary)',
           borderRadius: 'var(--radius-sm)',
           padding: '10px 14px', marginBottom: 12,
@@ -205,8 +205,8 @@ export default function ScanResult({ order: initialOrder, onScanAgain, onOrderUp
       {/* Pickup wa.me — ready_for_return */}
       {!order.locked_at && order.status === 'ready_for_return' && (
         <div style={{
-          background: 'oklch(0.60 0.15 150 / 0.06)',
-          border: '1px solid oklch(0.60 0.15 150 / 0.2)',
+          background: 'rgba(74, 155, 111, 0.06)',
+          border: '1px solid rgba(74, 155, 111, 0.20)',
           borderRadius: 'var(--radius-sm)',
           padding: '10px 14px', marginBottom: 12,
         }}>

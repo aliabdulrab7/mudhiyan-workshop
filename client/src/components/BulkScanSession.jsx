@@ -241,7 +241,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
 
   if (phase === 'mode_selected') {
     return (
-      <div style={{ ...base, background: 'oklch(0.95 0.12 90)', color: 'oklch(0.30 0.09 80)' }}
+      <div style={{ ...base, background: 'rgba(212, 168, 67, 0.12)', color: '#7A5020' }}
            data-testid="bulk-scan__mode-strip__no-session">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {muteButton}
@@ -254,7 +254,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
 
   if (phase === 'scanning') {
     return (
-      <div style={{ ...base, background: 'oklch(0.82 0.17 70)', color: 'oklch(0.22 0.08 60)' }}
+      <div style={{ ...base, background: 'rgba(212, 133, 74, 0.18)', color: '#6B3A18' }}
            data-testid="bulk-scan__mode-strip__session-active">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {muteButton}
@@ -269,7 +269,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
 
   if (phase === 'ending') {
     return (
-      <div style={{ ...base, background: 'oklch(0.82 0.17 70)', color: 'oklch(0.22 0.08 60)' }}
+      <div style={{ ...base, background: 'rgba(212, 133, 74, 0.18)', color: '#6B3A18' }}
            data-testid="bulk-scan__mode-strip__ending">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {muteButton}
@@ -284,7 +284,7 @@ function ModeStrip({ phase, sessionType, counters, muted, onExitBulk, onEndSessi
 
   // summary
   return (
-    <div style={{ ...base, background: 'oklch(0.88 0.14 150)', color: 'oklch(0.24 0.07 150)' }}
+    <div style={{ ...base, background: 'rgba(74, 155, 111, 0.15)', color: '#1E5A3C' }}
          data-testid="bulk-scan__mode-strip__summary">
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         {muteButton}
@@ -423,8 +423,8 @@ function ScanReadyBadge({ focused }) {
     return (
       <span data-testid="bulk-scan__scan-ready-badge" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12,
-        color: 'var(--success)', background: 'oklch(0.56 0.13 150 / 0.10)',
-        border: '1px solid oklch(0.56 0.13 150 / 0.28)',
+        color: 'var(--success)', background: 'rgba(74, 155, 111, 0.10)',
+        border: '1px solid rgba(74, 155, 111, 0.28)',
         padding: '6px 12px', borderRadius: 999, fontWeight: 700,
       }}>
         <span style={{
@@ -434,9 +434,9 @@ function ScanReadyBadge({ focused }) {
         جاهز للمسح
         <style>{`
           @keyframes bulk-scan-pulse {
-            0%   { box-shadow: 0 0 0 0 oklch(0.56 0.13 150 / 0.55); }
-            70%  { box-shadow: 0 0 0 8px oklch(0.56 0.13 150 / 0); }
-            100% { box-shadow: 0 0 0 0 oklch(0.56 0.13 150 / 0); }
+            0%   { box-shadow: 0 0 0 0 rgba(74, 155, 111, 0.55); }
+            70%  { box-shadow: 0 0 0 8px rgba(74, 155, 111, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(74, 155, 111, 0); }
           }
         `}</style>
       </span>
@@ -446,11 +446,11 @@ function ScanReadyBadge({ focused }) {
   return (
     <span data-testid="bulk-scan__scan-paused-badge" style={{
       display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12,
-      color: 'oklch(0.35 0.12 70)', background: 'oklch(0.92 0.13 80)',
-      border: '1px solid oklch(0.82 0.17 70)',
+      color: '#7A4A20', background: 'rgba(212, 133, 74, 0.12)',
+      border: '1px solid rgba(212, 133, 74, 0.30)',
       padding: '6px 12px', borderRadius: 999, fontWeight: 700, cursor: 'pointer',
     }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'oklch(0.75 0.16 70)' }} />
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#D4854A' }} />
       اضغط هنا لاستئناف المسح
     </span>
   );
@@ -460,8 +460,8 @@ function EndingBadge() {
   return (
     <span data-testid="bulk-scan__ending-badge" style={{
       display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12,
-      color: 'oklch(0.35 0.12 70)', background: 'oklch(0.92 0.13 80)',
-      border: '1px solid oklch(0.82 0.17 70)',
+      color: '#7A4A20', background: 'rgba(212, 133, 74, 0.12)',
+      border: '1px solid rgba(212, 133, 74, 0.30)',
       padding: '6px 12px', borderRadius: 999, fontWeight: 700,
     }}>
       جاري الإنهاء…
@@ -486,14 +486,14 @@ function SummaryCard({ sessionType, counters, rows, onNewSession, onExitBulk }) 
         <div style={{
           padding: '18px 20px',
           borderBottom: '1px solid var(--border)',
-          background: 'oklch(0.96 0.06 150)',
+          background: 'rgba(74, 155, 111, 0.08)',
         }}>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>
             {sessionType?.label}
           </div>
           <div
             data-testid="bulk-scan__summary-headline"
-            style={{ fontSize: 17, fontWeight: 800, color: 'oklch(0.28 0.09 150)' }}
+            style={{ fontSize: 17, fontWeight: 800, color: '#1E5A3C' }}
           >
             {headline}
           </div>

@@ -762,7 +762,7 @@ export default function OrderDetail({ order: initial, onClose, onUpdated }) {
 // Urgent uses danger colorway via inline style since Chip has no built-in
 // variant system — no new CSS classes needed.
 const PRIORITY_CHIP = {
-  urgent: { label: 'عاجل', style: { background: 'oklch(0.98 0.02 25)', borderColor: 'oklch(0.55 0.18 25 / 0.35)', color: 'var(--danger)' } },
+  urgent: { label: 'عاجل', style: { background: 'rgba(200, 75, 58, 0.06)', borderColor: 'rgba(200, 75, 58, 0.30)', color: 'var(--danger)' } },
   low:    { label: 'منخفض', style: null },
 };
 
@@ -770,8 +770,8 @@ const PRIORITY_CHIP = {
 // track page has its own display; we don't want to leak these back there.
 // 'pending' renders no badge (normal pre-approval state).
 const APPROVAL_BADGE = {
-  approved: { label: 'موافق عليه',    icon: 'check', bg: 'oklch(0.7 0.15 145 / 0.12)', fg: 'var(--success)' },
-  rejected: { label: 'مرفوض',         icon: 'x',     bg: 'oklch(0.58 0.21 25 / 0.1)',  fg: 'var(--danger)'  },
+  approved: { label: 'موافق عليه',    icon: 'check', bg: 'rgba(74, 155, 111, 0.12)',  fg: 'var(--success)' },
+  rejected: { label: 'مرفوض',         icon: 'x',     bg: 'rgba(200, 75, 58, 0.10)',   fg: 'var(--danger)'  },
   skipped:  { label: 'مجاني — مشمول', icon: null,    bg: 'var(--bg-soft)',             fg: 'var(--text-muted)' },
 };
 
@@ -808,7 +808,7 @@ function ItemRow({ item, isWorkshop, canEditCost, canAssignTech, saving, onSave,
       alignItems: 'center', gap: 10, fontSize: 12.5,
       // Rejected items stay visible — technician needs to see them — but the
       // row is clearly muted so they're not mistaken for active work.
-      background: isRejected ? 'oklch(0.58 0.21 25 / 0.04)' : undefined,
+      background: isRejected ? 'rgba(200, 75, 58, 0.04)' : undefined,
       opacity:    isRejected ? 0.82 : 1,
     }}>
       <div>
