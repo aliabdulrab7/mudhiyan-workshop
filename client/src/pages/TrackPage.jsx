@@ -62,6 +62,8 @@ export default function TrackPage() {
   const [submitted,  setSubmitted]  = useState(null); // 'approved' | 'rejected' | 'mixed'
   const [submitError, setSubmitError] = useState(null);
 
+  useEffect(() => { document.title = 'تتبع الطلب | مضيان'; }, []);
+
   useEffect(() => {
     let timeoutId;
     function fetchOrder() {

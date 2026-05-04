@@ -43,6 +43,8 @@ export default function ScanPage() {
     }
   }, [lastScanned, state]);
 
+  useEffect(() => { document.title = 'مسح الباركود | مضيان'; }, []);
+
   useEffect(() => {
     const code = searchParams.get('code');
     if (code && code !== lastScanned) handleScan(code);

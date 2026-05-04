@@ -102,6 +102,8 @@ export default function ReportsPage() {
   const [liveLoading, setLiveLoading] = useState(true);
   const [liveError, setLiveError]     = useState(null);
 
+  useEffect(() => { document.title = 'التقارير | مضيان'; }, []);
+
   useEffect(() => {
     async function loadData() {
       setLoading(true); setError(null);

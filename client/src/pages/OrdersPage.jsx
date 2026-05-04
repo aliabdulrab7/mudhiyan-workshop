@@ -57,6 +57,8 @@ export default function OrdersPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => { document.title = 'الطلبات | مضيان'; }, []);
+
   useEffect(() => { load(search, filter); }, [filter]);
 
   useEffect(() => {
