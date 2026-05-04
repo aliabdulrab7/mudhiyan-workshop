@@ -7,8 +7,9 @@ function authHeaders() {
   return h;
 }
 
-export async function getSpecializations() {
-  const res = await fetch('/api/specializations', { headers: authHeaders() });
+export async function getSpecializations({ include_archived = false } = {}) {
+  const qs = include_archived ? '?include_archived=true' : '';
+  const res = await fetch(`/api/specializations${qs}`, { headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'فشل تحميل التخصصات');
   return Array.isArray(data) ? data : (data.items ?? []);
@@ -43,5 +44,32 @@ export async function deleteSpecialization(id) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'فشل حذف التخصص');
+  return data;
+}
+
+export async function archiveSpecialization(id) {
+  const res = await fetch(`/api/specializations/${id}/archive`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل أرشفة التخصص');
+  return data;
+}
+
+export async function restoreSpecialization(id) {
+  const res = await fetch(`/api/specializations/${id}/restore`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل استعادة التخصص');
+  return data;
+}
+
+export async function getSpecRefCount(id) {
+  const res = await fetch(`/api/specializations/${id}/ref-count`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل جلب عدد المراجع');
   return data;
 }

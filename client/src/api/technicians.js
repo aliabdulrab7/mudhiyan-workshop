@@ -30,9 +30,10 @@ export async function getTechnicians() {
 // Paginated/filterable read — used by the management page only.
 // Server contract: { items, total, limit, offset }. With ?with=workload each
 // item also carries active_count + urgent_count.
-export async function listTechnicians({ search, role_id, status, active, limit = 20, offset = 0, withWorkload = true } = {}) {
+export async function listTechnicians({ search, role_id, status, active, include_archived = false, limit = 20, offset = 0, withWorkload = true } = {}) {
   const params = { search, role_id, status, active, limit, offset };
   if (withWorkload) params.with = 'workload';
+  if (include_archived) params.include_archived = 'true';
   const url = `/api/technicians${qs(params)}`;
   const res = await fetch(url, { headers: authHeaders() });
   const data = await res.json();
@@ -225,6 +226,36 @@ export async function getSpecMap() {
   const res = await fetch('/api/technicians/item-type-spec-map', { headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'فشل تحميل خريطة التخصصات');
+  return data;
+}
+
+// POST /api/technicians/:id/archive — soft-archive (archived_at + active=0)
+export async function archiveTechnician(id) {
+  const res = await fetch(`/api/technicians/${id}/archive`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل أرشفة الفني');
+  return data;
+}
+
+// POST /api/technicians/:id/restore — clears archived_at and re-activates
+export async function restoreTechnician(id) {
+  const res = await fetch(`/api/technicians/${id}/restore`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل استعادة الفني');
+  return data;
+}
+
+// GET /api/technicians/:id/ref-count → { reference_count, referencing_tables }
+export async function getTechRefCount(id) {
+  const res = await fetch(`/api/technicians/${id}/ref-count`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل جلب عدد المراجع');
   return data;
 }
 

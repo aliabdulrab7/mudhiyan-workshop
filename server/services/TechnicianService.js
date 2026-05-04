@@ -40,7 +40,7 @@ function notFound(name, id) {
 function readTechRow(id) {
   return db.prepare(`
     SELECT t.id, t.user_id, t.name, t.role_id, t.status, t.phone, t.notes,
-           t.active, t.created_at,
+           t.active, t.archived_at, t.created_at,
            r.value AS role_value, r.display_label_ar AS role_display_label_ar,
            u.username
     FROM technicians t
@@ -148,6 +148,7 @@ function list({
   status = null,
   search = null,
   active = null,
+  include_archived = false,
   withWorkload = false,
   limit = 20,
   offset = 0,
@@ -173,6 +174,9 @@ function list({
   if (search) {
     where.push('t.name LIKE ? COLLATE NOCASE');
     params.push(`%${search}%`);
+  }
+  if (!include_archived) {
+    where.push('t.archived_at IS NULL');
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';

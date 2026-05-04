@@ -8,16 +8,18 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(requireRole('workshop'));
 
-// GET /api/technicians?role_id=&status=&search=&active=&with=workload&limit=&offset=
+// GET /api/technicians?role_id=&status=&search=&active=&with=workload&limit=&offset=&include_archived=true
 //
 // Returns { items, total, limit, offset }. Each item carries top-3
 // specializations; full list is on GET /:id. with=workload adds active_count
 // and urgent_count per row (separate aggregate, not joined into the row read).
+// Default: archived_at IS NULL (pass include_archived=true to include archived techs).
 router.get('/', (req, res) => {
   const { role_id, status, search, active, limit, offset } = req.query;
-  const withWorkload = req.query.with === 'workload';
+  const withWorkload     = req.query.with === 'workload';
+  const include_archived = req.query.include_archived === 'true';
   const result = TechnicianService.list({
-    role_id, status, search, active, withWorkload, limit, offset,
+    role_id, status, search, active, include_archived, withWorkload, limit, offset,
   });
   res.json(result);
 });
@@ -164,6 +166,40 @@ router.patch('/:id/status', (req, res) => {
     changedBy: req.user?.id ?? null,
   });
   res.json(tech);
+});
+
+// GET /api/technicians/:id/ref-count — count of open order-item assignments.
+// Declared before /:id (PATCH etc.) to prevent Express matching 'ref-count' as an id.
+router.get('/:id/ref-count', (req, res) => {
+  const techId = parseInt(req.params.id, 10);
+  const n = TechnicianService.countOpenAssignments(techId);
+  res.json({
+    reference_count: n,
+    referencing_tables: n > 0 ? [{ table: 'order_item_technicians', count: n }] : [],
+  });
+});
+
+// POST /api/technicians/:id/archive — soft-archive (archived_at + active=0).
+// NOT blocked by open assignments; manager's explicit choice to archive regardless.
+router.post('/:id/archive', (req, res) => {
+  const techId = parseInt(req.params.id, 10);
+  const tech = db.prepare(`SELECT id FROM technicians WHERE id = ?`).get(techId);
+  if (!tech) return res.status(404).json({ error: 'الفني غير موجود' });
+  db.prepare(
+    `UPDATE technicians SET active = 0, archived_at = datetime('now') WHERE id = ?`
+  ).run(techId);
+  res.json(TechnicianService.getDetail(techId));
+});
+
+// POST /api/technicians/:id/restore — clears archived_at and re-activates.
+router.post('/:id/restore', (req, res) => {
+  const techId = parseInt(req.params.id, 10);
+  const tech = db.prepare(`SELECT id FROM technicians WHERE id = ?`).get(techId);
+  if (!tech) return res.status(404).json({ error: 'الفني غير موجود' });
+  db.prepare(
+    `UPDATE technicians SET active = 1, archived_at = NULL WHERE id = ?`
+  ).run(techId);
+  res.json(TechnicianService.getDetail(techId));
 });
 
 // DELETE /api/technicians/:id — soft delete (active=0)

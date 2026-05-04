@@ -13,20 +13,29 @@ function normalizeNeeds(v) {
   return ALLOWED_NEEDS.includes(s) ? s : undefined; // undefined signals invalid
 }
 
-// GET /api/repair-options — all authenticated users. Optional ?item_type filter.
-// GET stays on requireAuth (not requireRole('workshop')) because
-// shop_employee needs this at /new intake to populate the
-// repair-type dropdown. Writes below are correctly workshop-only.
+// GET /api/repair-options?item_type=&include_archived=true
+// Default: archived_at IS NULL AND active = 1.
+// With ?include_archived=true: all rows regardless of archived_at (still active=1 unless ?active=all).
+// All authenticated users — shop_employee needs this at /new intake.
 router.get('/', (req, res) => {
   const { item_type } = req.query;
-  const rows = item_type
-    ? db.prepare(
-        `SELECT * FROM repair_options WHERE item_type = ? AND active = 1 ORDER BY sort_order, id`
-      ).all(item_type)
-    : db.prepare(
-        `SELECT * FROM repair_options ORDER BY item_type, sort_order, id`
-      ).all();
-  res.json(rows);
+  const includeArchived = req.query.include_archived === 'true';
+
+  let sql, params;
+  if (includeArchived) {
+    // Show all rows (active and inactive, archived and not) — management view.
+    sql = item_type
+      ? `SELECT * FROM repair_options WHERE item_type = ? ORDER BY sort_order, id`
+      : `SELECT * FROM repair_options ORDER BY item_type, sort_order, id`;
+    params = item_type ? [item_type] : [];
+  } else {
+    // Default: active only, not archived.
+    sql = item_type
+      ? `SELECT * FROM repair_options WHERE item_type = ? AND active = 1 AND archived_at IS NULL ORDER BY sort_order, id`
+      : `SELECT * FROM repair_options WHERE active = 1 AND archived_at IS NULL ORDER BY item_type, sort_order, id`;
+    params = item_type ? [item_type] : [];
+  }
+  res.json(db.prepare(sql).all(...params));
 });
 
 // POST /api/repair-options — workshop only
@@ -56,6 +65,26 @@ router.post('/', requireRole('workshop'), (req, res) => {
   }
 });
 
+// POST /api/repair-options/:id/archive — workshop only
+router.post('/:id/archive', requireRole('workshop'), (req, res) => {
+  const row = db.prepare('SELECT * FROM repair_options WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'الخيار غير موجود' });
+  db.prepare(
+    `UPDATE repair_options SET archived_at = datetime('now'), active = 0 WHERE id = ?`
+  ).run(row.id);
+  res.json(db.prepare('SELECT * FROM repair_options WHERE id = ?').get(row.id));
+});
+
+// POST /api/repair-options/:id/restore — workshop only
+router.post('/:id/restore', requireRole('workshop'), (req, res) => {
+  const row = db.prepare('SELECT * FROM repair_options WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'الخيار غير موجود' });
+  db.prepare(
+    `UPDATE repair_options SET archived_at = NULL, active = 1 WHERE id = ?`
+  ).run(row.id);
+  res.json(db.prepare('SELECT * FROM repair_options WHERE id = ?').get(row.id));
+});
+
 // PATCH /api/repair-options/:id — workshop only
 router.patch('/:id', requireRole('workshop'), (req, res) => {
   const row = db.prepare('SELECT * FROM repair_options WHERE id = ?').get(req.params.id);
@@ -71,7 +100,7 @@ router.patch('/:id', requireRole('workshop'), (req, res) => {
     needs = n;
   }
 
-  const active = req.body.active !== undefined ? (req.body.active ? 1 : 0) : row.active;
+  const active     = req.body.active !== undefined ? (req.body.active ? 1 : 0) : row.active;
   const sort_order = req.body.sort_order !== undefined ? parseInt(req.body.sort_order, 10) : row.sort_order;
 
   try {
@@ -87,11 +116,12 @@ router.patch('/:id', requireRole('workshop'), (req, res) => {
   }
 });
 
-// DELETE /api/repair-options/:id — workshop only
+// DELETE /api/repair-options/:id — hard delete; repair_options has no FK references.
+// Always returns { ok: true, reference_count: 0 } on success.
 router.delete('/:id', requireRole('workshop'), (req, res) => {
   const result = db.prepare('DELETE FROM repair_options WHERE id = ?').run(req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'الخيار غير موجود' });
-  res.json({ ok: true });
+  res.json({ ok: true, reference_count: 0, referencing_tables: [] });
 });
 
 module.exports = router;

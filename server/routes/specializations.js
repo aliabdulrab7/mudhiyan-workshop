@@ -3,7 +3,6 @@ const { db }  = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const {
   DuplicateSpecializationError,
-  SpecializationInUseError,
   ValidationError,
 } = require('../errors');
 
@@ -23,13 +22,28 @@ function readRow(id) {
   return db.prepare(`SELECT * FROM specializations WHERE id = ?`).get(id);
 }
 
-// GET /api/specializations → { items: [...] }
-router.get('/', (_req, res) => {
-  const items = db.prepare(`
-    SELECT id, value, display_label_ar, sort_order, active, created_at
-    FROM specializations ORDER BY sort_order, id
-  `).all();
-  res.json({ items });
+function specRefCount(id) {
+  const n = db.prepare(
+    `SELECT COUNT(*) AS n FROM technician_specializations WHERE specialization_id = ?`
+  ).get(id).n;
+  return { reference_count: n, referencing_tables: n > 0 ? [{ table: 'technician_specializations', count: n }] : [] };
+}
+
+// GET /api/specializations?include_archived=true → { items: [...] }
+// Default: archived_at IS NULL.
+router.get('/', (req, res) => {
+  const includeArchived = req.query.include_archived === 'true';
+  const sql = includeArchived
+    ? `SELECT * FROM specializations ORDER BY sort_order, id`
+    : `SELECT * FROM specializations WHERE archived_at IS NULL ORDER BY sort_order, id`;
+  res.json({ items: db.prepare(sql).all() });
+});
+
+// GET /api/specializations/:id/ref-count → { reference_count, referencing_tables }
+router.get('/:id/ref-count', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!readRow(id)) throw notFound();
+  res.json(specRefCount(id));
 });
 
 // POST /api/specializations { value, display_label_ar }
@@ -43,15 +57,34 @@ router.post('/', (req, res) => {
   ).get().next;
   let id;
   try {
-    id = db.prepare(`
-      INSERT INTO specializations (value, display_label_ar, sort_order)
-      VALUES (?, ?, ?)
-    `).run(value, label, sortOrder).lastInsertRowid;
+    id = db.prepare(
+      `INSERT INTO specializations (value, display_label_ar, sort_order) VALUES (?, ?, ?)`
+    ).run(value, label, sortOrder).lastInsertRowid;
   } catch (e) {
     if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') throw new DuplicateSpecializationError(value);
     throw e;
   }
   res.status(201).json(readRow(id));
+});
+
+// POST /api/specializations/:id/archive
+router.post('/:id/archive', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!readRow(id)) throw notFound();
+  db.prepare(
+    `UPDATE specializations SET archived_at = datetime('now'), active = 0 WHERE id = ?`
+  ).run(id);
+  res.json(readRow(id));
+});
+
+// POST /api/specializations/:id/restore
+router.post('/:id/restore', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!readRow(id)) throw notFound();
+  db.prepare(
+    `UPDATE specializations SET archived_at = NULL, active = 1 WHERE id = ?`
+  ).run(id);
+  res.json(readRow(id));
 });
 
 // PATCH /api/specializations/:id — value is intentionally NOT editable
@@ -83,15 +116,19 @@ router.patch('/:id', (req, res) => {
   res.json(readRow(id));
 });
 
-// DELETE /api/specializations/:id — soft; blocks if referenced.
+// DELETE /api/specializations/:id — soft-delete; blocked if referenced by any tech assignment.
 router.delete('/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);
   const row = readRow(id);
   if (!row) throw notFound();
-  const ref = db.prepare(
-    `SELECT COUNT(*) AS n FROM technician_specializations WHERE specialization_id = ?`
-  ).get(id).n;
-  if (ref > 0) throw new SpecializationInUseError(ref);
+  const { reference_count, referencing_tables } = specRefCount(id);
+  if (reference_count > 0) {
+    return res.status(409).json({
+      error: `لا يمكن حذف التخصص — مستخدم من ${reference_count} فني`,
+      reference_count,
+      referencing_tables,
+    });
+  }
   db.prepare(`UPDATE specializations SET active = 0 WHERE id = ?`).run(id);
   res.json(readRow(id));
 });

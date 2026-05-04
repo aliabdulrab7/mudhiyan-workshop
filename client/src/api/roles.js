@@ -7,8 +7,9 @@ function authHeaders() {
   return h;
 }
 
-export async function getRoles() {
-  const res = await fetch('/api/roles', { headers: authHeaders() });
+export async function getRoles({ include_archived = false } = {}) {
+  const qs = include_archived ? '?include_archived=true' : '';
+  const res = await fetch(`/api/roles${qs}`, { headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'فشل تحميل الأدوار');
   // Server returns { items: [...] }; legacy callers expect a flat array.
@@ -44,5 +45,32 @@ export async function deleteRole(id) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'فشل حذف الدور');
+  return data;
+}
+
+export async function archiveRole(id) {
+  const res = await fetch(`/api/roles/${id}/archive`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل أرشفة الدور');
+  return data;
+}
+
+export async function restoreRole(id) {
+  const res = await fetch(`/api/roles/${id}/restore`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل استعادة الدور');
+  return data;
+}
+
+export async function getRoleRefCount(id) {
+  const res = await fetch(`/api/roles/${id}/ref-count`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'فشل جلب عدد المراجع');
   return data;
 }

@@ -598,6 +598,23 @@ if (!columnExists('users', 'active')) {
   db.exec(`ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1`);
 }
 
+// ── nav/CRUD Phase 3: archived_at on entity tables ───────────────────────────
+// Soft-archive (hide from default lists) without destroying data.
+// Separate from the existing active flag: active=0 = "toggled off in UI";
+// archived_at IS NOT NULL = "intentionally archived, restore-able".
+if (!columnExists('roles', 'archived_at')) {
+  db.exec(`ALTER TABLE roles ADD COLUMN archived_at TEXT DEFAULT NULL`);
+}
+if (!columnExists('specializations', 'archived_at')) {
+  db.exec(`ALTER TABLE specializations ADD COLUMN archived_at TEXT DEFAULT NULL`);
+}
+if (!columnExists('repair_options', 'archived_at')) {
+  db.exec(`ALTER TABLE repair_options ADD COLUMN archived_at TEXT DEFAULT NULL`);
+}
+if (!columnExists('technicians', 'archived_at')) {
+  db.exec(`ALTER TABLE technicians ADD COLUMN archived_at TEXT DEFAULT NULL`);
+}
+
 // ── createOrder transaction ───────────────────────────────────────────────────
 
 const createOrder = db.transaction((data) => {
